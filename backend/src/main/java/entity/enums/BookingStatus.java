@@ -1,0 +1,5 @@
+package entity.enums;
+
+public enum BookingStatus {
+    PENDING, CONFIRMED, CANCELLED,CHECK_IN,CHECK_OUT
+}
