@@ -1,6 +1,6 @@
-package entity;
+package org.example.backend.entity;
 
-import entity.enums.RoleType;
+import org.example.backend.entity.enums.RoleType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;

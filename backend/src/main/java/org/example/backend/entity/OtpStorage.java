@@ -1,7 +1,7 @@
-package entity;
+package org.example.backend.entity;
 
 
-import entity.enums.OtpType;
+import org.example.backend.entity.enums.OtpType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;

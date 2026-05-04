@@ -1,7 +1,7 @@
-package entity;
+package org.example.backend.entity;
 
-import entity.enums.PaymentMethod;
-import entity.enums.PaymentStatus;
+import org.example.backend.entity.enums.PaymentMethod;
+import org.example.backend.entity.enums.PaymentStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;

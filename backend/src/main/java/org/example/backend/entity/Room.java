@@ -1,6 +1,6 @@
-package entity;
+package org.example.backend.entity;
 
-import entity.enums.RoomStatus;
+import org.example.backend.entity.enums.RoomStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;

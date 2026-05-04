@@ -1,4 +1,4 @@
-package entity.enums;
+package org.example.backend.entity.enums;
 
 public enum PaymentMethod {
     VNPAY, CASH, TRANSFER
