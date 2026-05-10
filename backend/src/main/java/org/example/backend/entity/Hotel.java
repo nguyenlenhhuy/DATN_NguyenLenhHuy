@@ -6,6 +6,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.List;
+
 @Entity
 @Table(name = "hotels")
 @Getter
@@ -18,4 +20,8 @@ public class Hotel {
     private String name;
     @Column(columnDefinition = "TEXT") private String address;
     @Column(name = "star_rating") private Integer starRating;
+
+    @OneToMany(mappedBy = "hotel")
+    private List<RoomType> roomTypes;
+
 }

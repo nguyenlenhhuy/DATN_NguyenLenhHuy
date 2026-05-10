@@ -38,7 +38,5 @@ public class SecurityConfig {
 
         return http.build();
     }
-
-    // Lưu ý: Không cần định nghĩa passwordEncoder ở đây nữa
-    // vì đã định nghĩa trong ApplicationConfig hoặc dùng Bean riêng.
+  
 }

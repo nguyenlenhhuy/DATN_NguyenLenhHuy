@@ -1,0 +1,31 @@
+<nav class="bg-white p-4 shadow flex justify-between items-center">
+  <div class="font-bold text-xl text-blue-600">HUY BOOKING</div>
+  <button class="bg-blue-600 text-white px-4 py-2 rounded" routerLink="/login">Đăng nhập</button>
+</nav>
+
+<header class="bg-blue-900 py-20 text-center text-white">
+  <h1 class="text-4xl font-bold">Tìm phòng khách sạn ưng ý</h1>
+  <div class="mt-8 max-w-4xl mx-auto bg-white p-4 rounded shadow-lg text-black grid grid-cols-3 gap-4">
+    <input type="text" placeholder="Địa điểm" class="border p-2 rounded">
+    <input type="date" class="border p-2 rounded">
+    <button class="bg-blue-600 text-white font-bold rounded">TÌM KIẾM</button>
+  </div>
+</header>
+
+<main class="max-w-6xl mx-auto py-10">
+  <h2 class="text-2xl font-bold mb-6">Phòng nổi bật</h2>
+  <div class="grid grid-cols-3 gap-6">
+    @for (room of featuredRooms(); track room.roomId) {
+      <div class="border rounded-lg overflow-hidden shadow hover:shadow-md transition">
+        <div class="h-48 bg-gray-200 flex items-center justify-center text-gray-400 italic">
+          
+        </div>
+        <div class="p-4">
+          <p class="text-sm text-blue-500 uppercase">{{room.hotelName}}</p>
+          <h3 class="font-bold text-lg">Phòng {{room.roomNumber}} - {{room.typeName}}</h3>
+          <p class="text-xl font-bold mt-2">{{room.price | number}} VNĐ</p>
+        </div>
+      </div>
+    }
+  </div>
+</main>
