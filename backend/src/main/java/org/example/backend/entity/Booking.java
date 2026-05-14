@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity @Table(name = "bookings") @Data
@@ -17,7 +18,14 @@ public class Booking {
     private LocalDate checkInDate;
     private LocalDate checkOutDate;
     @Column(name = "total_price", precision = 15, scale = 2) private BigDecimal totalPrice;
-    private BookingStatus status = BookingStatus.PENDING;
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
     @OneToMany(mappedBy = "booking", cascade = CascadeType.ALL)
     private List<BookingDetail> bookingDetails;
+    @ManyToOne
+    @JoinColumn(name = "hotel_id")
+    private Hotel hotel;
+    @Enumerated(EnumType.STRING) // Quan trọng: Để lưu Enum dưới dạng String trong DB
+    private BookingStatus status = BookingStatus.PENDING;
+
 }

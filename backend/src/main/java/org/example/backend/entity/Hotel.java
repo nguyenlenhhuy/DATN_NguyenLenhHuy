@@ -21,7 +21,12 @@ public class Hotel {
     @Column(columnDefinition = "TEXT") private String address;
     @Column(name = "star_rating") private Integer starRating;
 
+    @Column(name = "avg_rating")
+    private Double avgRating = 0.0;
+
+    @Column(name = "total_reviews")
+    private Integer totalReviews = 0;
+
     @OneToMany(mappedBy = "hotel")
     private List<RoomType> roomTypes;
-
 }
