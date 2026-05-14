@@ -1,5 +1,5 @@
 package org.example.backend.entity.enums;
 
 public enum PaymentMethod {
-    VNPAY, CASH, TRANSFER,BANK_TRANSFER
+    VNPAY, CASH, PAYOS,BANK_TRANSFER
 }
