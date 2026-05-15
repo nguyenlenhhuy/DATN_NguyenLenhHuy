@@ -15,4 +15,6 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
     Optional<Invoice> findByBookingId(Long bookingId);
     @Query("SELECT i FROM Invoice i JOIN FETCH i.booking WHERE i.id = :id")
     Optional<Invoice> findByIdWithBooking(@Param("id") Long id);
+
+
 }

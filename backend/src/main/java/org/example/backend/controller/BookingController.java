@@ -65,4 +65,22 @@ public class BookingController {
         bookingService.confirmPayment(id);
         return ResponseEntity.ok(Map.of("message", "Xác nhận thanh toán thành công."));
     }
+    @PutMapping("/{id}/cancel")
+    public ResponseEntity<?> cancelBooking(@PathVariable("id") Long bookingId, @RequestBody Map<String, Long> requestBody) {
+        // Giả sử userId được truyền từ Client lên (Thực tế sau này bạn sẽ lấy từ JWT token)
+        Long userId = requestBody.get("userId");
+        if (userId == null) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Thiếu thông tin người dùng thực hiện."));
+        }
+
+        try {
+            bookingService.cancelBooking(bookingId, userId);
+            return ResponseEntity.ok(Map.of("message", "Hủy đặt phòng thành công!"));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            // Trả về lỗi nghiệp vụ rõ ràng để frontend hiển thị thông báo cho user
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("message", "Hệ thống gặp sự cố xử lý. Vui lòng thử lại sau."));
+        }
+    }
 }

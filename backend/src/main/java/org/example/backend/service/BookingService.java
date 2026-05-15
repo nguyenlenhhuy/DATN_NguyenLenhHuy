@@ -6,13 +6,16 @@ import org.example.backend.dto.request.BookingRequest;
 import org.example.backend.dto.response.BookingHistoryResponseDTO;
 import org.example.backend.entity.*;
 import org.example.backend.entity.enums.BookingStatus;
+import org.example.backend.entity.enums.InvoiceStatus;
 import org.example.backend.entity.enums.PaymentMethod;
 import org.example.backend.entity.enums.PaymentStatus;
 import org.example.backend.repository.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -29,6 +32,9 @@ public class BookingService {
     private final ReviewRepository reviewRepository;
     private final RoomPriceRepository roomPriceRepository;
     private final EntityManager entityManager;
+
+    @Autowired
+    private AuditLogRepository auditLogRepository;
 
     /**
      * Chức năng Đặt phòng Online (Hoàn thiện)
@@ -194,5 +200,60 @@ public class BookingService {
                     .canReview(canReview)
                     .build();
         }).collect(Collectors.toList());
+    }
+    @Transactional
+    public void cancelBooking(Long bookingId, Long userId) {
+        // 1. Tìm và Khóa bản ghi Booking bằng Pessimistic Lock
+        // Lưu ý: Đảm bảo bookingRepository của bạn đã có hàm findByIdForUpdate hoặc đổi thành findById
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy thông tin đặt phòng này."));
+
+        // 2. Kiểm tra điều kiện trạng thái (Khớp với Enum BookingStatus trong code của bạn)
+        if (booking.getStatus() != BookingStatus.PENDING && booking.getStatus() != BookingStatus.CONFIRMED) {
+            throw new IllegalStateException("Trạng thái hiện tại không thể thực hiện hủy phòng qua ứng dụng.");
+        }
+
+        // 3. Xử lý chính sách hoàn tiền dựa trên thời gian Check-in
+        LocalDateTime now = LocalDateTime.now();
+
+        // Vì booking.getCheckInDate() của bạn trả về LocalDate, ta convert sang LocalDateTime lúc 14:00 (giờ check-in tiêu chuẩn) để tính Duration
+        LocalDateTime checkInDateTime = booking.getCheckInDate().atTime(14, 0);
+        long hoursUntilCheckIn = Duration.between(now, checkInDateTime).toHours();
+
+        Invoice invoice = invoiceRepository.findByBookingId(bookingId).orElse(null);
+        String refundLogDetail = "Không có hóa đơn thanh toán.";
+
+        if (invoice != null) {
+            // Khớp với thuộc tính getPaymentStatus() và Enum PaymentStatus trong code của bạn
+            if (invoice.getPaymentStatus() == PaymentStatus.PAID) {
+                // Hủy trước 24 giờ -> Hoàn tiền 100%
+                if (hoursUntilCheckIn >= 24) {
+                    invoice.setPaymentStatus(PaymentStatus.REFUNDED);
+                    refundLogDetail = "Đã cập nhật trạng thái hoàn tiền (Hủy trước " + hoursUntilCheckIn + " giờ).";
+                } else {
+                    // Hủy muộn dưới 24 giờ -> Giữ nguyên trạng thái PAID (hoặc phạt, không hoàn tiền)
+                    refundLogDetail = "Không hoàn tiền do hủy muộn (Hủy trước " + hoursUntilCheckIn + " giờ).";
+                }
+                invoiceRepository.save(invoice);
+            } else if (invoice.getPaymentStatus() == PaymentStatus.UNPAID) {
+                // Nếu chưa thanh toán thì có thể giữ nguyên UNPAID hoặc hệ thống tự hiểu là đơn hủy không cần thu
+                refundLogDetail = "Hóa đơn chưa thanh toán, hệ thống ghi nhận hủy.";
+            }
+        }
+
+        // 4. Giải phóng tài nguyên: Chuyển trạng thái Booking sang CANCELLED
+        booking.setStatus(BookingStatus.CANCELLED);
+        bookingRepository.save(booking);
+
+        // 5. Ghi Log hệ thống (Audit Log)
+        String logDescription = String.format("User %d đã hủy phòng thành công. %s", userId, refundLogDetail);
+        AuditLog auditLog = new AuditLog();
+        auditLog.setUserId(userId);
+        auditLog.setAction("CANCEL_BOOKING");
+        auditLog.setTargetId(bookingId);
+        auditLog.setDescription(logDescription);
+        auditLog.setCreatedAt(LocalDateTime.now());
+
+        auditLogRepository.save(auditLog);
     }
 }
