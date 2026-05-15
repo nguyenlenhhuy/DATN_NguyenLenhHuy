@@ -31,7 +31,7 @@ public class ApplicationConfig {
         return username -> userRepository.findByUsername(username)
                 .map(user -> org.springframework.security.core.userdetails.User
                         .withUsername(user.getUsername())
-                        .password(user.getPassword())
+                        .password(user.getPasswordHash())
                         .authorities("ROLE_" + user.getRole().getRoleType().name()) // Thêm Prefix ROLE_ chuẩn Security
                         .build())
                 .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy người dùng: " + username));

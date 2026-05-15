@@ -20,6 +20,7 @@ import org.example.backend.security.JwtUtils;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -31,7 +32,7 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final OtpStorageRepository otpStorageRepository;
-    private final BCryptPasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
     private final JavaMailSender mailSender;
     private final RoleRepository roleRepository;
     private final JwtUtils jwtUtils;
@@ -49,7 +50,7 @@ public class AuthService {
         user.setEmail(request.email());
         user.setFullName(request.fullName());
         user.setPhone(request.phone());
-        user.setPassword(passwordEncoder.encode(request.password()));
+        user.setPasswordHash(passwordEncoder.encode(request.password()));
         user.setStatus(UserStatus.PENDING);
         user.setRole(customerRole);
         // Giả sử bạn đã tìm Role từ roleId và set vào đây
@@ -105,7 +106,7 @@ public class AuthService {
         }
 
         // Kiểm tra mật khẩu băm
-        if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
+        if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPasswordHash())) {
             throw new RuntimeException("Mật khẩu không chính xác");
         }
 
@@ -167,7 +168,7 @@ public class AuthService {
                 .orElseThrow(() -> new RuntimeException("Người dùng không còn tồn tại"));
 
         // Mã hóa mật khẩu mới trước khi lưu
-        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
 
         // Xóa mã OTP để tránh dùng lại (Security Best Practice)

@@ -5,7 +5,7 @@ import org.example.backend.dto.request.ChangePasswordRequest;
 import org.example.backend.dto.response.UserProfileResponse;
 import org.example.backend.entity.User;
 import org.example.backend.entity.enums.UserStatus;
-import org.example.backend.exception.CustomException;
+import org.example.backend.exception.AppException;
 import org.example.backend.repository.UserRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -26,11 +26,11 @@ public class UserService {
     public UserProfileResponse getProfileByUsername(String username) {
         // Tìm user trong DB bằng username
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new CustomException("Không tìm thấy tài khoản người dùng!", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new AppException("Không tìm thấy tài khoản người dùng!", HttpStatus.NOT_FOUND));
 
         // Kiểm tra xem tài khoản có bị khóa không
         if (user.getStatus() == UserStatus.LOCKED) {
-            throw new CustomException("Tài khoản của bạn hiện đang bị khóa!", HttpStatus.FORBIDDEN);
+            throw new AppException("Tài khoản của bạn hiện đang bị khóa!", HttpStatus.FORBIDDEN);
         }
 
         // Map Entity sang DTO sạch để trả về (Bảo mật: tuyệt đối không trả về passwordHash)
@@ -52,16 +52,16 @@ public class UserService {
     public void changePassword(String username, ChangePasswordRequest request) {
         // Tìm user trong DB
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new CustomException("Không tìm thấy tài khoản người dùng!", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new AppException("Không tìm thấy tài khoản người dùng!", HttpStatus.NOT_FOUND));
 
         // 1. Dùng passwordEncoder.matches() để so khớp mật khẩu cũ thô với password_hash trong DB
         if (!passwordEncoder.matches(request.oldPassword(), user.getPasswordHash())) {
-            throw new CustomException("Mật khẩu cũ không chính xác!", HttpStatus.BAD_REQUEST);
+            throw new AppException("Mật khẩu cũ không chính xác!", HttpStatus.BAD_REQUEST);
         }
 
         // 2. Kiểm tra nghiệp vụ phụ: Tránh đổi mật khẩu mới trùng hệt mật khẩu cũ
         if (passwordEncoder.matches(request.newPassword(), user.getPasswordHash())) {
-            throw new CustomException("Mật khẩu mới không được trùng với mật khẩu cũ hiện tại!", HttpStatus.BAD_REQUEST);
+            throw new AppException("Mật khẩu mới không được trùng với mật khẩu cũ hiện tại!", HttpStatus.BAD_REQUEST);
         }
 
         // 3. Mã hóa mật khẩu mới bằng BCrypt và cập nhật lại vào Entity
