@@ -2,23 +2,21 @@ package org.example.backend.entity;
 
 import org.example.backend.entity.enums.RoleType;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 @Entity
-@Table(name="roles")
+@Table(name = "roles")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class Role {
+
     @Id
-    @GeneratedValue(strategy= GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "role_name", nullable = false, unique = true)
     private RoleType roleType;
-
 }
