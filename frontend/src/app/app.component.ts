@@ -5,6 +5,9 @@ import { RouterOutlet } from '@angular/router';
   selector: 'app-root',
   standalone: true,
   imports: [RouterOutlet],
-  template: `<router-outlet></router-outlet>`
+  templateUrl: './app.component.html',
+  styleUrl: './app.component.scss'
 })
-export class App { } // Đổi từ AppComponent thành App để khớp với lỗi của bạn
+export class AppComponent {
+  title = 'frontend';
+}
