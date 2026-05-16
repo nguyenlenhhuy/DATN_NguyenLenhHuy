@@ -22,65 +22,69 @@ public class BookingController {
     private final BookingService bookingService;
 
     /**
-     * Đặt phòng mới
+     * 1. Đặt phòng mới (Sửa lỗi: Thêm tham số bookingSource)
      */
     @PostMapping
     public ResponseEntity<Booking> createBooking(@RequestBody BookingRequest request) {
-        // Clean Code: Không try-catch. Service throw lỗi thì GlobalExceptionHandler sẽ xử lý.
-        return new ResponseEntity<>(bookingService.processBooking(request), HttpStatus.CREATED);
+        // Mặc định là ONLINE khi khách đặt qua API này
+        return new ResponseEntity<>(bookingService.processBooking(request, "ONLINE"), HttpStatus.CREATED);
     }
 
     /**
-     * Lấy lịch sử đặt phòng của chính người dùng hiện tại (Dựa trên Token)
+     * 2. Xác nhận thanh toán (Sửa lỗi: Thêm operatorId)
+     */
+    @PostMapping("/{id}/confirm-payment")
+    public ResponseEntity<Map<String, String>> confirmPayment(@PathVariable Long id, @RequestParam Long operatorId) {
+        bookingService.confirmPayment(id, operatorId);
+        return ResponseEntity.ok(Map.of("message", "Xác nhận thanh toán thành công."));
+    }
+
+    /**
+     * 3. Hủy đặt phòng (Sửa lỗi: Đồng bộ 4 tham số)
+     */
+    @PatchMapping("/{id}/cancel")
+    public ResponseEntity<Map<String, String>> cancelBooking(
+            @PathVariable Long id,
+            @RequestParam Long operatorId,
+            @RequestParam String userRole,
+            @RequestParam(required = false) String reason) {
+
+        bookingService.cancelBooking(id, operatorId, userRole, reason);
+        return ResponseEntity.ok(Map.of("message", "Đã hủy đặt phòng thành công."));
+    }
+
+    /**
+     * 4. Thủ tục Nhận phòng - CHECK-IN (Bổ sung mới)
+     */
+    @PutMapping("/{id}/check-in")
+    public ResponseEntity<Map<String, String>> checkIn(@PathVariable Long id, @RequestParam Long staffId) {
+        bookingService.checkIn(id, staffId);
+        return ResponseEntity.ok(Map.of("message", "Check-in thành công."));
+    }
+
+    /**
+     * 5. Thủ tục Trả phòng - CHECK-OUT (Bổ sung mới)
+     */
+    @PutMapping("/{id}/check-out")
+    public ResponseEntity<Map<String, String>> checkOut(@PathVariable Long id, @RequestParam Long staffId) {
+        bookingService.checkOut(id, staffId);
+        return ResponseEntity.ok(Map.of("message", "Check-out thành công."));
+    }
+
+    /**
+     * 6. Lấy lịch sử đặt phòng của chính người dùng
      */
     @GetMapping("/history")
     public ResponseEntity<List<BookingHistoryResponseDTO>> getMyHistory(Principal principal) {
-        // Lưu ý: Đảm bảo JwtProvider của bạn set userId vào subject của Principal
         Long userId = Long.parseLong(principal.getName());
         return ResponseEntity.ok(bookingService.getBookingHistory(userId));
     }
 
     /**
-     * Lấy lịch sử của bất kỳ User nào (Dành cho Admin/Staff)
+     * 7. Lấy lịch sử của bất kỳ User nào (Dành cho Admin/Staff)
      */
     @GetMapping("/history/{userId}")
     public ResponseEntity<List<BookingHistoryResponseDTO>> getUserHistory(@PathVariable Long userId) {
         return ResponseEntity.ok(bookingService.getBookingHistory(userId));
-    }
-
-    /**
-     * Hủy đặt phòng
-     */
-    @PatchMapping("/{id}/cancel")
-    public ResponseEntity<Map<String, String>> cancelBooking(@PathVariable Long id) {
-        bookingService.cancelBooking(id);
-        return ResponseEntity.ok(Map.of("message", "Đã hủy đặt phòng thành công."));
-    }
-
-    /**
-     * Xác nhận thanh toán
-     */
-    @PostMapping("/{id}/confirm-payment")
-    public ResponseEntity<Map<String, String>> confirmPayment(@PathVariable Long id) {
-        bookingService.confirmPayment(id);
-        return ResponseEntity.ok(Map.of("message", "Xác nhận thanh toán thành công."));
-    }
-    @PutMapping("/{id}/cancel")
-    public ResponseEntity<?> cancelBooking(@PathVariable("id") Long bookingId, @RequestBody Map<String, Long> requestBody) {
-        // Giả sử userId được truyền từ Client lên (Thực tế sau này bạn sẽ lấy từ JWT token)
-        Long userId = requestBody.get("userId");
-        if (userId == null) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Thiếu thông tin người dùng thực hiện."));
-        }
-
-        try {
-            bookingService.cancelBooking(bookingId, userId);
-            return ResponseEntity.ok(Map.of("message", "Hủy đặt phòng thành công!"));
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            // Trả về lỗi nghiệp vụ rõ ràng để frontend hiển thị thông báo cho user
-            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(Map.of("message", "Hệ thống gặp sự cố xử lý. Vui lòng thử lại sau."));
-        }
     }
 }

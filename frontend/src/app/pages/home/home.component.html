@@ -1,29 +1,57 @@
-<nav class="bg-white p-4 shadow flex justify-between items-center">
-  <div class="font-bold text-xl text-blue-600">HUY BOOKING</div>
-  <button class="bg-blue-600 text-white px-4 py-2 rounded" routerLink="/login">Đăng nhập</button>
+<!-- Thêm class .custom-nav để nhận hiệu ứng background trong suốt và blur -->
+<nav class="p-4 shadow flex justify-between items-center custom-nav fixed top-0 left-0 right-0 z-50">
+  <div class="font-bold text-xl text-white">HUY BOOKING</div>
+  <button class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition" routerLink="/login">
+    Đăng nhập
+  </button>
 </nav>
 
-<header class="bg-blue-900 py-20 text-center text-white">
-  <h1 class="text-4xl font-bold">Tìm phòng khách sạn ưng ý</h1>
-  <div class="mt-8 max-w-4xl mx-auto bg-white p-4 rounded shadow-lg text-black grid grid-cols-3 gap-4">
-    <input type="text" placeholder="Địa điểm" class="border p-2 rounded">
-    <input type="date" class="border p-2 rounded">
-    <button class="bg-blue-600 text-white font-bold rounded">TÌM KIẾM</button>
+<!-- Sử dụng class .hero thay thế cho màu nền đơn sắc để hiển thị ảnh nền Unsplash -->
+<header class="hero text-center text-white pt-24">
+  <div class="w-full">
+    <h1 class="text-5xl font-bold drop-shadow-md">Tìm phòng khách sạn ưng ý</h1>
+    
+    <!-- Áp dụng .search-container để giới hạn chiều rộng khu vực tìm kiếm -->
+    <div class="mt-8 mx-auto bg-white p-2 shadow-2xl text-black flex items-center search-container">
+      <!-- Áp dụng .search-wrapper để bo tròn cực đại thanh tìm kiếm -->
+      <div class="flex flex-1 items-center space-x-2 px-4 search-wrapper">
+        <input type="text" placeholder="Địa điểm" class="w-full p-2 focus:outline-none text-base">
+        <div class="h-6 w-px bg-gray-300"></div>
+        <input type="date" class="p-2 focus:outline-none text-gray-500 text-base">
+      </div>
+      <!-- Áp dụng .btn-search để tạo nút tìm kiếm màu cam bo tròn nổi bật -->
+      <button class="text-white font-bold px-8 py-3 uppercase text-sm tracking-wider transition btn-search">
+        TÌM KIẾM
+      </button>
+    </div>
   </div>
 </header>
 
-<main class="max-w-6xl mx-auto py-10">
-  <h2 class="text-2xl font-bold mb-6">Phòng nổi bật</h2>
-  <div class="grid grid-cols-3 gap-6">
+<main class="max-w-6xl mx-auto py-16 px-4">
+  <h2 class="text-3xl font-bold mb-8 text-gray-800">Phòng nổi bật</h2>
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
     @for (room of featuredRooms(); track room.roomId) {
-      <div class="border rounded-lg overflow-hidden shadow hover:shadow-md transition">
-        <div class="h-48 bg-gray-200 flex items-center justify-center text-gray-400 italic">
-          
+      <!-- Áp dụng .room-card để nhận hiệu ứng hover bay lên (translateY) -->
+      <div class="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition relative room-card">
+        
+        <!-- Hiển thị ảnh phòng khách sạn (đáp ứng định dạng css .room-card img) -->
+        <img src="https://images.unsplash.com/photo-1571896349842-33c89424de2d?q=80&w=2080" alt="Room image" class="w-full">
+        
+        <!-- Áp dụng .price-badge để hiển thị giá tiền màu cam bo tròn đè lên góc phải của ảnh -->
+        <div class="price-badge">
+          {{room.price | number}} VNĐ
         </div>
-        <div class="p-4">
-          <p class="text-sm text-blue-500 uppercase">{{room.hotelName}}</p>
-          <h3 class="font-bold text-lg">Phòng {{room.roomNumber}} - {{room.typeName}}</h3>
-          <p class="text-xl font-bold mt-2">{{room.price | number}} VNĐ</p>
+
+        <div class="p-5">
+          <p class="text-xs font-semibold text-blue-500 uppercase tracking-wider mb-1">
+            {{room.hotelName}}
+          </p>
+          <h3 class="font-bold text-xl text-gray-800 line-clamp-1">
+            Phòng {{room.roomNumber}} - {{room.typeName}}
+          </h3>
+          <p class="text-gray-500 text-sm mt-2 line-clamp-2">
+            Trải nghiệm dịch vụ đẳng cấp tại {{room.hotelName}} với không gian sang trọng và tiện nghi hiện đại.
+          </p>
         </div>
       </div>
     }

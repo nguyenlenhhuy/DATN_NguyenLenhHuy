@@ -8,7 +8,8 @@ import { RoomResponseDTO } from '../../models/room.model';
   selector: 'app-home',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './home.component.html'
+  templateUrl: './home.component.html',
+  styleUrl: './home.component.scss'
 })
 export class HomeComponent implements OnInit {
   private roomService = inject(RoomService);
