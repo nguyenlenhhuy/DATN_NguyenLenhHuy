@@ -1,11 +1,14 @@
 package org.example.backend.service;
 
+import lombok.RequiredArgsConstructor;
 import org.example.backend.repository.DashboardRepository;
+import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
-
+@Service
+@RequiredArgsConstructor
 public class DashboardService {
     private final DashboardRepository dashboardRepository;
 
