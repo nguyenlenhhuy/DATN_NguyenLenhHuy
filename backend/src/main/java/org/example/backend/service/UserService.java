@@ -44,6 +44,24 @@ public class UserService {
                 .build();
     }
 
+    // Thêm vào UserService.java
+
+    /**
+     * Khách hàng tự cập nhật thông tin cá nhân (Họ tên, SĐT)
+     */
+    // Thêm vào UserService.java
+    @Transactional
+    public void updateProfile(String username, UserProfileResponse updateRequest) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new org.example.backend.exception.AppException(
+                        "Không tìm thấy tài khoản để cập nhật!", org.springframework.http.HttpStatus.NOT_FOUND));
+
+        // Cập nhật thông tin từ request gửi lên
+        user.setFullName(updateRequest.getFullName());
+        user.setPhone(updateRequest.getPhone());
+
+        userRepository.save(user);
+    }
     @Transactional
     public void changePassword(String username, ChangePasswordRequest request) {
         User user = userRepository.findByUsername(username)

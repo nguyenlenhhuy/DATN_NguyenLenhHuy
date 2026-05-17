@@ -16,10 +16,17 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByUsername(String username);
     Optional<User> findByEmail(String email);
 
+    // BỔ SUNG: Tìm User qua số điện thoại để lấy tài khoản đang PENDING
+    Optional<User> findByPhone(String phone);
+
+    // BỔ SUNG: Kiểm tra xem email đã có ai dùng chưa
+    boolean existsByEmail(String email);
+
     @Query("SELECT u FROM User u WHERE u.isDeleted = false " +
             "AND u.role.roleType = :roleType " +
             "AND (:keyword IS NULL OR u.fullName LIKE %:keyword% OR u.email LIKE %:keyword% OR u.phone LIKE %:keyword%)")
     Page<User> searchUsersForAdmin(@Param("roleType") RoleType roleType,
                                    @Param("keyword") String keyword,
                                    Pageable pageable);
+    Optional<User> findByUsernameOrEmail(String username, String email);
 }

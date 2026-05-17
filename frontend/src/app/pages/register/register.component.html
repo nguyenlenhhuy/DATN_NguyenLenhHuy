@@ -1,0 +1,35 @@
+<div class="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+  <div class="max-w-md w-full bg-white rounded-3xl shadow-xl p-8">
+    
+    <div *ngIf="!isWaitingOtp">
+      <h2 class="text-3xl font-bold text-blue-600 mb-6 text-center">Đăng ký LuxeHotel</h2>
+      <form [formGroup]="registerForm" (ngSubmit)="onRegister()" class="space-y-4">
+        <input formControlName="fullName" placeholder="Họ và tên" class="w-full p-4 border rounded-2xl">
+        <input formControlName="email" type="email" placeholder="Email" class="w-full p-4 border rounded-2xl">
+        <input formControlName="password" type="password" placeholder="Mật khẩu" class="w-full p-4 border rounded-2xl">
+        <input formControlName="phone" placeholder="Số điện thoại" class="w-full p-4 border rounded-2xl">
+        <button type="submit" [disabled]="isLoading" class="w-full py-4 bg-blue-600 text-white font-bold rounded-2xl">
+          {{ isLoading ? 'Đang xử lý...' : 'Đăng ký ngay' }}
+        </button>
+      </form>
+    </div>
+
+    <div *ngIf="isWaitingOtp" class="text-center">
+      <h2 class="text-2xl font-bold mb-4">Xác thực OTP</h2>
+      <p class="mb-4 text-gray-500">Mã gửi đến: <b>{{ userEmail }}</b></p>
+      
+      <input [(ngModel)]="otpValue" placeholder="Nhập 6 số OTP" class="w-full p-4 text-center text-2xl tracking-widest border rounded-2xl mb-4">
+      
+      <button (click)="onVerify()" class="w-full py-4 bg-green-600 text-white font-bold rounded-2xl mb-4">Xác nhận</button>
+
+      <div *ngIf="!isEditingEmail">
+        <button (click)="isEditingEmail = true" class="text-blue-600 text-sm">Sai email? Cập nhật lại</button>
+      </div>
+
+      <div *ngIf="isEditingEmail" class="mt-4 p-4 bg-gray-50 rounded-xl">
+        <input [(ngModel)]="newEmailInput" placeholder="Email mới" class="w-full p-2 border rounded-lg mb-2">
+        <button (click)="updateEmail()" class="text-sm bg-blue-500 text-white px-4 py-2 rounded-lg">Gửi lại OTP</button>
+      </div>
+    </div>
+  </div>
+</div>

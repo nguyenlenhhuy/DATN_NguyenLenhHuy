@@ -16,37 +16,32 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @Configuration
 @RequiredArgsConstructor
 public class ApplicationConfig {
-
     private final UserRepository userRepository;
 
-    // 1. Định nghĩa Bean mã hóa mật khẩu (Để dùng chung cho toàn hệ thống)
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
-    // 2. Cấu hình UserDetailsService để Spring Security biết cách tìm User
     @Bean
     public UserDetailsService userDetailsService() {
-        return username -> userRepository.findByUsername(username)
+        return identifier -> userRepository.findByUsernameOrEmail(identifier, identifier)
                 .map(user -> org.springframework.security.core.userdetails.User
                         .withUsername(user.getUsername())
                         .password(user.getPasswordHash())
-                        .authorities("ROLE_" + user.getRole().getRoleType().name()) // Thêm Prefix ROLE_ chuẩn Security
+                        .authorities(user.getRole().getRoleType().name())
                         .build())
-                .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy người dùng: " + username));
+                .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy: " + identifier));
     }
 
-    // 3. Cấu hình AuthenticationProvider sử dụng Bean passwordEncoder đã định nghĩa ở trên
     @Bean
     public AuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
         authProvider.setUserDetailsService(userDetailsService());
-        authProvider.setPasswordEncoder(passwordEncoder()); // Sử dụng trực tiếp Method/Bean ở trên
+        authProvider.setPasswordEncoder(passwordEncoder());
         return authProvider;
     }
 
-    // 4. Khởi tạo AuthenticationManager để dùng trong xử lý Login tại Controller/Service
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
