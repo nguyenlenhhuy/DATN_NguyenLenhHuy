@@ -29,4 +29,5 @@ public interface UserRepository extends JpaRepository<User, Long> {
                                    @Param("keyword") String keyword,
                                    Pageable pageable);
     Optional<User> findByUsernameOrEmail(String username, String email);
+
 }

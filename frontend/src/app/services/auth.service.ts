@@ -23,12 +23,21 @@ export class AuthService {
   login(data: any): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/login`, data).pipe(
       tap(res => {
-        // Hỗ trợ cả trường 'token' hoặc 'accessToken' tùy Backend
         const jwtToken = res.token || res.accessToken;
         if (jwtToken) {
           localStorage.setItem('token', jwtToken);
-          localStorage.setItem('role', res.role);
           localStorage.setItem('username', res.username);
+          
+          // XỬ LÝ AN TOÀN CHO ROLE:
+          // Nếu res.role là Object (có chứa roleType), ta lấy roleType. Nếu là chuỗi, lấy trực tiếp.
+          let roleValue = '';
+          if (res.role && typeof res.role === 'object') {
+            roleValue = res.role.roleType || res.role.name || JSON.stringify(res.role);
+          } else {
+            roleValue = res.role || '';
+          }
+          
+          localStorage.setItem('role', roleValue);
           this.setLoginStatus(true);
         }
       })
@@ -67,7 +76,10 @@ export class AuthService {
   }
 
   getRole(): string | null {
-    return localStorage.getItem('role');
+    const role = localStorage.getItem('role');
+    // Nếu role bị lưu nhầm dạng [object Object], trả về null để Guard xử lý logic dự phòng
+    if (!role || role.includes('object Object')) return null;
+    return role;
   }
 
   // Đăng xuất: Xóa bộ nhớ và về trang chủ

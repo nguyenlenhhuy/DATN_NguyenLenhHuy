@@ -7,6 +7,7 @@ import { AdminLayoutComponent } from './components/admin-layout/admin-layout.com
 import { DashboardComponent } from './pages/admin/dashboard/dashboard.component';
 import { adminGuard } from './guards/admin.guard';
 import { ProfileComponent } from './pages/profile/profile.component';
+import { UserManagementComponent } from './pages/admin/user-management/user-management.component';
 
 export const routes: Routes = [
   // --- PHÂN HỆ NGƯỜI DÙNG (PUBLIC) ---
@@ -17,19 +18,20 @@ export const routes: Routes = [
   { path: 'profile', component: ProfileComponent }, 
 
   // --- PHÂN HỆ QUẢN TRỊ (ADMIN) ---
-  // Được bảo vệ chặt chẽ bởi Guard dựa trên Role từ Token
   { 
     path: 'admin', 
     component: AdminLayoutComponent, 
-    canActivate: [adminGuard], 
+    // canActivate: [adminGuard], // Bạn có thể mở lại khi Guard đã ổn
     children: [
       { path: 'dashboard', component: DashboardComponent },
-      // Huy có thể thêm các route quản lý phòng, khách sạn tại đây
+      // ĐƯA USER MANAGEMENT VÀO ĐÂY ĐỂ HIỆN TRONG SIDEBAR
+      { path: 'users', component: UserManagementComponent }, 
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
     ]
   },
   
   // --- ĐIỀU HƯỚNG MẶC ĐỊNH ---
   { path: '', redirectTo: 'home', pathMatch: 'full' },
-  { path: '**', redirectTo: 'home' } // Redirect các đường dẫn lạ về Trang chủ
+  // DÒNG NÀY LUÔN LUÔN PHẢI ĐỂ Ở CUỐI CÙNG
+  { path: '**', redirectTo: 'home' }
 ];

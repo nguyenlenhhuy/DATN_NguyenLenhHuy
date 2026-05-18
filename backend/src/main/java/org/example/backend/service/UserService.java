@@ -1,19 +1,26 @@
 package org.example.backend.service;
 
 import lombok.RequiredArgsConstructor;
+import org.example.backend.dto.request.AdminCreateUserRequest;
 import org.example.backend.dto.request.ChangePasswordRequest;
+import org.example.backend.dto.request.RegisterRequest;
 import org.example.backend.dto.response.UserProfileResponse;
+import org.example.backend.entity.Role;
 import org.example.backend.entity.User;
 import org.example.backend.entity.enums.RoleType;
 import org.example.backend.entity.enums.UserStatus;
 import org.example.backend.exception.AppException;
+import org.example.backend.repository.RoleRepository;
 import org.example.backend.repository.UserRepository;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -21,7 +28,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-
+    private final RoleRepository roleRepository;
     // --- CÁC HÀM CÓ SẴN CỦA BẠN ---
 
     @Transactional(readOnly = true)
@@ -95,14 +102,18 @@ public class UserService {
      * Thay đổi trạng thái hoạt động (Mở khóa hoặc Khóa tạm thời)
      */
     @Transactional
-    public void updateAccountStatus(Long userId, UserStatus newStatus) {
+    public void updateAccountStatus(Long userId, String statusName) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new AppException("Không tìm thấy tài khoản ID: " + userId, HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new AppException("Không tìm thấy người dùng", HttpStatus.NOT_FOUND));
 
-        user.setStatus(newStatus);
-        userRepository.save(user);
+        // Chuyển String sang Enum (Ví dụ: "ACTIVE" -> UserStatus.ACTIVE)
+        try {
+            user.setStatus(UserStatus.valueOf(statusName.toUpperCase()));
+            userRepository.save(user);
+        } catch (IllegalArgumentException e) {
+            throw new AppException("Trạng thái không hợp lệ: " + statusName, HttpStatus.BAD_REQUEST);
+        }
     }
-
     /**
      * Ngừng hoạt động tài khoản (Soft Delete)
      * Không xóa khỏi DB để giữ toàn vẹn dữ liệu lịch sử khách sạn.
@@ -116,6 +127,49 @@ public class UserService {
         user.setIsDeleted(true);
         user.setStatus(UserStatus.LOCKED); // Khóa quyền truy cập ngay lập tức
 
+        userRepository.save(user);
+    }
+    public List<User> getAllUsers() {
+        // Câu lệnh này tương đương "SELECT * FROM user;"
+        return userRepository.findAll();
+    }
+    @Transactional
+    public void createStaffAccount(AdminCreateUserRequest request) {
+        // 1. Kiểm tra xem Email đã tồn tại chưa
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new AppException("Email này đã được sử dụng!", HttpStatus.BAD_REQUEST);
+        }
+
+        // 2. Lấy quyền STAFF từ database
+        Role staffRole = roleRepository.findByRoleType(RoleType.STAFF)
+                .orElseThrow(() -> new AppException("Lỗi hệ thống: Không tìm thấy quyền STAFF", HttpStatus.INTERNAL_SERVER_ERROR));
+
+        // 3. Xây dựng User mới và kích hoạt luôn (ACTIVE)
+        User staff = User.builder()
+                .username(request.getUsername())
+                .email(request.getEmail())
+                .fullName(request.getFullName())
+                .passwordHash(passwordEncoder.encode(request.getPassword()))
+                .phone(request.getPhone())
+                .role(staffRole)
+                .status(UserStatus.ACTIVE) // Kích hoạt ngay, không cần OTP
+                .isDeleted(false)
+                .build();
+
+        userRepository.save(staff);
+    }
+
+    @Transactional
+    public void updateUserRole(Long userId, String newRoleName) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException("Không tìm thấy người dùng", HttpStatus.NOT_FOUND));
+
+        // Tìm Role dựa trên tên (Customer, Staff, Admin)
+        // Lưu ý: Nếu DB của bạn lưu RoleType là CUSTOMER (viết hoa) thì phải toUpperCase()
+        Role newRole = roleRepository.findByRoleType(RoleType.valueOf(newRoleName.toUpperCase()))
+                .orElseThrow(() -> new AppException("Quyền hạn không hợp lệ", HttpStatus.BAD_REQUEST));
+
+        user.setRole(newRole);
         userRepository.save(user);
     }
 }

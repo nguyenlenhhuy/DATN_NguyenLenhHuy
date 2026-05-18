@@ -1,52 +1,80 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router'; 
 import { AuthService } from '../../services/auth.service';
 import { LoginRequest } from '../../models/auth.model';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink], 
   templateUrl: './login.component.html'
 })
 export class LoginComponent {
-  loginData: LoginRequest = { username: '', password: '' };
+  // Đối tượng chứa dữ liệu form
+  loginData: LoginRequest = { 
+    username: '', 
+    password: '' 
+  };
+
+  // Biến để quản lý trạng thái UI
   errorMessage: string = '';
+  isLoading: boolean = false; 
 
-  constructor(private authService: AuthService, private router: Router) {}
+  constructor(
+    private authService: AuthService, 
+    private router: Router
+  ) {}
 
- onLogin(): void {
-  this.errorMessage = '';
-  this.authService.login(this.loginData).subscribe({
-    next: (res) => {
-      // DÒNG NÀY CỰC KỲ QUAN TRỌNG: Huy hãy mở F12 -> Console để xem kết quả này
-      console.log('Dữ liệu thực tế từ Backend:', res); 
+  /**
+   * Xử lý đăng nhập
+   */
+  onLogin(): void {
+    // Reset trạng thái trước khi gửi yêu cầu
+    this.errorMessage = '';
+    this.isLoading = true;
+    
+    // Gọi service xử lý đăng nhập
+    this.authService.login(this.loginData).subscribe({
+      next: (res) => {
+        const token = res.accessToken; 
+        const role = (res.role || '').toUpperCase(); 
 
-      // Kiểm tra xem tên biến có đúng là 'token' không hay là 'accessToken', 'jwt',...
-      if (res && (res.token || res.accessToken)) { 
-        const jwtToken = res.token || res.accessToken; // Linh hoạt lấy token
-        
-        localStorage.setItem('token', jwtToken);
-        localStorage.setItem('role', res.role);
-        localStorage.setItem('username', res.username);
-        
-        this.authService.setLoginStatus(true);
+        if (token) {
+          // Lưu thông tin vào LocalStorage
+          localStorage.setItem('token', token);
+          localStorage.setItem('role', role);
+          localStorage.setItem('username', res.username);
+          
+          // Cập nhật trạng thái đăng nhập cho toàn ứng dụng
+          this.authService.setLoginStatus(true);
 
-        if (res.role === 'ADMIN' || res.role === 'STAFF') {
-          this.router.navigate(['/admin/dashboard']);
-        } else {
-          this.router.navigate(['/home']);
+          // Điều hướng dựa trên vai trò (Role-based Routing)
+          if (role === 'ADMIN' || role === 'STAFF') {
+            this.router.navigate(['/admin/dashboard']);
+          } else {
+            this.router.navigate(['/home']);
+          }
         }
-      } else {
-        // Đây chính là dòng gây ra thông báo lỗi trên hình của bạn
-        this.errorMessage = 'Dữ liệu phản hồi từ máy chủ không hợp lệ (Thiếu Token).';
+        this.isLoading = false;
+      },
+      error: (err) => {
+        // Ưu tiên hiển thị lỗi từ server trả về, nếu không có thì dùng câu thông báo mặc định
+        this.errorMessage = err.error?.message || err.error || 'Tài khoản hoặc mật khẩu không chính xác.';
+        this.isLoading = false;
+        
+        // Tự động xóa thông báo lỗi sau 5 giây để giao diện sạch sẽ hơn (Option)
+        setTimeout(() => this.errorMessage = '', 5000);
       }
-    },
-    error: (err) => {
-      this.errorMessage = err.error || 'Đăng nhập thất bại.';
-    }
-  });
+    });
+  }
+
+  /**
+   * Phương thức hỗ trợ hiển thị/ẩn mật khẩu (Dùng cho icon mắt trên giao diện)
+   * @param input Element input mật khẩu
+   */
+  togglePassword(input: HTMLInputElement): void {
+    input.type = input.type === 'password' ? 'text' : 'password';
   }
 }

@@ -8,7 +8,6 @@ import { AuthService } from '../../services/auth.service';
   standalone: true,
   imports: [CommonModule, RouterModule],
   templateUrl: './admin-layout.component.html',
-
 })
 export class AdminLayoutComponent implements OnInit {
   currentUsername: string = 'Quản trị viên';
@@ -20,7 +19,10 @@ export class AdminLayoutComponent implements OnInit {
   }
 
   logout(): void {
-    this.authService.logout();
-    this.router.navigate(['/login']);
+    // 1. Gọi service để xóa token/session
+    this.authService.logout(); 
+    
+    // 2. Điều hướng về trang chủ thay vì '/login'
+    this.router.navigate(['/']); 
   }
 }

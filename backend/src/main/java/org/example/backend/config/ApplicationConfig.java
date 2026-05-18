@@ -20,18 +20,25 @@ public class ApplicationConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+        return new BCryptPasswordEncoder(); // Phải là BCrypt
     }
 
     @Bean
     public UserDetailsService userDetailsService() {
         return identifier -> userRepository.findByUsernameOrEmail(identifier, identifier)
-                .map(user -> org.springframework.security.core.userdetails.User
-                        .withUsername(user.getUsername())
-                        .password(user.getPasswordHash())
-                        .authorities(user.getRole().getRoleType().name())
-                        .build())
-                .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy: " + identifier));
+                .map(user -> {
+                    // Sử dụng getRoleType() theo đúng file Role.java bạn vừa gửi
+                    // .name() sẽ trả về chuỗi "ADMIN", "STAFF" hoặc "CUSTOMER"
+                    String roleName = user.getRole().getRoleType().name();
+                    String authority = "ROLE_" + roleName;
+
+                    return org.springframework.security.core.userdetails.User
+                            .withUsername(user.getUsername())
+                            .password(user.getPasswordHash()) // Cột password_hash trong DB
+                            .authorities(authority) // Nạp đủ: ROLE_ADMIN, ROLE_STAFF, hoặc ROLE_CUSTOMER
+                            .build();
+                })
+                .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy người dùng: " + identifier));
     }
 
     @Bean

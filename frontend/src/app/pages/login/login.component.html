@@ -1,49 +1,117 @@
-<div class="min-h-screen bg-slate-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-  <div class="sm:mx-auto w-full max-w-md">
-    <h2 class="text-center text-3xl font-extrabold text-white">ĐĂNG NHẬP HỆ THỐNG</h2>
-  </div>
+<div class="min-h-screen bg-[#090b11] flex items-center justify-center p-0 font-sans relative overflow-hidden selection:bg-[#d4af37]/30 selection:text-white">
+  
+  <div class="w-full max-w-4xl min-h-[600px] md:m-6 bg-[#11141d]/40 backdrop-blur-xl border border-white/[0.06] rounded-none md:rounded-[2rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.7)] overflow-hidden grid grid-cols-1 md:grid-cols-2 z-10">
+    
+    <div class="hidden md:block relative overflow-hidden group">
+      <div class="absolute inset-0 bg-gradient-to-t from-[#090b11] via-[#090b11]/40 to-transparent z-10 opacity-80"></div>
+      <div class="absolute inset-0 bg-[#d4af37]/5 z-10 mixed-blend-overlay"></div>
+      
+      <img 
+        src="https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80" 
+        alt="LuxeHotel Ambience" 
+        class="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105">
 
-  <div class="mt-8 sm:mx-auto w-full max-w-md">
-    <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-      <form class="space-y-6" (ngSubmit)="onLogin()">
+      <div class="absolute bottom-12 left-10 right-10 z-20 space-y-2">
+        <p class="text-[10px] tracking-[0.4em] uppercase text-[#d4af37] font-semibold">Tận hưởng đặc quyền</p>
+        <h2 class="text-2xl font-serif text-white leading-relaxed font-light">Khởi đầu hành trình của bạn.</h2>
+      </div>
+    </div>
+
+    <div class="p-8 md:p-12 flex flex-col justify-center relative">
+      
+      <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-[#d4af37]/5 rounded-full blur-[80px] pointer-events-none"></div>
+
+      <div class="text-center mb-8 z-10">
+        <h1 class="text-3xl font-serif text-transparent bg-clip-text bg-gradient-to-r from-[#f3e7c4] via-[#d4af37] to-[#aa8421] tracking-[0.25em] mb-2 uppercase font-medium">
+          LuxeHotel
+        </h1>
+        <div class="flex items-center justify-center gap-2">
+          <span class="h-[1px] w-6 bg-gradient-to-r from-transparent to-slate-600"></span>
+          <p class="text-slate-400 text-[10px] tracking-[0.35em] uppercase font-light">Đăng nhập tài khoản</p>
+          <span class="h-[1px] w-6 bg-gradient-to-l from-transparent to-slate-600"></span>
+        </div>
+      </div>
+
+      <div *ngIf="errorMessage" class="mb-6 p-4 bg-rose-500/5 border border-rose-500/20 text-rose-400 rounded-xl text-xs font-medium text-center flex items-center justify-center gap-2 z-10 animate-in fade-in slide-in-from-top-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+        </svg>
+        {{ errorMessage }}
+      </div>
+
+      <form (ngSubmit)="onLogin()" #loginForm="ngForm" class="space-y-5 z-10" autocomplete="off">
         
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Tài khoản (Email hoặc Username)</label>
-          <div class="mt-1">
-            <input 
-              name="username" 
-              [(ngModel)]="loginData.username" 
-              type="text" 
-              required 
-              placeholder="Nhập email hoặc username"
-              class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-          </div>
+        <div class="space-y-1.5">
+          <label class="text-[10px] text-slate-400 font-medium uppercase tracking-[0.15em] ml-1 block">Tên đăng nhập hoặc Email</label>
+          <input 
+            type="text" 
+            name="username" 
+            [(ngModel)]="loginData.username" 
+            #username="ngModel"
+            required
+            class="w-full bg-[#161a24]/50 border border-white/[0.08] rounded-xl py-3.5 px-4 text-sm text-white focus:border-[#d4af37]/60 focus:bg-[#161a24] focus:ring-1 focus:ring-[#d4af37]/30 outline-none transition-all duration-200 placeholder:text-slate-600"
+            placeholder="Nhập tài khoản của bạn">
+          <p *ngIf="username.touched && username.errors?.['required']" class="text-[11px] text-rose-400/90 ml-1">
+            Vui lòng nhập thông tin tài khoản.
+          </p>
         </div>
 
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Mật khẩu</label>
-          <div class="mt-1">
+        <div class="space-y-1.5">
+          <div class="flex justify-between items-center px-1">
+            <label class="text-[10px] text-slate-400 font-medium uppercase tracking-[0.15em] block">Mật khẩu</label>
+            <a routerLink="/forgot-password" class="text-[10px] font-medium text-[#d4af37] hover:text-[#f3e7c4] hover:underline underline-offset-4 transition-all tracking-wider">
+              Quên mật khẩu?
+            </a>
+          </div>
+          
+          <div class="relative">
             <input 
+              #passwordInput
+              type="password" 
               name="password" 
               [(ngModel)]="loginData.password" 
-              type="password" 
-              required 
-              placeholder="Nhập mật khẩu"
-              class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+              #password="ngModel"
+              required
+              class="w-full bg-[#161a24]/50 border border-white/[0.08] rounded-xl py-3.5 pl-4 pr-10 text-sm text-white focus:border-[#d4af37]/60 focus:bg-[#161a24] focus:ring-1 focus:ring-[#d4af37]/30 outline-none transition-all duration-200 placeholder:text-slate-600"
+              placeholder="••••••••">
+            
+            <button 
+              type="button"
+              (click)="passwordInput.type = passwordInput.type === 'password' ? 'text' : 'password'"
+              class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-[#d4af37] transition-colors p-1">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+            </button>
           </div>
+          <p *ngIf="password.touched && password.errors?.['required']" class="text-[11px] text-rose-400/90 ml-1">
+            Vui lòng nhập mật khẩu.
+          </p>
         </div>
 
-        <div *ngIf="errorMessage" class="text-red-600 text-sm font-medium bg-red-50 p-2 rounded">
-          ⚠️ {{ errorMessage }}
-        </div>
-
-        <div>
-          <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-            Đăng nhập
-          </button>
-        </div>
-
+        <button 
+          type="submit" 
+          [disabled]="loginForm.invalid || isLoading"
+          class="w-full py-4 bg-gradient-to-r from-[#d4af37] to-[#b8962e] disabled:from-slate-800 disabled:to-slate-800 disabled:text-slate-600 disabled:cursor-not-allowed text-black font-semibold text-xs uppercase tracking-[0.25em] rounded-xl transition-all duration-300 shadow-[0_12px_24px_-6px_rgba(212,175,55,0.2)] hover:shadow-[0_12px_24px_-2px_rgba(212,175,55,0.4)] hover:brightness-110 active:scale-[0.98]">
+          
+          <span class="flex items-center justify-center gap-2">
+            <svg *ngIf="isLoading" class="animate-spin h-4 w-4 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            {{ isLoading ? 'Đang xác thực...' : 'Đăng nhập ngay' }}
+          </span>
+        </button>
       </form>
+
+      <div class="mt-8 text-center z-10">
+        <p class="text-[11px] text-slate-500 tracking-wide">
+          Chưa có tài khoản thành viên? 
+          <a routerLink="/register" class="text-[#d4af37] hover:underline underline-offset-4 ml-1 transition-colors font-medium">Đăng ký tại đây</a>
+        </p>
+      </div>
+
     </div>
   </div>
 </div>
