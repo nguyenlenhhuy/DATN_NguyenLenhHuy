@@ -1,0 +1,296 @@
+<div class="matrix-container">
+  <header class="matrix-header">
+    <div class="title-group">
+      <h2>Sơ Đồ Quản Lý Phòng</h2>
+      <p class="hotel-sub">Khách sạn: LuxeHotel Management System</p>
+    </div>
+    <div class="header-actions">
+      <span class="role-badge" [ngClass]="userRole.toLowerCase()">Quyền hạn: {{ userRole }}</span>
+      <button *ngIf="userRole === 'ADMIN'" class="btn btn-add-main" (click)="openAddRoomModal()">
+        ⚙️ Thiết Lập Phòng Hệ Thống
+      </button>
+    </div>
+  </header>
+
+  <div class="control-panel">
+    <div class="filter-section">
+      <div class="filter-group">
+        <label>Trạng thái:</label>
+        <select [(ngModel)]="selectedStatusFilter" (change)="applyFilters()" class="form-select">
+          <option value="ALL">-- Tất cả trạng thái --</option>
+          <option *ngFor="let status of statusOptions" [value]="status">{{ status }}</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label>Tầng:</label>
+        <select [(ngModel)]="selectedFloorFilter" (change)="applyFilters()" class="form-select">
+          <option value="ALL">-- Tất cả các tầng --</option>
+          <option *ngFor="let f of floors" [value]="f">Tầng {{ f }}</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="room-grid">
+    <div class="room-card" *ngFor="let room of filteredRooms" [ngClass]="'card-' + room.status.toLowerCase()"
+      (click)="onCardClick(room, $event)">
+
+      <div class="room-card-image">
+        <img [src]="room.imageUrl || 'https://images.unsplash.com/photo-1566665797739-1674de7a421a?q=80&w=500'"
+          alt="Room Image" class="main-room-img" />
+      </div>
+
+      <div class="card-header">
+        <span class="room-num">Phòng {{ room.roomNumber }}</span>
+        <span class="floor-badge">Tầng {{ room.floor }}</span>
+      </div>
+
+      <div class="card-body">
+        <h4 class="type-title">{{ room.typeName }}</h4>
+        <p class="price-tag">{{ room.price | currency:'VND':'symbol':'1.0-0' }} / Đêm</p>
+
+        <div class="status-selector">
+          <label>🎯 Đổi trạng thái nhanh:</label>
+          <select [(ngModel)]="room.status" (change)="onStatusChange(room.roomId, $event)" class="select-status">
+            <option *ngFor="let opt of statusOptions" [value]="opt">
+              {{ opt === 'AVAILABLE' ? '🟢 Trống' : opt === 'OCCUPIED' ? '🔴 Có khách' : opt === 'CLEANING' ? '🟡 Dọn
+              phòng' : '⚫ Bảo trì' }}
+            </option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" *ngIf="isModalOpen">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>🛠️ THIẾT LẬP HẠ TẦNG PHÒNG MỚI</h3>
+        <button class="btn-close-x" (click)="closeAddRoomModal()">×</button>
+      </div>
+
+      <div class="modal-tabs">
+        <button class="tab-btn" [class.active]="activeTab === 'single'" (click)="switchTab('single')">Thêm phòng đơn
+          lẻ</button>
+        <button class="tab-btn" [class.active]="activeTab === 'floor'" (click)="switchTab('floor')">Thêm hàng loạt theo
+          tầng</button>
+      </div>
+
+      <div class="modal-body">
+        <div *ngIf="activeTab === 'single'">
+          <div class="form-row-two">
+            <div class="form-group">
+              <label>Số phòng <span class="required">*</span></label>
+              <input type="text" [(ngModel)]="newRoom.roomNumber" placeholder="Ví dụ: 101" class="input-field" />
+            </div>
+            <div class="form-group">
+              <label>Vị trí tầng <span class="required">*</span></label>
+              <input type="number" [(ngModel)]="newRoom.floor" (change)="onFloorChange('single')"
+                (keyup)="onFloorChange('single')" class="input-field" min="0" />
+            </div>
+          </div>
+
+          <div class="form-row-two margin-top">
+            <div class="form-group">
+              <label>Cấu hình loại phòng <span class="required">*</span></label>
+              <select [(ngModel)]="newRoom.roomTypeId" class="input-field select-field">
+                <option *ngFor="let type of roomTypes" [value]="type.id">{{ type.typeName }} — (Gốc: {{ type.basePrice |
+                  currency:'VND':'symbol':'1.0-0' }})</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Giá phòng riêng biệt (Để trống nếu dùng giá gốc)</label>
+              <input type="number" [(ngModel)]="newRoom.customPrice" placeholder="Ví dụ: 1350000" class="input-field" />
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="activeTab === 'floor'">
+          <div class="alert-info-box">
+            💡 <strong>Mẹo nghiệp vụ:</strong> Bộ sưu tập hình ảnh thiết lập ở dưới sẽ được tự động áp dụng và sao chép
+            nhân bản đồng bộ cho toàn bộ danh sách chuỗi phòng khởi tạo tại Tầng {{ floorBatchConfig.floor }}!
+          </div>
+
+          <div class="form-row-two">
+            <div class="form-group">
+              <label>Chọn tầng khởi tạo <span class="required">*</span></label>
+              <input type="number" [(ngModel)]="floorBatchConfig.floor" (change)="onFloorChange('batch')"
+                (keyup)="onFloorChange('batch')" class="input-field" min="0" />
+            </div>
+            <div class="form-group">
+              <label>Số lượng phòng muốn tạo <span class="required">*</span></label>
+              <input type="number" [(ngModel)]="floorBatchConfig.totalRooms" placeholder="Ví dụ: 12" class="input-field"
+                min="1" />
+            </div>
+          </div>
+
+          <div class="form-row-two margin-top">
+            <div class="form-group">
+              <label>Số phòng bắt đầu <span class="required">*</span></label>
+              <input type="number" [(ngModel)]="floorBatchConfig.startRoomNumber" placeholder="Ví dụ: 401"
+                class="input-field" />
+            </div>
+          </div>
+
+          <div class="form-row margin-top">
+            <div class="form-group">
+              <label>Giá phòng áp dụng chung cho loạt phòng này (Để trống nếu dùng giá gốc)</label>
+              <input type="number" [(ngModel)]="floorBatchConfig.applyCustomPrice" placeholder="Ví dụ: 1200000"
+                class="input-field" />
+            </div>
+          </div>
+        </div>
+
+        <div class="dynamic-image-section margin-top">
+          <div class="section-title-row">
+            <label class="section-label">Danh sách bộ sưu tập hình ảnh áp dụng</label>
+            <div class="btn-add-group">
+              <button type="button" class="btn-add-action" (click)="addImageRow('local')">＋ Chọn từ máy</button>
+              <button type="button" class="btn-add-action" (click)="addImageRow('web')">＋ Chèn link mạng</button>
+            </div>
+          </div>
+
+          <div class="image-rows-list">
+            <div class="image-row-item" *ngFor="let img of imageItems; let i = index">
+              <span class="type-indicator" [class.local-label]="img.source === 'local'">
+                {{ img.source === 'local' ? 'Máy tính' : 'Link Web' }}
+              </span>
+
+              <div class="input-container" *ngIf="img.source === 'local'">
+                <div class="custom-file-upload-wrapper">
+                  <input type="file" (change)="onFileSelected($event, i)" accept="image/*" class="file-picker-input" />
+                  <span class="preview-text-status" *ngIf="img.url">✔️ Đã nạp ảnh thành công</span>
+                </div>
+              </div>
+
+              <div class="input-container" *ngIf="img.source === 'web'">
+                <input type="text" [(ngModel)]="img.url" placeholder="Dán link ảnh công khai tại đây (http://...)"
+                  class="input-field text-url-input" />
+              </div>
+
+              <div class="row-actions">
+                <label class="primary-check">
+                  <input type="radio" [checked]="img.isPrimary" name="addRoomPrimaryImg"
+                    (change)="setPrimaryImage(i)" />
+                  <span>Chính</span>
+                </label>
+                <button type="button" class="btn-remove-row" (click)="removeImageRow(i)">✕</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-cancel" (click)="closeAddRoomModal()">Hủy bỏ</button>
+        <button *ngIf="activeTab === 'single'" class="btn-submit" (click)="onSaveRoom()">Lưu thông tin</button>
+        <button *ngIf="activeTab === 'floor'" class="btn-submit btn-batch" (click)="onSaveBatchFloorRooms()">🚀 Khởi tạo
+          tầng hàng loạt</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" *ngIf="isEditModalOpen">
+    <div class="modal-box edit-box">
+      <div class="modal-header edit-header">
+        <h3>📝 CHỈNH SỬA & CẤU HÌNH PHÒNG {{ editRoom.roomNumber }}</h3>
+        <button class="btn-close-x" (click)="closeEditModal()">×</button>
+      </div>
+
+      <div class="modal-body">
+
+        <div class="room-media-carousel" *ngIf="imageItems && imageItems.length > 0">
+          <div class="carousel-viewport">
+            <img
+              [src]="imageItems[currentImgIndex].url || 'https://images.unsplash.com/photo-1566665797739-1674de7a421a?q=80&w=500'"
+              alt="Room Album Detail" class="carousel-active-img" />
+
+            <button class="carousel-nav-btn prev" (click)="prevImage($event)">‹</button>
+            <button class="carousel-nav-btn next" (click)="nextImage($event)">›</button>
+
+            <div class="carousel-badges">
+              <span class="badge-primary" *ngIf="imageItems[currentImgIndex].isPrimary">⭐ Ảnh đại diện chính</span>
+              <button class="btn-set-primary-slide" *ngIf="!imageItems[currentImgIndex].isPrimary"
+                (click)="setAsPrimaryFromSlide($event)">
+                📌 Đặt làm ảnh đại diện
+              </button>
+              <span class="badge-counter">{{ currentImgIndex + 1 }} / {{ imageItems.length }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row-two">
+          <div class="form-group">
+            <label>Số phòng</label>
+            <input type="text" [(ngModel)]="editRoom.roomNumber" class="input-field" />
+          </div>
+          <div class="form-group">
+            <label>Tầng vị trí</label>
+            <input type="number" [(ngModel)]="editRoom.floor" class="input-field" />
+          </div>
+        </div>
+
+        <div class="form-row-two margin-top">
+          <div class="form-group">
+            <label>Thay đổi phân loại phòng</label>
+            <select [(ngModel)]="editRoom.roomTypeId" class="input-field select-field">
+              <option *ngFor="let type of roomTypes" [value]="type.id">{{ type.typeName }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Giá phòng tùy biến riêng (VNĐ)</label>
+            <input type="number" [(ngModel)]="editRoom.customPrice" class="input-field"
+              placeholder="Nhập giá tiền tùy biến riêng" />
+          </div>
+        </div>
+
+        <div class="dynamic-image-section">
+          <div class="section-title-row">
+            <label class="section-label">Danh sách Album ảnh chi tiết (Chỉnh sửa bảng phụ)</label>
+            <div class="btn-add-group">
+              <button type="button" class="btn-add-action" (click)="addImageRow('local')">＋ Thêm từ máy</button>
+              <button type="button" class="btn-add-action" (click)="addImageRow('web')">＋ Thêm link Web</button>
+            </div>
+          </div>
+
+          <div class="image-rows-list">
+            <div class="image-row-item" *ngFor="let img of imageItems; let i = index"
+              [class.active-row-highlight]="i === currentImgIndex">
+              <span class="type-indicator" [class.local-label]="img.source === 'local'">
+                {{ img.source === 'local' ? 'Máy tính' : 'Link Web' }}
+              </span>
+
+              <div class="input-container" *ngIf="img.source === 'local'">
+                <input type="file" (change)="onFileSelected($event, i)" accept="image/*" class="file-picker-input" />
+                <span class="preview-text-status" *ngIf="img.url">✔️ Đã cập nhật file ảnh</span>
+              </div>
+
+              <div class="input-container" *ngIf="img.source === 'web'" (click)="currentImgIndex = i">
+                <input type="text" [(ngModel)]="img.url" placeholder="Đường dẫn ảnh chi tiết"
+                  class="input-field text-url-input" />
+              </div>
+
+              <div class="row-actions">
+                <label class="primary-check">
+                  <input type="radio" [checked]="img.isPrimary" name="editRoomPrimaryImgGroup" [value]="i"
+                    (change)="setPrimaryImage(i)" />
+                  <span>Chính</span>
+                </label>
+                <button type="button" class="btn-remove-row" (click)="removeImageRow(i)">✕</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer edit-footer">
+        <button class="btn-delete-left" (click)="onDeleteRoom(selectedRoomId)">🗑️ Xóa phòng khỏi hệ thống</button>
+        <div class="right-buttons">
+          <button class="btn-cancel" (click)="closeEditModal()">Đóng</button>
+          <button class="btn-submit" (click)="onUpdateRoom()">Cập nhật thay đổi</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

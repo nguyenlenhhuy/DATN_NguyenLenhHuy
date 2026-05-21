@@ -21,17 +21,28 @@ export const routes: Routes = [
   { 
     path: 'admin', 
     component: AdminLayoutComponent, 
-    // canActivate: [adminGuard], // Bạn có thể mở lại khi Guard đã ổn
+    // canActivate: [adminGuard], // Mở lại khi Guard của bạn đã hoạt động ổn định
     children: [
       { path: 'dashboard', component: DashboardComponent },
+      
       // ĐƯA USER MANAGEMENT VÀO ĐÂY ĐỂ HIỆN TRONG SIDEBAR
       { path: 'users', component: UserManagementComponent }, 
+
+      // ĐÃ CHỈNH SỬA: Đưa Quản lý phòng vào làm con của Admin Layout
+      // Chỉ để là 'rooms', Angular tự hiểu URL đầy đủ là: /admin/rooms
+      { 
+        path: 'rooms', 
+        loadComponent: () => import('./components/room-matrix/room-matrix.component').then(m => m.RoomMatrixComponent),
+        title: 'Hệ thống Quản lý Phòng - Admin'
+      },
+
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
     ]
   },
   
   // --- ĐIỀU HƯỚNG MẶC ĐỊNH ---
   { path: '', redirectTo: 'home', pathMatch: 'full' },
-  // DÒNG NÀY LUÔN LUÔN PHẢI ĐỂ Ở CUỐI CÙNG
+  
+  // ĐÃ CHỈNH SỬA: DÒNG NÀY BẮT BUỘC LUÔN LUÔN PHẢI ĐỂ Ở DƯỚI CÙNG
   { path: '**', redirectTo: 'home' }
 ];
