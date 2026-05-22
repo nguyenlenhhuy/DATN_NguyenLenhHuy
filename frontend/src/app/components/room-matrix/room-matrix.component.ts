@@ -24,12 +24,12 @@ export class RoomMatrixComponent implements OnInit {
   activeTab: 'single' | 'floor' = 'single'; 
 
   selectedStatusFilter: string = 'ALL';
-  selectedFloorFilter: string = 'ALL'; // Biến lưu giữ bộ lọc tầng hiện tại
+  selectedFloorFilter: string = 'ALL'; // Biến lưu giữ trạng thái bộ lọc tầng hiện tại
   floors: number[] = [];
   statusOptions = Object.values(RoomStatus);
 
   imageItems: { source: 'local' | 'web', url: string, isPrimary: boolean }[] = [];
-  currentImgIndex: number = 0;
+  currentImgIndex: number = 0; // Vị trí ảnh đang hiển thị trong Carousel Slide
 
   newRoom: RoomRequest & { customPrice?: number } = {
     hotelId: this.currentHotelId,
@@ -68,16 +68,13 @@ export class RoomMatrixComponent implements OnInit {
     }
   }
 
-  // ĐÃ SỬA GIỮ BỘ LỌC: Hàm load data không tự ý reset bộ lọc về 'ALL' nữa
+  // GIỮ BỘ LỌC: Gọi applyFilters() ngay sau khi lấy dữ liệu để giữ vững tầng đang chọn
   loadRoomMatrix(): void {
     this.roomService.getRoomsByHotel(this.currentHotelId).subscribe({
       next: (data) => {
         this.rooms = data;
-        // Thu thập danh sách các tầng để vẽ thẻ select
         this.floors = Array.from(new Set(data.map(r => r.floor))).sort((a, b) => a - b);
-        
-        // Kích hoạt hàm apply bộ lọc để giữ đúng tầng người dùng đang chọn trước đó
-        this.applyFilters();
+        this.applyFilters(); // Kích hoạt bộ lọc để cố định tầng hiện tại
       },
       error: (err: any) => alert('Thông báo hệ thống: ' + (err.error?.message || err.message))
     });
@@ -129,7 +126,7 @@ export class RoomMatrixComponent implements OnInit {
       this.imageItems.forEach((img, idx) => {
         img.isPrimary = idx === this.currentImgIndex;
       });
-      alert(`Đã đặt ảnh số ${this.currentImgIndex + 1} làm hình đại diện chính thành công!`);
+      alert(`Đã chọn ảnh số ${this.currentImgIndex + 1} làm hình đại diện chính thành công!`);
     }
   }
 
@@ -239,7 +236,6 @@ export class RoomMatrixComponent implements OnInit {
     this.isEditModalOpen = true;
   }
 
-  // ĐÃ SỬA CHỨC NĂNG ĐỔI ẢNH: Gọi API PUT gửi toàn bộ cấu hình ảnh đại diện lên Server
   onUpdateRoom(): void {
     if (!this.editRoom.roomNumber.trim() || !this.editRoom.floor) {
       alert('Vui lòng nhập đầy đủ Số phòng và Tầng!');
@@ -252,12 +248,11 @@ export class RoomMatrixComponent implements OnInit {
       isPrimary: img.isPrimary
     }));
 
-    // Thực hiện gọi hàm API lưu dữ liệu thực tế xuống DB
     this.roomService.updateRoom(this.selectedRoomId, this.editRoom).subscribe({
       next: (res: any) => {
         alert(res.message || 'Cập nhật thông tin phòng và ảnh đại diện thành công!');
         this.closeEditModal();
-        this.loadRoomMatrix(); // Gọi lại hàm nạp, hàm này sẽ tự động giữ nguyên filter tầng cho bạn
+        this.loadRoomMatrix(); 
       },
       error: (err: any) => alert('Cập nhật thất bại: ' + (err.error?.message || err.message))
     });
@@ -325,7 +320,6 @@ export class RoomMatrixComponent implements OnInit {
     }
   }
 
-  // ĐÃ SỬA GIỮ BỘ LỌC: Logic lọc dữ liệu null-safe, bám sát các biến filter trên giao diện
   applyFilters(): void {
     this.filteredRooms = this.rooms.filter(room => {
       const matchStatus = this.selectedStatusFilter === 'ALL' || room.status === this.selectedStatusFilter;
@@ -334,22 +328,19 @@ export class RoomMatrixComponent implements OnInit {
     });
   }
 
- onStatusChange(roomId: number, event: Event): void {
-  const selectElement = event.target as HTMLSelectElement;
-  const newStatus = selectElement.value as RoomStatus;
-
-  this.roomService.updateRoomStatus(roomId, newStatus).subscribe({
-    next: (msg: any) => {
-      // Thông báo và reload lại ma trận, bộ lọc giữ tầng vẫn được bảo toàn nguyên vẹn
-      alert(msg.message || 'Cập nhật trạng thái thành công!');
-      this.loadRoomMatrix(); 
-    },
-    error: (err: any) => {
-      alert('Cập nhật thất bại: ' + (err.error?.message || err.message));
-      this.loadRoomMatrix(); // Nếu lỗi thì ép nạp lại dữ liệu cũ từ DB để reset select về đúng trạng thái gốc
-    }
-  });
-}
+  // ĐÃ CHỈNH SỬA: Sử dụng tham số newStatus truyền trực tiếp để cô lập Enum chuẩn xác
+  onStatusChange(roomId: number, newStatus: RoomStatus): void {
+    this.roomService.updateRoomStatus(roomId, newStatus).subscribe({
+      next: (msg: any) => {
+        alert(msg.message || 'Cập nhật trạng thái phòng thành công!');
+        this.loadRoomMatrix(); 
+      },
+      error: (err: any) => {
+        alert('Cập nhật trạng thái thất bại: ' + (err.error?.message || err.message));
+        this.loadRoomMatrix(); 
+      }
+    });
+  }
 
   onDeleteRoom(roomId: number): void {
     if (confirm('Bạn có chắc chắn muốn xóa phòng này khỏi hệ thống?')) {

@@ -8,7 +8,7 @@ import org.example.backend.entity.*;
 import org.example.backend.entity.enums.BookingStatus;
 import org.example.backend.entity.enums.PaymentMethod;
 import org.example.backend.entity.enums.PaymentStatus;
-import org.example.backend.entity.enums.RoomStatus; // Đã import Enum của bạn
+import org.example.backend.entity.enums.RoomStatus;
 import org.example.backend.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +32,9 @@ public class BookingService {
     private final RoomPriceRepository roomPriceRepository;
     private final AuditLogRepository auditLogRepository;
     private final EntityManager entityManager;
+
+    // ĐÃ BỔ SUNG: Tiêm UserRepository để kiểm tra tính toàn vẹn của ID nhân viên vận hành
+    private final UserRepository userRepository;
 
     /**
      * 1. CHỨC NĂNG ĐẶT PHÒNG
@@ -138,7 +141,6 @@ public class BookingService {
             invoiceRepository.save(invoice);
         }
 
-        // Cập nhật trạng thái phòng bằng Enum RoomStatus
         if (booking.getStatus() == BookingStatus.CHECK_IN) {
             roomRepository.updateRoomStatusByBookingId(bookingId, RoomStatus.AVAILABLE);
         }
@@ -164,7 +166,6 @@ public class BookingService {
         booking.setStatus(BookingStatus.CHECK_IN);
         bookingRepository.save(booking);
 
-        // Chuyển trạng thái phòng sang OCCUPIED (Đang sử dụng)
         roomRepository.updateRoomStatusByBookingId(bookingId, RoomStatus.OCCUPIED);
 
         saveAuditLog(staffId, "CHECK_IN", bookingId, "Check-in thành công.");
@@ -185,7 +186,6 @@ public class BookingService {
         booking.setStatus(BookingStatus.CHECK_OUT);
         bookingRepository.save(booking);
 
-        // Chuyển trạng thái phòng sang DIRTY (Cần dọn dẹp)
         roomRepository.updateRoomStatusByBookingId(bookingId, RoomStatus.DIRTY);
 
         Invoice invoice = invoiceRepository.findByBookingId(bookingId)
@@ -271,9 +271,19 @@ public class BookingService {
         invoiceRepository.save(invoice);
     }
 
+    /**
+     * ĐÃ ĐIỀU CHỈNH: Kiểm tra an toàn khóa ngoại. Nếu nhân viên vận hành (userId)
+     * không tồn tại thực tế trong bảng users, gán giá trị null để MySQL chấp nhận ghi log an toàn.
+     */
     private void saveAuditLog(Long userId, String action, Long targetId, String description) {
         AuditLog auditLog = new AuditLog();
-        auditLog.setUserId(userId);
+
+        if (userId != null && userRepository.existsById(userId)) {
+            auditLog.setUserId(userId);
+        } else {
+            auditLog.setUserId(null);
+        }
+
         auditLog.setAction(action);
         auditLog.setTargetId(targetId);
         auditLog.setDescription(description);

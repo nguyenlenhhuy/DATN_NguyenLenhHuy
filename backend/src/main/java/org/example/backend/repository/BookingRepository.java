@@ -4,6 +4,7 @@ import jakarta.persistence.LockModeType;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import org.example.backend.entity.Booking;
+import org.example.backend.entity.Room;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -35,4 +36,11 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT b FROM Booking b WHERE b.id = :id")
     Optional<Booking> findByIdWithLock(@Param("id") Long id);
+    @Query("SELECT b FROM Booking b LEFT JOIN FETCH b.invoice LEFT JOIN FETCH b.user ORDER BY b.createdAt DESC")
+    List<Booking> findAllBookingsWithInvoiceAndUser();
+    @Query("SELECT b FROM Booking b " +
+            "JOIN b.bookingDetails bd " +
+            "WHERE bd.room.roomNumber = :roomNumber " +
+            "AND b.status != org.example.backend.entity.enums.BookingStatus.CANCELLED")
+    Optional<Booking> findByRoomNumber(@Param("roomNumber") String roomNumber);
 }

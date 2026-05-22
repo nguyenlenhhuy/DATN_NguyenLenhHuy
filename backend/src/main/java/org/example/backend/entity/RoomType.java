@@ -1,6 +1,7 @@
 package org.example.backend.entity;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -11,6 +12,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 @Entity @Table(name = "room_types") @Getter @Setter @NoArgsConstructor @AllArgsConstructor
+
 public class RoomType {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -21,5 +23,6 @@ public class RoomType {
     @Column(name = "is_featured")
     private Boolean isFeatured;
     @OneToMany(mappedBy = "roomType", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
     private List<RoomTypeImage> images;
 }

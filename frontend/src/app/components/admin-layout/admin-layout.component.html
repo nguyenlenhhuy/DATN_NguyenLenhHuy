@@ -1,54 +1,84 @@
-<div class="flex h-screen bg-gray-100 overflow-hidden">
-  <aside class="w-64 bg-slate-800 text-white flex flex-col justify-between shadow-lg">
+<div class="flex h-screen bg-slate-50 overflow-hidden font-sans">
+  <aside class="w-64 bg-slate-900 text-white flex flex-col justify-between shadow-xl z-20">
     <div>
-      <div class="p-5 text-center bg-slate-900 font-bold text-xl tracking-wider border-b border-slate-700">
-        🏨 HOTEL ADMIN
+      <div class="p-5 text-center bg-slate-950 font-extrabold text-lg tracking-wider border-b border-slate-800 text-blue-400 flex items-center justify-center gap-2">
+        <span>🏨</span> HOTEL PMS CONSOLE
       </div>
-      <nav class="mt-5 px-3 space-y-2">
-        <a routerLink="/admin/dashboard" routerLinkActive="bg-blue-600 text-white"
-          class="flex items-center px-4 py-3 text-gray-300 hover:bg-slate-700 hover:text-white rounded-md transition duration-200">
-          <span class="mx-3">📊 Tổng quan báo cáo</span>
+      
+      <nav class="mt-6 px-4 space-y-1.5">
+        <a routerLink="/admin/dashboard" routerLinkActive="bg-blue-600 text-white shadow-md shadow-blue-600/20 font-medium"
+          class="flex items-center px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-lg transition-all duration-200 group">
+          <span class="transition-transform group-hover:scale-110">📊</span>
+          <span class="mx-3 text-sm">Tổng quan báo cáo</span>
         </a>
-        <a routerLink="/admin/users" routerLinkActive="bg-blue-600 text-white"
-          class="flex items-center px-4 py-3 text-gray-300 hover:bg-slate-700 hover:text-white rounded-md transition duration-200">
-          <span class="mx-3">👥 Quản lý người dùng</span>
+
+        <a *ngIf="userRole === 'ADMIN'" routerLink="/admin/users" routerLinkActive="bg-blue-600 text-white shadow-md shadow-blue-600/20 font-medium"
+          class="flex items-center px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-lg transition-all duration-200 group">
+          <span class="transition-transform group-hover:scale-110">👥</span>
+          <span class="mx-3 text-sm">Quản lý người dùng</span>
         </a>
-        <a routerLink="/admin/rooms" routerLinkActive="bg-blue-600 text-white"
-          class="flex items-center px-4 py-3 text-gray-300 hover:bg-slate-700 hover:text-white rounded-md transition duration-200">
-          <span class="mx-3">🏨 Quản lý phòng</span>
+
+        <a *ngIf="userRole === 'ADMIN'" routerLink="/admin/rooms" routerLinkActive="bg-blue-600 text-white shadow-md shadow-blue-600/20 font-medium"
+          class="flex items-center px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-lg transition-all duration-200 group">
+          <span class="transition-transform group-hover:scale-110">🏨</span>
+          <span class="mx-3 text-sm">Quản lý phòng</span>
         </a>
-        <a routerLink="/admin/bookings" routerLinkActive="bg-blue-600 text-white"
-          class="flex items-center px-4 py-3 text-gray-300 hover:bg-slate-700 hover:text-white rounded-md transition duration-200">
-          <span class="mx-3">📝 Quản lý đặt phòng</span>
+
+        <a routerLink="/admin/bookings" routerLinkActive="bg-blue-600 text-white shadow-md shadow-blue-600/20 font-medium"
+          class="flex items-center px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-lg transition-all duration-200 group">
+          <span class="transition-transform group-hover:scale-110">🛎️</span>
+          <span class="mx-3 text-sm">Quản lý đặt phòng</span>
         </a>
-        <a routerLink="/admin/reviews" routerLinkActive="bg-blue-600 text-white"
-          class="flex items-center px-4 py-3 text-gray-300 hover:bg-slate-700 hover:text-white rounded-md transition duration-200">
-          <span class="mx-3">⭐ Quản lý đánh giá</span>
+
+        <a *ngIf="userRole === 'ADMIN'" routerLink="/admin/promotions" routerLinkActive="bg-blue-600 text-white shadow-md shadow-blue-600/20 font-medium"
+          class="flex items-center px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-lg transition-all duration-200 group">
+          <span class="transition-transform group-hover:scale-110">🏷️</span>
+          <span class="mx-3 text-sm">Quản lý khuyến mãi</span>
+        </a>
+
+        <a routerLink="/admin/reviews" routerLinkActive="bg-blue-600 text-white shadow-md shadow-blue-600/20 font-medium"
+          class="flex items-center px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-lg transition-all duration-200 group">
+          <span class="transition-transform group-hover:scale-110">⭐</span>
+          <span class="mx-3 text-sm">Quản lý đánh giá</span>
         </a>
       </nav>
     </div>
-    <div class="p-4 border-t border-slate-700">
+
+    <div class="p-4 border-t border-slate-800 bg-slate-950/40">
       <button (click)="logout()"
-        class="w-full flex justify-center items-center gap-2 bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-md font-medium transition duration-200">
-        🚪 Đăng xuất
+        class="w-full flex justify-center items-center gap-2 bg-red-500 hover:bg-red-600 text-white py-2.5 px-4 rounded-lg text-sm font-semibold shadow-lg shadow-red-500/10 transition-all duration-200 active:scale-[0.98]">
+        <span>🚪</span> Đăng xuất
       </button>
     </div>
   </aside>
 
   <div class="flex-1 flex flex-col overflow-hidden">
-    <header class="h-16 bg-white shadow flex items-center justify-between px-8 z-10">
-      <h1 class="text-xl font-semibold text-gray-800">Hệ thống quản trị</h1>
-      <div class="flex items-center space-x-3">
+    <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 z-10">
+      <div class="flex items-center gap-2">
+        <div class="w-1.5 h-5 bg-blue-600 rounded-full"></div>
+        <h1 class="text-lg font-bold text-slate-800 tracking-tight">Hệ thống quản trị vận hành</h1>
+      </div>
+      
+      <div class="flex items-center space-x-4 border-l border-slate-200 pl-4">
+        <div class="flex flex-col text-right hidden sm:flex">
+          <span class="text-sm font-semibold text-slate-700 leading-tight">{{ currentUsername || 'Nhân viên' }}</span>
+          <span class="text-[11px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider mt-0.5"
+            [ngClass]="userRole === 'ADMIN' ? 'text-blue-600 bg-blue-50' : 'text-amber-600 bg-amber-50'">
+            {{ userRole === 'ADMIN' ? 'Quản trị viên' : 'Lễ tân / Nhân viên' }}
+          </span>
+        </div>
         <div *ngIf="currentUsername"
-          class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">
+          class="w-9 h-9 rounded-xl bg-gradient-to-tr flex items-center justify-center text-white font-extrabold text-sm shadow-md"
+          [ngClass]="userRole === 'ADMIN' ? 'from-blue-600 to-sky-500 shadow-blue-500/20' : 'from-amber-500 to-orange-400 shadow-amber-500/20'">
           {{ currentUsername.charAt(0).toUpperCase() }}
         </div>
-        <span class="text-gray-700 font-medium">Xin chào, {{ currentUsername || 'Admin' }}</span>
       </div>
     </header>
 
-    <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-6">
-      <router-outlet></router-outlet>
+    <main class="flex-1 overflow-x-hidden overflow-y-auto bg-slate-50 p-6">
+      <div class="max-w-7xl mx-auto">
+        <router-outlet></router-outlet>
+      </div>
     </main>
   </div>
 </div>

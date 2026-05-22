@@ -1,26 +1,42 @@
-// Model Quản lý Khuyến mãi
-export interface Promotion {
-  id?: number;
+// --- PHÂN HỆ QUẢN LÝ CHƯƠNG TRÌNH KHUYẾN MÃI (PROMOTIONS) ---
+export interface PromotionRequestDTO {
   code: string;
-  discountPercentage: number; // Ví dụ: 10 nghĩa là giảm 10%
+  discountPercentage: number;
+  startDate: string; 
+  endDate: string;
+}
+
+export interface PromotionResponseDTO {
+  id: number;
+  code: string;
+  discountPercentage: number;
   startDate: string;
   endDate: string;
   isActive: boolean;
 }
 
-// Model Quản lý Đặt phòng liên kết dữ liệu PayOS
+// --- PHÂN HỆ NGHIỆP VỤ ĐẶT PHÒNG KHÁCH SẠN (BOOKINGS) ---
+export interface WalkInBookingRequestDTO {
+  roomNumber: string;
+  customerName: string;
+  customerPhone: string;
+  checkInDate: string;
+  checkOutDate: string;
+  appliedCode: string; // Áp dụng mã Voucher tại quầy cho đơn Walk-in
+}
+
 export interface BookingResponseDTO {
   bookingId: number;
   roomNumber: string;
   customerName: string;
   customerPhone: string;
   checkInDate: string;
-  checkInTime?: string;
   checkOutDate: string;
-  originalPrice: number;       // Giá phòng gốc
-  discountAmount: number;      // Số tiền được giảm
-  finalAmount: number;         // Số tiền thực tế khách phải trả
-  appliedCode?: string;        // Mã khuyến mãi đã dùng (nếu có)
-  paymentStatus: 'PENDING' | 'PAID' | 'CANCELLED'; // Trạng thái đồng bộ từ Webhook PayOS
-  payosOrderCode?: number;     // Mã đơn hàng định danh của PayOS
+  originalPrice: number;    
+  discountAmount: number;   
+  finalAmount: number;      // Số tiền thu ngân cuối cùng khớp chuẩn bảng invoices
+  appliedCode?: string;     
+  paymentStatus: 'UNPAID' | 'PAID' | 'REFUNDED'; // Đồng bộ cấu trúc bảng invoices
+  paymentMethod: 'VNPAY' | 'CASH' | 'TRANSFER';  // Đồng bộ phương thức thanh toán bảng invoices
+  bookingStatus: 'PENDING' | 'CONFIRMED' | 'CHECK_IN' | 'CHECK_OUT' | 'CANCELLED'; // Khớp trạng thái bảng bookings
 }

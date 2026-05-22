@@ -2,10 +2,9 @@
 export enum RoomStatus {
   AVAILABLE = 'AVAILABLE',
   OCCUPIED = 'OCCUPIED',
-  CLEANING = 'CLEANING',
+  CLEANING = 'DIRTY', // SỬA TẠI ĐÂY: Đồng bộ giá trị mapping khớp với từ khóa của Java DB
   MAINTENANCE = 'MAINTENANCE'
 }
-
 // Model soi chiếu cấu trúc DTO nhận vào của Phòng
 export interface RoomImageRequest {
   imageUrl: string;
@@ -64,4 +63,22 @@ export interface RoomResponseDTO {
   hotelName: string;
   imageUrl?: string;        
   albumImages?: string[];   
+}
+export interface CreateBookingRequest {
+  roomId: number;
+  customerName: string;
+  customerPhone: string;
+  checkInDate: string;  // Định dạng YYYY-MM-DD
+  checkOutDate: string; // Định dạng YYYY-MM-DD
+  appliedCode?: string; // Mã giảm giá (nếu có)
+}
+
+export interface QuickBookingDetailDTO {
+  bookingId: number;
+  customerName: string;
+  customerPhone: string;
+  checkInDate: string;
+  checkOutDate: string;
+  finalAmount: number;
+  paymentStatus: 'PENDING' | 'PAID' | 'CANCELLED';
 }

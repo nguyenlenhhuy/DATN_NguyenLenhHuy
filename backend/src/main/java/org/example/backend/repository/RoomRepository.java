@@ -29,4 +29,10 @@ public interface RoomRepository extends JpaRepository<Room, Long>, JpaSpecificat
     @Query("UPDATE Room r SET r.status = :status WHERE r.id IN " +
             "(SELECT bd.room.id FROM BookingDetail bd WHERE bd.booking.id = :bookingId)")
     void updateRoomStatusByBookingId(@Param("bookingId") Long bookingId, @Param("status") RoomStatus status);
+    // Ép Spring dùng câu lệnh JPQL này, không cho nó tự phân tích tên hàm nữa
+    @Query("SELECT r FROM Room r WHERE r.hotel.id = :hotelId")
+    List<Room> findByHotelId(@Param("hotelId") Long hotelId);
+    Optional<Room> findByRoomNumber(String roomNumber);
+    List<Room> findAllByStatus(RoomStatus status);
+
 }
