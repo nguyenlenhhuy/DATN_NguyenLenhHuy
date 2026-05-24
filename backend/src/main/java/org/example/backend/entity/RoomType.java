@@ -2,6 +2,7 @@ package org.example.backend.entity;
 
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -16,7 +17,9 @@ import java.util.List;
 public class RoomType {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @ManyToOne @JoinColumn(name = "hotel_id") private Hotel hotel;
+    @ManyToOne @JoinColumn(name = "hotel_id")
+    @JsonIgnoreProperties("roomTypes")
+    private Hotel hotel;
     @Column(name = "type_name") private String typeName;
     @Column(name = "base_price", precision = 15, scale = 2) private BigDecimal basePrice;
     @Column(name = "max_occupancy") private Integer maxOccupancy;

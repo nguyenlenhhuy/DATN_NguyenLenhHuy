@@ -98,7 +98,7 @@
       <div class="grid grid-cols-2 gap-4">
         <div>
           <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Gợi ý phòng đang trống <span class="text-red-500">*</span></label>
-          <select [(ngModel)]="walkInForm.roomNumber" class="w-full px-3.5 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500 text-sm bg-white font-semibold text-slate-800 transition">
+          <select [(ngModel)]="walkInForm.roomNumber" (change)="calculatePreviewPrice()" class="w-full px-3.5 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500 text-sm bg-white font-semibold text-slate-800 transition">
             <option value="" disabled selected>-- Chọn phòng sẵn có --</option>
             <option *ngFor="let roomNo of availableRooms" [value]="roomNo">🟢 Phòng số {{ roomNo }}</option>
           </select>
@@ -124,11 +124,11 @@
       <div class="grid grid-cols-2 gap-4">
         <div>
           <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Ngày nhận phòng <span class="text-red-500">*</span></label>
-          <input type="date" [(ngModel)]="walkInForm.checkInDate" class="w-full px-3.5 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500 text-sm transition" />
+          <input type="date" [(ngModel)]="walkInForm.checkInDate" (change)="calculatePreviewPrice()" class="w-full px-3.5 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500 text-sm transition" />
         </div>
         <div>
           <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Ngày trả phòng dự kiến <span class="text-red-500">*</span></label>
-          <input type="date" [(ngModel)]="walkInForm.checkOutDate" class="w-full px-3.5 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500 text-sm transition" />
+          <input type="date" [(ngModel)]="walkInForm.checkOutDate" (change)="calculatePreviewPrice()" class="w-full px-3.5 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500 text-sm transition" />
         </div>
       </div>
 
@@ -136,7 +136,7 @@
         <div>
           <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Gợi ý Voucher đang chạy</label>
           <select class="w-full px-3.5 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500 text-sm bg-white text-slate-800 transition"
-                  (change)="walkInForm.appliedCode = $any($event.target).value">
+                  (change)="onVoucherChange($event)">
             <option value="">-- Chọn nhanh Voucher --</option>
             <option *ngFor="let v of availableVouchers" [value]="v.code">
               🎁 {{ v.code }} (Giảm {{ v.discountPercentage }}%)
@@ -149,6 +149,23 @@
           <input type="text" [(ngModel)]="walkInForm.appliedCode" placeholder="Mã sẽ tự động điền" class="w-full px-3.5 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500 font-bold uppercase text-blue-600 tracking-wider text-sm bg-slate-50 transition" readonly />
         </div>
       </div>
+
+      <div class="bg-slate-50 p-4 rounded-xl border border-slate-200/60 space-y-2" *ngIf="previewOriginalPrice > 0">
+        <div class="flex justify-between text-xs text-slate-500 font-medium">
+          <span>Giá phòng gốc tạm tính:</span>
+          <span class="text-slate-600 font-semibold">{{ previewOriginalPrice | currency:'VND':'symbol':'1.0-0' }}</span>
+        </div>
+        <div class="flex justify-between text-xs text-rose-600 font-medium" *ngIf="previewDiscountAmount > 0">
+          <span>Tiền ưu đãi được giảm:</span>
+          <span>-{{ previewDiscountAmount | currency:'VND':'symbol':'1.0-0' }}</span>
+        </div>
+        <hr class="border-slate-200/80 my-1">
+        <div class="flex justify-between items-center">
+          <span class="text-sm font-bold text-slate-700">Thành tiền thực tế:</span>
+          <span class="text-lg font-black text-emerald-600">{{ previewFinalAmount | currency:'VND':'symbol':'1.0-0' }}</span>
+        </div>
+      </div>
+
     </div>
 
     <div class="bg-slate-50 px-6 py-4 flex justify-end gap-3 border-t border-slate-100">

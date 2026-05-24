@@ -1,6 +1,7 @@
 package org.example.backend.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import org.example.backend.entity.enums.RoomStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -30,7 +31,7 @@ public class Room {
 
     @ManyToOne
     @JoinColumn(name = "room_type_id", nullable = false)
-    @JsonIgnore
+    @JsonIgnoreProperties("rooms")
     private RoomType roomType;
 
     @Column(name = "room_number", nullable = false)
@@ -59,4 +60,6 @@ public class Room {
     public Long getRoomTypeId() {
         return this.roomType != null ? this.roomType.getId() : null;
     }
+    @Column(name = "is_deleted")
+    private Boolean isDeleted = false; // Mặc định khi tạo là false
 }

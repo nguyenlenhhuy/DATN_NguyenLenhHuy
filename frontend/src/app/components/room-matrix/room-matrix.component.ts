@@ -21,15 +21,25 @@ export class RoomMatrixComponent implements OnInit {
   
   isModalOpen: boolean = false;      
   isEditModalOpen: boolean = false;  
+  isTypeModalOpen: boolean = false; // Trạng thái Modal cấu hình Loại phòng
   activeTab: 'single' | 'floor' = 'single'; 
 
   selectedStatusFilter: string = 'ALL';
-  selectedFloorFilter: string = 'ALL'; // Biến lưu giữ trạng thái bộ lọc tầng hiện tại
+  selectedFloorFilter: string = 'ALL'; 
   floors: number[] = [];
   statusOptions = Object.values(RoomStatus);
 
   imageItems: { source: 'local' | 'web', url: string, isPrimary: boolean }[] = [];
-  currentImgIndex: number = 0; // Vị trí ảnh đang hiển thị trong Carousel Slide
+  currentImgIndex: number = 0; 
+
+  // Cấu trúc DTO đồng bộ hoàn chỉnh khớp với RoomTypeRequest của Java Backend
+  newTypeData = {
+    hotelId: this.currentHotelId,
+    typeName: '',
+    basePrice: undefined as number | undefined,
+    maxOccupancy: 2,
+    isFeatured: false
+  };
 
   newRoom: RoomRequest & { customPrice?: number } = {
     hotelId: this.currentHotelId,
@@ -68,27 +78,69 @@ export class RoomMatrixComponent implements OnInit {
     }
   }
 
-  // GIỮ BỘ LỌC: Gọi applyFilters() ngay sau khi lấy dữ liệu để giữ vững tầng đang chọn
+  // ĐÃ CẢI TIẾN: Giữ nguyên bộ lọc tầng hiện tại sau khi tải lại sơ đồ lưới phòng
   loadRoomMatrix(): void {
     this.roomService.getRoomsByHotel(this.currentHotelId).subscribe({
       next: (data) => {
         this.rooms = data;
         this.floors = Array.from(new Set(data.map(r => r.floor))).sort((a, b) => a - b);
-        this.applyFilters(); // Kích hoạt bộ lọc để cố định tầng hiện tại
+        this.applyFilters(); // Đảm bảo cố định tầng đang chọn
       },
       error: (err: any) => alert('Thông báo hệ thống: ' + (err.error?.message || err.message))
     });
   }
 
   loadRoomTypes(): void {
-    this.roomTypes = [
-      { id: 1, typeName: 'VIP Single', basePrice: 1200000, maxOccupancy: 2, isFeatured: true },
-      { id: 2, typeName: 'Standard Double', basePrice: 650000, maxOccupancy: 4, isFeatured: false },
-      { id: 3, typeName: 'VIP King', basePrice: 2500000, maxOccupancy: 2, isFeatured: true }
-    ];
-    if (this.roomTypes.length > 0) {
-      this.newRoom.roomTypeId = this.roomTypes[0].id;
-      this.floorBatchConfig.roomTypeId = this.roomTypes[0].id;
+    this.roomService.getRoomTypes().subscribe({
+      next: (types: RoomType[]) => {
+        this.roomTypes = types;
+        if (this.roomTypes.length > 0) {
+          this.newRoom.roomTypeId = this.roomTypes[0].id;
+          this.floorBatchConfig.roomTypeId = this.roomTypes[0].id;
+        }
+      },
+      error: (err: any) => console.error('Không thể nạp danh sách loại phòng:', err)
+    });
+  }
+
+  openTypeModal(): void {
+    this.isTypeModalOpen = true;
+    this.newTypeData = { hotelId: this.currentHotelId, typeName: '', basePrice: undefined, maxOccupancy: 2, isFeatured: false }; 
+  }
+
+  closeTypeModal(): void {
+    this.isTypeModalOpen = false;
+  }
+
+  // ĐÃ SỬA: Đọc thông điệp Object JSON (res.message) trả về từ Backend
+  onSaveRoomType(): void {
+    if (!this.newTypeData.typeName.trim() || !this.newTypeData.basePrice) {
+      alert('Vui lòng điền tên loại phòng và giá tiền gốc niêm yết!');
+      return;
+    }
+
+    this.newTypeData.hotelId = this.currentHotelId;
+
+    this.roomService.createRoomType(this.newTypeData).subscribe({
+      next: (savedType: any) => {
+        alert(`Khởi tạo phân loại phòng "${savedType.typeName}" thành công!`);
+        this.loadRoomTypes(); 
+        this.newTypeData = { hotelId: this.currentHotelId, typeName: '', basePrice: undefined, maxOccupancy: 2, isFeatured: false }; 
+      },
+      error: (err: any) => alert('Thêm phân loại thất bại: ' + (err.error?.message || err.message))
+    });
+  }
+
+  onDeleteRoomType(typeId: number): void {
+    if (confirm('Cảnh báo hệ thống: Nếu xóa loại phòng này, các phòng vật lý liên đới thuộc loại này sẽ bị ảnh hưởng. Tiếp tục?')) {
+      this.roomService.deleteRoomType(typeId).subscribe({
+        next: (res: any) => {
+          alert(res.message || 'Xóa loại phòng khỏi hệ thống thành công!');
+          this.loadRoomTypes(); 
+          this.loadRoomMatrix(); 
+        },
+        error: (err: any) => alert('Không thể xóa loại phòng: ' + (err.error?.message || err.message))
+      });
     }
   }
 
@@ -236,6 +288,7 @@ export class RoomMatrixComponent implements OnInit {
     this.isEditModalOpen = true;
   }
 
+  // ĐÃ SỬA: Đọc sạch cấu trúc res.message từ Object JSON phản hồi
   onUpdateRoom(): void {
     if (!this.editRoom.roomNumber.trim() || !this.editRoom.floor) {
       alert('Vui lòng nhập đầy đủ Số phòng và Tầng!');
@@ -254,7 +307,10 @@ export class RoomMatrixComponent implements OnInit {
         this.closeEditModal();
         this.loadRoomMatrix(); 
       },
-      error: (err: any) => alert('Cập nhật thất bại: ' + (err.error?.message || err.message))
+      error: (err: any) => {
+        const errMsg = err.error?.message || err.message || 'Cập nhật thất bại';
+        alert('Cập nhật thất bại: ' + errMsg);
+      }
     });
   }
 
@@ -262,6 +318,7 @@ export class RoomMatrixComponent implements OnInit {
     this.isEditModalOpen = false;
   }
 
+  // ĐÃ BỔ SUNG: Khối bẫy lỗi gõ trùng số phòng đang hoạt động hoặc nằm trong kho ẩn lịch sử gửi từ Custom Exception Backend
   onSaveRoom(): void {
     if (!this.newRoom.roomNumber.trim() || !this.newRoom.floor) {
       alert('Vui lòng nhập đầy đủ Số phòng và Tầng!');
@@ -278,11 +335,14 @@ export class RoomMatrixComponent implements OnInit {
 
     this.roomService.createRoom(this.newRoom).subscribe({
       next: () => {
-        alert(`Thêm thành công phòng ${this.newRoom.roomNumber}!`);
+        alert('Thêm thành công phòng mới vào hệ thống!');
         this.closeAddRoomModal();
         this.loadRoomMatrix();
       },
-      error: (err: any) => alert('Thất bại: ' + (err.error?.message || err.message))
+      error: (err: any) => {
+        const errMsg = err.error?.message || err.message || 'Thất bại';
+        alert('Không thể tạo phòng: ' + errMsg);
+      }
     });
   }
 
@@ -310,8 +370,8 @@ export class RoomMatrixComponent implements OnInit {
 
     if (confirm(`Hệ thống sẽ tự động khởi tạo ${this.floorBatchConfig.totalRooms} phòng tại Tầng ${this.floorBatchConfig.floor}. Xác nhận?`)) {
       this.roomService.createBulkRooms(batchPayload).subscribe({
-        next: (msg: string) => {
-          alert(msg || 'Khởi tạo tầng hàng loạt thành công!');
+        next: (res: any) => {
+          alert(res.message || 'Khởi tạo tầng hàng loạt thành công!');
           this.closeAddRoomModal();
           this.loadRoomMatrix();
         },
@@ -328,11 +388,10 @@ export class RoomMatrixComponent implements OnInit {
     });
   }
 
-  // ĐÃ CHỈNH SỬA: Sử dụng tham số newStatus truyền trực tiếp để cô lập Enum chuẩn xác
   onStatusChange(roomId: number, newStatus: RoomStatus): void {
     this.roomService.updateRoomStatus(roomId, newStatus).subscribe({
-      next: (msg: any) => {
-        alert(msg.message || 'Cập nhật trạng thái phòng thành công!');
+      next: (res: any) => {
+        alert(res.message || 'Cập nhật trạng thái phòng thành công!');
         this.loadRoomMatrix(); 
       },
       error: (err: any) => {
@@ -343,14 +402,14 @@ export class RoomMatrixComponent implements OnInit {
   }
 
   onDeleteRoom(roomId: number): void {
-    if (confirm('Bạn có chắc chắn muốn xóa phòng này khỏi hệ thống?')) {
+    if (confirm('Bạn có chắc chắn muốn xóa phòng này khỏi hệ thống? (Hệ thống sẽ thực hiện chuyển vào kho lưu trữ ẩn để giữ vững lịch sử đặt phòng)')) {
       this.roomService.deleteRoom(roomId).subscribe({
-        next: (msg: any) => {
-          alert(msg.message || 'Xóa phòng thành công');
+        next: (res: any) => {
+          alert(res.message || 'Xóa phòng thành công');
           this.closeEditModal();
           this.loadRoomMatrix();
         },
-        error: (err: any) => alert('Không thể xóa: ' + (err.error?.message || err.message))
+        error: (err: any) => alert('Không thể xóa phòng: ' + (err.error?.message || err.message))
       });
     }
   }

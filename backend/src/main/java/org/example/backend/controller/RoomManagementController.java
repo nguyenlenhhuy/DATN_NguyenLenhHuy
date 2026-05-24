@@ -1,11 +1,11 @@
 package org.example.backend.controller;
 
 import jakarta.validation.Valid;
+import org.example.backend.dto.request.RoomBatchRequest;
 import org.example.backend.dto.request.RoomRequest;
 import org.example.backend.dto.request.RoomTypeRequest;
-import org.example.backend.dto.request.RoomBatchRequest; // Đã tối ưu hóa import trực tiếp
-import org.example.backend.dto.response.RoomResponseDTO;
 import org.example.backend.dto.response.CustomerRoomResponseDTO;
+import org.example.backend.dto.response.RoomResponseDTO;
 import org.example.backend.entity.Room;
 import org.example.backend.entity.RoomType;
 import org.example.backend.service.RoomManagementService;
@@ -27,6 +27,12 @@ public class RoomManagementController {
 
     // ================= APIs LOẠI PHÒNG (ADMIN) =================
 
+    // ĐÃ BỔ SUNG: API lấy toàn bộ danh sách loại phòng để đồng bộ với thẻ Select và Table cấu hình của Angular
+    @GetMapping("/room-types")
+    public ResponseEntity<List<RoomType>> getRoomTypes() {
+        return ResponseEntity.ok(roomService.getRoomTypes());
+    }
+
     @PostMapping("/room-types")
     public ResponseEntity<RoomType> createRoomType(@Valid @RequestBody RoomTypeRequest request) {
         return ResponseEntity.ok(roomService.createRoomType(request));
@@ -36,7 +42,7 @@ public class RoomManagementController {
     public ResponseEntity<Map<String, String>> deleteRoomType(@PathVariable Long id) {
         roomService.deleteRoomType(id);
         // TỐI ƯU UX: Trả về cấu trúc JSON { "message": "..." } để Frontend Angular không bị lỗi parse text thô
-        return ResponseEntity.ok(Collections.singletonMap("message", "Xóa loại phòng thành công"));
+        return ResponseEntity.ok(Collections.singletonMap("message", "Xóa phân loại phòng hệ thống thành công!"));
     }
 
     // ================= APIs PHÒNG VẬT LÝ (ADMIN & STAFF) =================
@@ -46,10 +52,16 @@ public class RoomManagementController {
         return ResponseEntity.ok(roomService.createRoom(request));
     }
 
+    @PutMapping("/rooms/{id}")
+    public ResponseEntity<Map<String, String>> updateRoom(@PathVariable Long id, @Valid @RequestBody RoomRequest request) {
+        roomService.updateRoomDetails(id, request);
+        return ResponseEntity.ok(Collections.singletonMap("message", "Cập nhật thông tin phòng và ảnh đại diện thành công!"));
+    }
+
     @DeleteMapping("/rooms/{id}")
     public ResponseEntity<Map<String, String>> deleteRoom(@PathVariable Long id) {
-        roomService.deleteRoom(id);
-        return ResponseEntity.ok(Collections.singletonMap("message", "Xóa phòng thành công"));
+        roomService.deleteRoom(id); // Gọi xuống hàm xóa mềm (Soft Delete) của Service mới cập nhật
+        return ResponseEntity.ok(Collections.singletonMap("message", "Xóa phòng thành công (Hệ thống đã chuyển dữ liệu vào kho lưu trữ ẩn)!"));
     }
 
     @PatchMapping("/rooms/{id}/status")
@@ -73,16 +85,11 @@ public class RoomManagementController {
         return ResponseEntity.ok(Collections.singletonMap("message", "Khởi tạo hàng loạt hàng phòng kèm album ảnh thành công!"));
     }
 
-    // ================= APIs DÀNH CHO KHÁCH HÀNG (CUSTOMERAPP) =================
+    // ================= APIs DÀNH CHO KHÁCH HÀNG (CUSTOMER APP) =================
 
-    // TỐI ƯU ĐƯỜNG DẪN: Tách biệt hẳn luồng xem của Khách hàng, tránh đi qua bộ lọc quyền hạn của phân hệ Quản lý (management)
+    // TỐI ƯU ĐƯỜNG DẪN: Lấy danh sách phòng công khai hiển thị phía Client
     @GetMapping("/public/rooms")
     public ResponseEntity<List<CustomerRoomResponseDTO>> getRoomsForCustomer() {
         return ResponseEntity.ok(roomService.getRoomsForCustomer());
-    }
-    @PutMapping("/rooms/{id}")
-    public ResponseEntity<Map<String, String>> updateRoom(@PathVariable Long id, @Valid @RequestBody RoomRequest request) {
-        roomService.updateRoomDetails(id, request);
-        return ResponseEntity.ok(java.util.Collections.singletonMap("message", "Cập nhật thông tin phòng và ảnh đại diện thành công!"));
     }
 }

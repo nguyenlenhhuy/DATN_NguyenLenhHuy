@@ -7,52 +7,62 @@ import { RoomRequest, RoomTypeRequest, RoomResponseDTO, RoomType, RoomStatus } f
   providedIn: 'root'
 })
 export class RoomManagementService {
+  // Tiền tố dẫn vào các Endpoint quản lý của Spring Boot
   private baseUrl = 'http://localhost:8080/api/v1/management';
 
   constructor(private http: HttpClient) {}
 
-  // --- Các APIs dành cho Loại phòng (CHỈ ADMIN) ---
-  createRoomType(request: RoomTypeRequest): Observable<RoomType> {
+  // =========================================================================
+  // --- PHÂN HỆ APIs DÀNH CHO LOẠI PHÒNG (CHỈ ADMIN) ---
+  // =========================================================================
+
+  // 1. API lấy toàn bộ danh sách loại phòng động từ DB để render lên bảng phụ và thẻ Select
+  getRoomTypes(): Observable<RoomType[]> {
+    return this.http.get<RoomType[]>(`${this.baseUrl}/room-types`);
+  }
+
+  // 2. API khởi tạo phân loại phòng mới
+  createRoomType(request: RoomTypeRequest | any): Observable<RoomType> {
     return this.http.post<RoomType>(`${this.baseUrl}/room-types`, request);
   }
 
-  deleteRoomType(id: number): Observable<string> {
-    return this.http.delete(`${this.baseUrl}/room-types/${id}`, { responseType: 'text' });
+  // 3. API xóa loại phòng theo ID (Backend trả về JSON chứa trường 'message')
+  deleteRoomType(id: number): Observable<any> {
+    return this.http.delete<any>(`${this.baseUrl}/room-types/${id}`);
   }
 
-  // --- Các APIs dành cho Phòng (ADMIN & STAFF) ---
+  // =========================================================================
+  // --- PHÂN HỆ APIs DÀNH CHO PHÒNG VẬT LÝ (ADMIN & STAFF) ---
+  // =========================================================================
+
+  // 1. API khởi tạo 1 phòng đơn lẻ (Có tích hợp bẫy lỗi Tái sinh phòng cũ tại Java Service)
   createRoom(request: RoomRequest): Observable<any> {
     return this.http.post<any>(`${this.baseUrl}/rooms`, request);
   }
 
-  deleteRoom(id: number): Observable<string> {
-    return this.http.delete(`${this.baseUrl}/rooms/${id}`, { responseType: 'text' });
+  // 2. API khởi tạo hàng loạt chuỗi phòng theo tầng kèm bộ sưu tập ảnh mẫu
+  createBulkRooms(payload: any): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/rooms/batch`, payload);
   }
 
-  // API lấy danh sách sơ đồ phòng theo khách sạn hiện tại
+  // 3. API cập nhật thông tin chi tiết phòng và ghi đè album ảnh mới
+  updateRoom(roomId: number, payload: any): Observable<any> {
+    return this.http.put<any>(`${this.baseUrl}/rooms/${roomId}`, payload);
+  }
+
+  // 4. API xóa mềm phòng vật lý (Chuyển trạng thái hoạt động vào vùng ẩn ngầm)
+  deleteRoom(id: number): Observable<any> {
+    return this.http.delete<any>(`${this.baseUrl}/rooms/${id}`);
+  }
+
+  // 5. API lấy danh sách sơ đồ lưới phòng trực quan (Chỉ lấy các phòng is_deleted = false)
   getRoomsByHotel(hotelId: number): Observable<RoomResponseDTO[]> {
     return this.http.get<RoomResponseDTO[]>(`${this.baseUrl}/hotels/${hotelId}/rooms`);
   }
 
-  // API cập nhật nhanh trạng thái dành cho cả Staff (Sử dụng RequestParam chuỗi)
-  updateRoomStatus(id: number, status: RoomStatus): Observable<string> {
+  // 6. API cập nhật nhanh trạng thái ngoài màn hình (Gửi chuỗi Enum sạch qua RequestParam)
+  updateRoomStatus(id: number, status: RoomStatus): Observable<any> {
     const params = new HttpParams().set('status', status);
-    return this.http.patch(`${this.baseUrl}/rooms/${id}/status`, null, { 
-      params, 
-      responseType: 'text' 
-    });
+    return this.http.patch<any>(`${this.baseUrl}/rooms/${id}/status`, null, { params });
   }
-  // Thêm đoạn này vào file room-management.service.ts của Angular
-
-// Đảm bảo đã import Observable ở đầu file: import { Observable } from 'rxjs';
-
-createBulkRooms(payload: any): Observable<string> {
-    // SỬA TẠI ĐÂY: Ghép đúng baseUrl (8080) vào trước endpoint /rooms/batch
-    return this.http.post(`${this.baseUrl}/rooms/batch`, payload, { 
-      responseType: 'text' 
-    });
-  }
-  updateRoom(roomId: number, payload: any): Observable<any> {
-  return this.http.put(`${this.baseUrl}/rooms/${roomId}`, payload);
-}
 }

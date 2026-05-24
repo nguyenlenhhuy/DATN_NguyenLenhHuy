@@ -18,6 +18,11 @@ export class BookingManagementComponent implements OnInit {
   availableVouchers: any[] = []; 
   isWalkInModalOpen: boolean = false; 
 
+  // Các biến phục vụ hiển thị giá tạm tính trực quan trên Modal Form
+  previewOriginalPrice: number = 0;
+  previewDiscountAmount: number = 0;
+  previewFinalAmount: number = 0;
+
   walkInForm: WalkInBookingRequestDTO = {
     roomNumber: '',
     customerName: '',
@@ -45,7 +50,7 @@ export class BookingManagementComponent implements OnInit {
   }
 
   /**
-   * 🛎️ GỘP VÀ TỐI ƯU HÀM: Mở Modal popup và tự động tải song song danh sách phòng trống + voucher khả dụng
+   * Mở Modal popup và tự động tải song song danh sách phòng trống + voucher khả dụng
    */
   openWalkInModal(): void {
     const today = new Date().toISOString().split('T')[0];
@@ -58,6 +63,11 @@ export class BookingManagementComponent implements OnInit {
       checkOutDate: '',
       appliedCode: ''
     };
+
+    // Reset sạch các trường giá trị tạm tính về 0 khi khởi tạo form mới
+    this.previewOriginalPrice = 0;
+    this.previewDiscountAmount = 0;
+    this.previewFinalAmount = 0;
 
     // Bước 1: Gọi API tải danh sách phòng trống vật lý
     this.bookingService.getAvailableRooms().subscribe({
@@ -76,6 +86,45 @@ export class BookingManagementComponent implements OnInit {
       },
       error: (err: any) => alert('Không thể lấy danh sách phòng trống gợi ý: ' + err.message)
     });
+  }
+
+  /**
+   * 🎯 HÀM DUY NHẤT: Gọi API xuống Backend lấy giá phòng thực tế từ DB thời gian thực
+   */
+  calculatePreviewPrice(): void {
+    const form = this.walkInForm;
+    
+    // Nếu chưa chọn đủ thông tin cốt lõi thì không gọi API
+    if (!form.roomNumber || !form.checkInDate || !form.checkOutDate) {
+      this.previewOriginalPrice = 0;
+      this.previewDiscountAmount = 0;
+      this.previewFinalAmount = 0;
+      return;
+    }
+
+    // Gọi API Backend tính toán dựa trên loại phòng thực tế cấu hình trong DB
+    this.bookingService.getPreviewPrice(form.roomNumber, form.checkInDate, form.checkOutDate, form.appliedCode).subscribe({
+      next: (res: any) => {
+        this.previewOriginalPrice = res.originalPrice;
+        this.previewDiscountAmount = res.discountAmount;
+        this.previewFinalAmount = res.finalAmount;
+      },
+      error: (err: any) => {
+        console.error('Lỗi tính giá tạm tính:', err);
+        this.previewOriginalPrice = 0;
+        this.previewDiscountAmount = 0;
+        this.previewFinalAmount = 0;
+      }
+    });
+  }
+
+  /**
+   * Xử lý thay đổi Voucher khi lễ tân tương tác Dropdown menu
+   */
+  onVoucherChange(event: Event): void {
+    const selectElement = event.target as HTMLSelectElement;
+    this.walkInForm.appliedCode = selectElement.value;
+    this.calculatePreviewPrice(); // Tính lại tiền ngay lập tức khi đổi mã voucher
   }
 
   /**

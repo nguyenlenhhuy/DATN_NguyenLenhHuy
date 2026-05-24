@@ -2,7 +2,6 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
-// BẮT BUỘC CÓ TỪ KHÓA EXPORT: Để file component có thể import được cấu trúc dữ liệu
 export interface BookingResponseDTO {
   bookingId: number;
   roomNumber: string;
@@ -33,7 +32,6 @@ export interface WalkInBookingRequestDTO {
 @Injectable({
   providedIn: 'root'
 })
-// BẮT BUỘC CÓ TỪ KHÓA EXPORT: Định nghĩa đây là một Module Service để tiêm (Inject) vào Component
 export class BookingManagementService {
   
   private apiUrl = 'http://localhost:8080/api/bookings/management/bookings';
@@ -48,6 +46,17 @@ export class BookingManagementService {
     return this.http.get<string[]>(`${this.apiUrl}/available-rooms`);
   }
 
+  getAvailablePromotions(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/available-promotions`);
+  }
+
+  // 🎯 PHẢI CÓ HÀM NÀY: Để tính giá real-time từ DB thông qua Backend
+  getPreviewPrice(roomNumber: string, checkInDate: string, checkOutDate: string, appliedCode?: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/preview-price`, {
+      params: { roomNumber, checkInDate, checkOutDate, appliedCode: appliedCode || '' }
+    });
+  }
+
   createWalkInBooking(request: WalkInBookingRequestDTO): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/walk-in`, request);
   }
@@ -58,8 +67,5 @@ export class BookingManagementService {
 
   processCheckOut(bookingId: number): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/${bookingId}/check-out`, {});
-  }
-  getAvailablePromotions(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.apiUrl}/available-promotions`);
   }
 }

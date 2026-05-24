@@ -124,4 +124,16 @@ public class BookingController {
     public ResponseEntity<List<PromotionResponseDTO>> getAvailablePromotions() {
         return ResponseEntity.ok(managementService.getAvailablePromotionsForWalkIn());
     }
+    @GetMapping("/management/bookings/preview-price")
+    public ResponseEntity<Map<String, Object>> previewPrice(
+            @RequestParam String roomNumber,
+            @RequestParam String checkInDate,
+            @RequestParam String checkOutDate,
+            @RequestParam(required = false) String appliedCode) {
+
+        java.time.LocalDate checkIn = java.time.LocalDate.parse(checkInDate);
+        java.time.LocalDate checkOut = java.time.LocalDate.parse(checkOutDate);
+
+        return ResponseEntity.ok(managementService.previewWalkInPrice(roomNumber, checkIn, checkOut, appliedCode));
+    }
 }

@@ -19,6 +19,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -209,5 +210,38 @@ public class ManagementService {
                         .isActive(p.getIsActive())
                         .build()
         ).collect(Collectors.toList());
+    }
+    @Transactional(readOnly = true)
+    public Map<String, Object> previewWalkInPrice(String roomNumber, LocalDate checkIn, LocalDate checkOut, String appliedCode) {
+        Room room = roomRepository.findByRoomNumber(roomNumber)
+                .orElseThrow(() -> new RuntimeException("Phòng không tồn tại!"));
+
+        // 1. Tính số đêm ở
+        long totalNights = ChronoUnit.DAYS.between(checkIn, checkOut);
+        if (totalNights <= 0) totalNights = 1;
+
+        // 2. Lấy giá gốc từ Loại phòng thực tế trong Database của bạn
+        BigDecimal basePricePerNight = room.getRoomType().getBasePrice();
+        BigDecimal originalTotalPrice = basePricePerNight.multiply(BigDecimal.valueOf(totalNights));
+
+        // 3. Tính toán giảm giá từ Voucher nếu có
+        BigDecimal discountAmount = BigDecimal.ZERO;
+        if (appliedCode != null && !appliedCode.trim().isEmpty()) {
+            Promotion promotion = promotionRepository.findByCodeIgnoreCaseAndIsActiveTrue(appliedCode.trim()).orElse(null);
+            if (promotion != null) {
+                if (!checkIn.isBefore(promotion.getStartDate()) && !checkIn.isAfter(promotion.getEndDate())) {
+                    BigDecimal percent = BigDecimal.valueOf(promotion.getDiscountPercentage());
+                    discountAmount = originalTotalPrice.multiply(percent).divide(BigDecimal.valueOf(100));
+                }
+            }
+        }
+        BigDecimal finalAmount = originalTotalPrice.subtract(discountAmount);
+
+        // Trả về map dữ liệu cho Controller
+        return Map.of(
+                "originalPrice", originalTotalPrice,
+                "discountAmount", discountAmount,
+                "finalAmount", finalAmount
+        );
     }
 }
