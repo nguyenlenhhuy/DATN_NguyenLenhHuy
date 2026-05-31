@@ -21,4 +21,5 @@ public class RoomResponseDTO {
     private String hotelName;
     private String imageUrl;         // Ảnh đại diện hiển thị ngoài Card phòng
     private List<String> albumImages; // Danh sách toàn bộ ảnh phục vụ Modal chỉnh sửa
+    private boolean isDeleted;
 }

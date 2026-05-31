@@ -1,0 +1,90 @@
+<app-header></app-header>
+
+<main class="min-h-screen bg-gray-50/50 pt-[110px] pb-20 font-sans">
+  <div class="container mx-auto px-4 max-w-7xl">
+    
+    <div class="mb-10 text-center md:text-left">
+      <h1 class="text-3xl font-black text-gray-900 tracking-tight">❤️ Phòng bạn đã lưu</h1>
+      <p class="text-sm text-gray-400 mt-1 font-medium">Danh sách các phòng khách sạn bạn đang quan tâm và theo dõi lịch trình.</p>
+    </div>
+
+    <div *ngIf="isLoading" class="text-center py-20 text-gray-400 font-medium">
+      <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-blue-600 border-t-transparent mb-4 shadow-sm"></div>
+      <p class="text-sm tracking-wide">Đang đồng bộ danh sách phòng yêu thích thực tế...</p>
+    </div>
+
+    <div *ngIf="!isLoading && favoriteRooms.length === 0" class="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-200 p-8 max-w-xl mx-auto shadow-sm">
+      <div class="text-5xl mb-4 animate-pulse">🍂</div>
+      <h3 class="text-lg font-bold text-gray-800">Danh sách trống</h3>
+      <p class="text-gray-400 mt-1.5 text-sm max-w-xs mx-auto mb-6">Bạn chưa bấm lưu bất kỳ phòng khách sạn nào trong hệ thống LuxeHotel.</p>
+      <button routerLink="/rooms" class="px-5 py-2.5 bg-blue-600 text-white font-bold text-sm rounded-xl hover:bg-blue-700 shadow-md shadow-blue-100 transition active:scale-95">
+        Khám phá phòng ngay
+      </button>
+    </div>
+
+    <div *ngIf="!isLoading && favoriteRooms.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+      
+      <div *ngFor="let room of favoriteRooms" class="bg-white rounded-2xl shadow-sm border border-gray-100/60 overflow-hidden hover:-translate-y-1.5 hover:shadow-xl hover:shadow-gray-200/60 transition-all duration-300 group flex flex-col h-full relative">
+        
+        <div class="relative h-56 bg-gray-50 overflow-hidden shrink-0">
+          <img [src]="room.imageUrl || 'https://images.unsplash.com/photo-1582719478250-c89404bb8a0e?q=80&w=1000&auto=format&fit=crop'" 
+               alt="{{ room.typeName }}" 
+               class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+          <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-80"></div>
+
+          <div class="absolute bottom-3 left-3 bg-white/20 backdrop-blur-md px-2.5 py-1 rounded-md text-[11px] font-bold text-white border border-white/10 tracking-wide">
+            🚪 Số phòng: {{ room.roomNumber }}
+          </div>
+
+          <button (click)="onRemoveFavorite(room, $event)" 
+                  class="absolute top-4 right-4 w-9 h-9 bg-white/90 backdrop-blur-sm rounded-full shadow-md hover:bg-white hover:scale-110 active:scale-90 transition-all duration-200 flex items-center justify-center text-base focus:outline-none z-10" 
+                  title="Xóa khỏi danh sách lưu">
+            <span class="scale-110 text-red-500 filter drop-shadow-sm">❤️</span>
+          </button>
+        </div>
+
+        <div class="p-6 flex flex-col flex-grow">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-extrabold text-blue-600 uppercase tracking-widest bg-blue-50 px-2.5 py-1 rounded-md">{{ room.typeName }}</span>
+            <span [ngClass]="room.status === 'AVAILABLE' || !room.status ? 'text-emerald-700 bg-emerald-50 border-emerald-100' : 'text-rose-700 bg-rose-50 border-rose-100'" class="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border tracking-wide">
+              {{ room.status === 'AVAILABLE' || !room.status ? '● Trống' : '● Hết phòng' }}
+            </span>
+          </div>
+          
+          <h3 class="text-xl font-extrabold text-gray-900 mt-3 group-hover:text-blue-600 transition-colors line-clamp-1 tracking-tight">{{ room.hotelName }}</h3>
+          
+          <div class="flex items-center gap-1.5 mt-1.5 text-xs text-gray-400">
+            <span class="text-amber-400 font-bold text-sm">★</span>
+            <span class="font-bold text-gray-800">4.9</span>
+            <span>(182 đánh giá)</span>
+            <span class="text-gray-300">|</span>
+            <span class="text-emerald-600 font-semibold bg-emerald-50 px-1.5 py-0.5 rounded text-[10px]">Hủy miễn phí</span>
+          </div>
+          
+          <div class="grid grid-cols-2 gap-y-2 gap-x-4 mt-4 pt-3.5 border-t border-gray-100 text-gray-500 text-[11px] font-semibold">
+            <span class="flex items-center gap-1.5">🌐 Wifi miễn phí</span>
+            <span class="flex items-center gap-1.5">❄️ Điều hòa 2 chiều</span>
+            <span class="flex items-center gap-1.5">🛏️ Giường King cỡ lớn</span>
+            <span class="flex items-center gap-1.5">🌊 View hướng biển</span>
+          </div>
+          
+          <div class="flex items-center justify-between mt-6 pt-4 border-t border-gray-100/80">
+            <div>
+              <span class="text-[10px] text-gray-400 block font-bold uppercase tracking-wider">Giá phòng/Đêm</span>
+              <span class="text-2xl font-black text-blue-600 tracking-tight">{{ formatPrice(room.price) }}</span>
+            </div>
+            
+            <div class="flex items-center gap-2">
+              <button [routerLink]="['/rooms', room.roomId]" class="px-4 py-2.5 border border-gray-200 text-gray-600 rounded-xl font-bold text-xs hover:bg-gray-50 hover:border-gray-400 hover:text-gray-900 transition-all">
+                Chi tiết
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</main>

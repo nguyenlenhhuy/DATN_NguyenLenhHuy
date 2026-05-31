@@ -6,6 +6,7 @@ import org.example.backend.dto.request.RoomRequest;
 import org.example.backend.dto.request.RoomTypeRequest;
 import org.example.backend.dto.response.CustomerRoomResponseDTO;
 import org.example.backend.dto.response.RoomResponseDTO;
+import org.example.backend.dto.response.RoomTypeDetailResponse;
 import org.example.backend.entity.Room;
 import org.example.backend.entity.RoomType;
 import org.example.backend.service.RoomManagementService;
@@ -91,5 +92,9 @@ public class RoomManagementController {
     @GetMapping("/public/rooms")
     public ResponseEntity<List<CustomerRoomResponseDTO>> getRoomsForCustomer() {
         return ResponseEntity.ok(roomService.getRoomsForCustomer());
+    }
+    @GetMapping("/public/room-types") // Đổi đường dẫn tại đây
+    public ResponseEntity<List<RoomTypeDetailResponse>> getRoomTypesForCustomer() {
+        return ResponseEntity.ok(roomService.getAllRoomTypeDTOs());
     }
 }

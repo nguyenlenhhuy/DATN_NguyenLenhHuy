@@ -1,0 +1,430 @@
+<app-header></app-header>
+
+<main class="min-h-screen bg-gradient-to-b from-slate-50 to-white pt-[110px] pb-24 font-sans antialiased text-gray-800">
+  <div class="container mx-auto px-4 max-w-7xl">
+
+    <div class="flex items-center justify-between mb-6">
+      <button
+        (click)="goBack()"
+        class="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-gray-400 hover:text-blue-700 transition-all group"
+      >
+        <span class="text-sm transition-transform group-hover:-translate-x-1">←</span>
+        Quay lại danh sách phòng
+      </button>
+
+      <div class="hidden md:flex items-center gap-2 text-xs font-semibold text-gray-400">
+        <span>Phòng nghỉ</span>
+        <span>/</span>
+        <span class="text-gray-700 font-black">{{ room.typeName }}</span>
+      </div>
+    </div>
+
+    <div *ngIf="isLoading" class="flex flex-col items-center justify-center py-32 gap-5">
+      <div class="w-10 h-10 border-[3px] border-blue-700 border-t-transparent rounded-full animate-spin"></div>
+      <p class="text-xs uppercase tracking-[0.2em] font-black text-gray-400">
+        Đang tải dữ liệu phòng cao cấp...
+      </p>
+    </div>
+
+    <div
+      *ngIf="!isLoading && room"
+      class="grid grid-cols-1 xl:grid-cols-3 gap-8 items-start"
+    >
+
+      <div class="xl:col-span-2 flex flex-col gap-8">
+
+        <div
+          class="relative w-full aspect-[16/9] rounded-3xl overflow-hidden shadow-2xl shadow-slate-200 border border-white group"
+        >
+
+          <img
+            [src]="selectedImage"
+            alt="Room Preview"
+            class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+          />
+
+          <div class="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent"></div>
+
+          <div class="absolute top-5 left-5 flex flex-wrap gap-2 z-20">
+            <div class="bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full text-[11px] font-black text-gray-800 shadow">
+              ⭐ 4.9 Excellent
+            </div>
+
+            <div class="bg-blue-600/90 backdrop-blur-md px-3 py-1.5 rounded-full text-[11px] font-black text-white shadow">
+              🌊 Ocean View
+            </div>
+
+            <div
+              *ngIf="room.status === 'AVAILABLE'"
+              class="bg-emerald-500/90 backdrop-blur-md px-3 py-1.5 rounded-full text-[11px] font-black text-white shadow animate-pulse"
+            >
+              🔥 Còn phòng
+            </div>
+          </div>
+
+          <button
+            type="button"
+            (click)="prevImage()"
+            class="absolute left-5 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white p-3 rounded-full shadow-xl opacity-0 group-hover:opacity-100 transition-all hover:scale-110 z-20"
+          >
+            <span class="text-lg font-black">←</span>
+          </button>
+
+          <button
+            type="button"
+            (click)="nextImage()"
+            class="absolute right-5 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white p-3 rounded-full shadow-xl opacity-0 group-hover:opacity-100 transition-all hover:scale-110 z-20"
+          >
+            <span class="text-lg font-black">→</span>
+          </button>
+
+          <div class="absolute bottom-5 right-5 z-20">
+            <div class="bg-black/60 backdrop-blur-md text-white text-[11px] font-black px-4 py-1.5 rounded-full">
+              {{ currentIndex + 1 }} / {{ $any(room).albumImages?.length || 1 }}
+            </div>
+          </div>
+        </div>
+
+        <div
+          *ngIf="$any(room).albumImages && $any(room).albumImages.length > 0"
+          class="flex gap-3 overflow-x-auto pb-2"
+        >
+          <div
+            *ngFor="let url of $any(room).albumImages; let i = index"
+            (click)="changePreviewImage(url, i)"
+            [ngClass]="
+              currentIndex === i
+                ? 'border-blue-700 ring-4 ring-blue-100 scale-105'
+                : 'border-gray-200 hover:border-blue-300'
+            "
+            class="relative w-28 h-20 rounded-2xl overflow-hidden border-2 cursor-pointer shrink-0 transition-all bg-white"
+          >
+            <img
+              [src]="url"
+              alt="Thumbnail"
+              class="w-full h-full object-cover"
+            />
+          </div>
+        </div>
+
+        <div
+          class="bg-white rounded-3xl p-8 border border-slate-100 shadow-xl shadow-slate-100 flex flex-col gap-8"
+        >
+
+          <div class="flex flex-col gap-5 border-b border-slate-100 pb-7">
+
+            <div class="flex flex-wrap items-center gap-3">
+              <span
+                class="text-[11px] font-black uppercase tracking-[0.2em] text-blue-700 bg-blue-50 px-3 py-1.5 rounded-full"
+              >
+                {{ room.typeName }}
+              </span>
+
+              <span
+                [ngClass]="
+                  room.status === 'AVAILABLE'
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                    : 'bg-rose-50 text-rose-700 border-rose-100'
+                "
+                class="text-[11px] font-bold px-3 py-1.5 rounded-full border flex items-center gap-2"
+              >
+                <span
+                  class="w-2 h-2 rounded-full"
+                  [ngClass]="
+                    room.status === 'AVAILABLE'
+                      ? 'bg-emerald-500'
+                      : 'bg-rose-500'
+                  "
+                ></span>
+
+                {{
+                  room.status === 'AVAILABLE'
+                    ? 'Sẵn sàng đặt ngay'
+                    : 'Đã hết phòng'
+                }}
+              </span>
+            </div>
+
+            <div>
+              <h1
+                class="text-4xl font-black tracking-tight text-gray-900 leading-tight"
+              >
+                Deluxe Ocean View Suite
+              </h1>
+
+              <p class="text-gray-400 mt-2 font-semibold text-sm">
+                📍 Phòng {{ room.roomNumber }} •
+                {{ room.hotelName || 'Huy Luxury Hotel & Resort' }}
+              </p>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
+
+              <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4">
+                <div class="text-2xl mb-2">🏢</div>
+                <div class="text-xs text-gray-400 font-bold uppercase">Tầng</div>
+                <div class="font-black text-gray-800 mt-1">
+                  {{ room.floor || 1 }}
+                </div>
+              </div>
+
+              <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4">
+                <div class="text-2xl mb-2">👥</div>
+                <div class="text-xs text-gray-400 font-bold uppercase">Khách</div>
+                <div class="font-black text-gray-800 mt-1">
+                  {{ $any(room).maxGuests || 2 }} người
+                </div>
+              </div>
+
+              <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4">
+                <div class="text-2xl mb-2">📐</div>
+                <div class="text-xs text-gray-400 font-bold uppercase">Diện tích</div>
+                <div class="font-black text-gray-800 mt-1">
+                  35m²
+                </div>
+              </div>
+
+              <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4">
+                <div class="text-2xl mb-2">🌊</div>
+                <div class="text-xs text-gray-400 font-bold uppercase">View</div>
+                <div class="font-black text-gray-800 mt-1">
+                  Hướng biển
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <div>
+            <h3 class="text-xl font-black text-gray-900 mb-4">
+              Mô tả phòng
+            </h3>
+
+            <p class="text-gray-500 leading-8 text-[15px]">
+              Chào mừng bạn đến với không gian nghỉ dưỡng phân khúc thượng lưu
+              thuộc hệ thống của chúng tôi. Căn phòng sở hữu lối kiến trúc
+              tân cổ điển tinh tế, kết hợp cửa kính kịch trần mở ra tầm nhìn
+              toàn cảnh đại dương khoáng đạt.
+            </p>
+          </div>
+
+          <div>
+            <h3 class="text-xl font-black text-gray-900 mb-5">
+              Tiện ích nổi bật
+            </h3>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+
+              <div class="flex items-center gap-4 p-4 rounded-2xl border border-slate-100 bg-slate-50 hover:bg-white hover:shadow-lg transition-all">
+                <span class="text-2xl">🌐</span>
+                <div>
+                  <div class="font-black text-sm">Wifi tốc độ cao</div>
+                  <div class="text-xs text-gray-400">5G tốc độ ổn định</div>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-4 p-4 rounded-2xl border border-slate-100 bg-slate-50 hover:bg-white hover:shadow-lg transition-all">
+                <span class="text-2xl">❄️</span>
+                <div>
+                  <div class="font-black text-sm">Điều hòa trung tâm</div>
+                  <div class="text-xs text-gray-400">Hoạt động 24/7</div>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-4 p-4 rounded-2xl border border-slate-100 bg-slate-50 hover:bg-white hover:shadow-lg transition-all">
+                <span class="text-2xl">📺</span>
+                <div>
+                  <div class="font-black text-sm">Smart TV 4K</div>
+                  <div class="text-xs text-gray-400">Netflix miễn phí</div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <div class="border-t border-slate-100 pt-6">
+            <h3 class="text-xl font-black text-gray-900 mb-5">
+              Chính sách lưu trú
+            </h3>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+              <div class="flex items-start gap-3">
+                <span class="text-lg">⏱️</span>
+                <div>
+                  <div class="font-black text-sm">Nhận phòng</div>
+                  <div class="text-sm text-gray-500">Từ 14:00 PM</div>
+                </div>
+              </div>
+
+              <div class="flex items-start gap-3">
+                <span class="text-lg">⏱️</span>
+                <div>
+                  <div class="font-black text-sm">Trả phòng</div>
+                  <div class="text-sm text-gray-500">Trước 12:00 AM</div>
+                </div>
+              </div>
+
+              <div class="flex items-start gap-3">
+                <span class="text-lg">🚭</span>
+                <div>
+                  <div class="font-black text-sm">Không hút thuốc</div>
+                  <div class="text-sm text-gray-500">
+                    Cấm hút thuốc trong phòng
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex items-start gap-3">
+                <span class="text-lg">🐾</span>
+                <div>
+                  <div class="font-black text-sm">Không thú nuôi</div>
+                  <div class="text-sm text-gray-500">
+                    Không cho phép mang thú cưng
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div
+        class="sticky top-[120px] bg-white rounded-3xl border border-slate-100 shadow-2xl shadow-slate-200/70 overflow-hidden"
+      >
+
+        <div class="p-6 border-b border-slate-100">
+
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <div class="text-xs uppercase tracking-[0.2em] font-black text-gray-400 mb-2">
+                Giá phòng
+              </div>
+
+              <div class="flex items-end gap-1">
+                <span class="text-4xl font-black text-blue-700 leading-none">
+                  {{ formatPrice(room.price) }}
+                </span>
+
+                <span class="text-gray-400 font-bold text-sm mb-1">
+                  / đêm
+                </span>
+              </div>
+            </div>
+
+            <div class="bg-blue-50 text-blue-700 px-3 py-2 rounded-2xl text-sm font-black">
+              ⭐ 4.9
+            </div>
+          </div>
+
+          <div class="flex flex-col gap-2 text-sm">
+
+            <div class="flex items-center gap-2 text-emerald-600 font-bold">
+              ✔ Miễn phí hủy phòng
+            </div>
+
+            <div class="flex items-center gap-2 text-emerald-600 font-bold">
+              ✔ Xác nhận đặt phòng ngay lập tức
+            </div>
+
+            <div class="flex items-center gap-2 text-emerald-600 font-bold">
+              ✔ Không cần thanh toán trước
+            </div>
+
+          </div>
+        </div>
+
+        <div class="p-6 flex flex-col gap-5">
+
+          <div class="grid grid-cols-2 gap-3">
+
+            <div class="border border-slate-200 rounded-2xl p-4">
+              <div class="text-[11px] uppercase font-black tracking-wider text-gray-400 mb-1">
+                Check-in
+              </div>
+
+              <div class="font-black text-gray-800">
+                20/08/2026
+              </div>
+            </div>
+
+            <div class="border border-slate-200 rounded-2xl p-4">
+              <div class="text-[11px] uppercase font-black tracking-wider text-gray-400 mb-1">
+                Check-out
+              </div>
+
+              <div class="font-black text-gray-800">
+                21/08/2026
+              </div>
+            </div>
+
+          </div>
+
+          <div class="border border-slate-200 rounded-2xl p-4">
+            <div class="text-[11px] uppercase font-black tracking-wider text-gray-400 mb-1">
+              Khách lưu trú
+            </div>
+
+            <div class="font-black text-gray-800">
+              2 người lớn
+            </div>
+          </div>
+
+          <div class="bg-slate-50 rounded-2xl p-5 border border-slate-100">
+
+            <div class="flex items-center justify-between text-sm mb-3">
+              <span class="text-gray-500 font-semibold">
+                {{ formatPrice(room.price) }} × 1 đêm
+              </span>
+
+              <span class="font-black text-gray-800">
+                {{ formatPrice(room.price) }}
+              </span>
+            </div>
+
+            <div class="flex items-center justify-between text-sm mb-3">
+              <span class="text-gray-500 font-semibold">
+                Phí dịch vụ
+              </span>
+
+              <span class="font-black text-gray-800">
+                0 ₫
+              </span>
+            </div>
+
+            <div class="border-t border-slate-200 pt-4 flex items-center justify-between">
+              <span class="font-black text-lg text-gray-900">
+                Tổng cộng
+              </span>
+
+              <span class="text-3xl font-black text-red-600">
+                {{ formatPrice(room.price) }}
+              </span>
+            </div>
+
+          </div>
+
+          <button
+            [disabled]="room.status !== 'AVAILABLE'"
+            [ngClass]="
+              room.status === 'AVAILABLE'
+                ? 'bg-blue-700 hover:bg-blue-800 text-white hover:scale-[1.02]'
+                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+            "
+            class="w-full py-4 rounded-2xl font-black uppercase tracking-[0.15em] transition-all shadow-lg shadow-blue-700/20"
+          >
+            {{
+              room.status === 'AVAILABLE'
+                ? 'Đặt phòng ngay'
+                : 'Phòng hiện đã hết'
+            }}
+          </button>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</main>

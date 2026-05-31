@@ -68,4 +68,9 @@ export class BookingManagementService {
   processCheckOut(bookingId: number): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/${bookingId}/check-out`, {});
   }
+  getDashboardStats(filterType: string): Observable<any> {
+    return this.http.get<any>(`http://localhost:8080/api/bookings/management/dashboard-stats`, {
+      params: { filterType }
+    });
+  }
 }

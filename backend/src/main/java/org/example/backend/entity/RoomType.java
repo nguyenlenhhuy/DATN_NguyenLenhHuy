@@ -1,6 +1,5 @@
 package org.example.backend.entity;
 
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
@@ -12,20 +11,46 @@ import lombok.Setter;
 import java.math.BigDecimal;
 import java.util.List;
 
-@Entity @Table(name = "room_types") @Getter @Setter @NoArgsConstructor @AllArgsConstructor
-
+@Entity
+@Table(name = "room_types")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class RoomType {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @ManyToOne @JoinColumn(name = "hotel_id")
+
+    @ManyToOne
+    @JoinColumn(name = "hotel_id")
     @JsonIgnoreProperties("roomTypes")
     private Hotel hotel;
-    @Column(name = "type_name") private String typeName;
-    @Column(name = "base_price", precision = 15, scale = 2) private BigDecimal basePrice;
-    @Column(name = "max_occupancy") private Integer maxOccupancy;
+
+    @Column(name = "type_name")
+    private String typeName;
+
+    @Column(name = "base_price", precision = 15, scale = 2)
+    private BigDecimal basePrice;
+
+    @Column(name = "max_occupancy")
+    private Integer maxOccupancy;
+
     @Column(name = "is_featured")
     private Boolean isFeatured;
-    @OneToMany(mappedBy = "roomType", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+
+    // ĐÃ CẬP NHẬT: Thay đổi fetch = FetchType.LAZY thành FetchType.EAGER để nạp ảnh ngay lập tức
+    @OneToMany(mappedBy = "roomType", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     @JsonIgnore
     private List<RoomTypeImage> images;
+
+    public List<String> getImageUrls() {
+        if (this.images == null) {
+            return java.util.Collections.emptyList();
+        }
+        return this.images.stream()
+                .map(RoomTypeImage::getImageUrl) // Lấy ra chuỗi Base64/URL lưu trong RoomTypeImage
+                .collect(java.util.stream.Collectors.toList());
+    }
 }

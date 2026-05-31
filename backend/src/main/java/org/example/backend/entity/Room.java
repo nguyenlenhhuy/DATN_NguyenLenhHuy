@@ -2,6 +2,7 @@ package org.example.backend.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import org.example.backend.entity.enums.RoomStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -39,7 +40,6 @@ public class Room {
 
     private Integer floor;
 
-    // ĐÃ BỔ SUNG: Trường giá riêng biệt cho từng phòng (Giải quyết lỗi 'Cannot resolve method getPrice')
     @Column(name = "price")
     private Double price;
 
@@ -47,19 +47,24 @@ public class Room {
     @Column(name = "status", nullable = false)
     private RoomStatus status = RoomStatus.AVAILABLE;
 
-    // ĐÃ BỔ SUNG: Mối quan hệ liên kết lấy danh sách bộ sưu tập ảnh của phòng (Giải quyết lỗi 'Cannot resolve method getImages')
     @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonManagedReference
     private List<RoomImage> images;
 
-    // Helper method để lấy Hotel ID nhanh mà không bị lỗi "Cannot resolve getHotelId"
+    @Column(name = "is_deleted", nullable = false)
+    private Boolean isDeleted = false;
+
+    // Các phương thức hỗ trợ để lấy ID thay vì Object toàn phần
     public Long getHotelId() {
         return this.hotel != null ? this.hotel.getId() : null;
     }
 
-    // Helper method để lấy RoomType ID nhanh
     public Long getRoomTypeId() {
         return this.roomType != null ? this.roomType.getId() : null;
     }
-    @Column(name = "is_deleted")
-    private Boolean isDeleted = false; // Mặc định khi tạo là false
+
+    // Phương thức kiểm tra xóa để dùng trong Service
+    public boolean isDeleted() {
+        return this.isDeleted != null && this.isDeleted;
+    }
 }

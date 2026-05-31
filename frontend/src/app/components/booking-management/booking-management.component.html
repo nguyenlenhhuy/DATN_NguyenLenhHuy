@@ -1,5 +1,4 @@
 <div class="fade-in p-6 bg-slate-50 min-h-screen">
-  
   <div class="flex justify-between items-center mb-6">
     <div>
       <h2 class="text-2xl font-bold text-slate-800">Danh Sách Đơn Đặt Phòng & Nghiệp Vụ Quầy</h2>
@@ -9,6 +8,11 @@
       (click)="openWalkInModal()">
       🛎️ Tiếp nhận khách quầy (Walk-in)
     </button>
+  </div>
+
+  <div class="flex gap-4 mb-4">
+    <input [(ngModel)]="searchTerm" placeholder="Tìm tên khách..." class="p-2 border rounded-lg w-full">
+    <input type="date" [(ngModel)]="checkInDateFilter" class="p-2 border rounded-lg">
   </div>
 
   <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
@@ -26,50 +30,29 @@
         </tr>
       </thead>
       <tbody class="divide-y divide-slate-100">
-        <tr *ngFor="let b of bookings" class="hover:bg-slate-50/50 transition">
+        <tr *ngFor="let b of filteredBookings" class="hover:bg-slate-50/50 transition">
           <td class="p-4 font-bold text-slate-700">#{{ b.bookingId }}</td>
           <td class="p-4">
-            <span class="bg-blue-50 text-blue-700 font-bold px-2.5 py-1 rounded border border-blue-100">
-              Phòng {{ b.roomNumber }}
-            </span>
+            <span class="bg-blue-50 text-blue-700 font-bold px-2.5 py-1 rounded border border-blue-100">Phòng {{ b.roomNumber }}</span>
           </td>
-          
           <td class="p-4">
             <div class="flex flex-col">
               <span class="font-bold text-slate-800">{{ b.customerName }}</span>
               <span class="text-xs text-slate-500 mt-0.5">📞 {{ b.customerPhone }}</span>
-              <span class="text-[11px] font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 w-max mt-1.5" *ngIf="b.customerCccd">
-                🪪 CCCD: {{ b.customerCccd }}
-              </span>
+              <span class="text-[11px] font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 w-max mt-1.5" *ngIf="b.customerCccd">🪪 CCCD: {{ b.customerCccd }}</span>
             </div>
           </td>
-          
-          <td class="p-4 text-slate-600">
-            {{ b.checkInDate | date:'dd/MM/yyyy' }} ➜ {{ b.checkOutDate | date:'dd/MM/yyyy' }}
-          </td>
-          
+          <td class="p-4 text-slate-600">{{ b.checkInDate | date:'dd/MM/yyyy' }} ➜ {{ b.checkOutDate | date:'dd/MM/yyyy' }}</td>
           <td class="p-4 font-bold text-slate-800">
             <span class="text-emerald-600 text-base">{{ b.finalAmount | currency:'VND':'symbol':'1.0-0' }}</span>
-            <small class="block text-slate-400 line-through font-normal text-[11px] mt-0.5" *ngIf="b.discountAmount > 0">
-              Gốc: {{ b.originalPrice | currency:'VND':'symbol':'1.0-0' }}
-            </small>
+            <small class="block text-slate-400 line-through font-normal text-[11px] mt-0.5" *ngIf="b.discountAmount > 0">Gốc: {{ b.originalPrice | currency:'VND':'symbol':'1.0-0' }}</small>
           </td>
-          
           <td class="p-4">
-            <span class="inline-block text-xs font-bold px-2.5 py-1 rounded" 
-              [ngClass]="{
-                'bg-amber-100 text-amber-700': b.bookingStatus === 'PENDING' || b.bookingStatus === 'CONFIRMED',
-                'bg-blue-100 text-blue-700': b.bookingStatus === 'CHECK_IN',
-                'bg-slate-100 text-slate-600': b.bookingStatus === 'CHECK_OUT'
-              }">
+            <span class="inline-block text-xs font-bold px-2.5 py-1 rounded" [ngClass]="{'bg-amber-100 text-amber-700': b.bookingStatus === 'PENDING' || b.bookingStatus === 'CONFIRMED', 'bg-blue-100 text-blue-700': b.bookingStatus === 'CHECK_IN', 'bg-slate-100 text-slate-600': b.bookingStatus === 'CHECK_OUT'}">
               {{ b.bookingStatus === 'PENDING' || b.bookingStatus === 'CONFIRMED' ? '⏳ Chờ nhận phòng' : b.bookingStatus === 'CHECK_IN' ? '🔑 Đang ở' : '🚪 Đã trả phòng' }}
             </span>
           </td>
-          
-          <td class="p-4 font-bold text-xs" [ngClass]="b.paymentStatus === 'PAID' ? 'text-emerald-600' : 'text-orange-500'">
-            {{ b.paymentStatus === 'PAID' ? '🟢 ĐÃ THU TIỀN' : '🟡 CHƯA THU TIỀN' }}
-          </td>
-          
+          <td class="p-4 font-bold text-xs" [ngClass]="b.paymentStatus === 'PAID' ? 'text-emerald-600' : 'text-orange-500'">{{ b.paymentStatus === 'PAID' ? '🟢 ĐÃ THU TIỀN' : '🟡 CHƯA THU TIỀN' }}</td>
           <td class="p-4">
             <div class="flex gap-2">
               <button *ngIf="b.bookingStatus === 'PENDING' || b.bookingStatus === 'CONFIRMED'" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-1 px-3 rounded text-xs transition" (click)="onProcessCheckIn(b.bookingId)">🔑 Nhận phòng</button>
@@ -77,24 +60,18 @@
             </div>
           </td>
         </tr>
-        <tr *ngIf="bookings.length === 0">
-          <td colspan="8" class="p-8 text-center text-slate-400 bg-white">📭 Hiện tại không có dữ liệu đơn đặt phòng nào được ghi nhận.</td>
-        </tr>
       </tbody>
     </table>
   </div>
 </div>
 
 <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex justify-center items-center z-50 transition-all" *ngIf="isWalkInModalOpen">
-  <div class="bg-white w-full max-w-lg rounded-xl shadow-2xl overflow-hidden border border-slate-200 animate-slide-up">
-    
+  <div class="bg-white w-full max-w-lg rounded-xl shadow-2xl overflow-hidden border border-slate-200">
     <div class="bg-blue-600 text-white px-6 py-4 flex justify-between items-center">
       <h3 class="font-bold text-base flex items-center gap-2">🛎️ KHỞI TẠO ĐƠN THUÊ PHÒNG TẠI QUẦY</h3>
       <button class="text-blue-200 hover:text-white text-2xl font-light outline-none" (click)="isWalkInModalOpen = false">×</button>
     </div>
-
     <div class="p-6 space-y-4">
-      
       <div class="grid grid-cols-2 gap-4">
         <div>
           <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Gợi ý phòng đang trống <span class="text-red-500">*</span></label>
@@ -102,14 +79,12 @@
             <option value="" disabled selected>-- Chọn phòng sẵn có --</option>
             <option *ngFor="let roomNo of availableRooms" [value]="roomNo">🟢 Phòng số {{ roomNo }}</option>
           </select>
-          <span class="text-[11px] text-amber-600 font-medium block mt-1" *ngIf="availableRooms.length === 0">⚠️ Hệ thống đã hết phòng trống!</span>
         </div>
         <div>
           <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Tên khách hàng <span class="text-red-500">*</span></label>
           <input type="text" [(ngModel)]="walkInForm.customerName" placeholder="Nhập họ tên khách" class="w-full px-3.5 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500 text-sm transition" />
         </div>
       </div>
-
       <div class="grid grid-cols-2 gap-4">
         <div>
           <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Số điện thoại liên hệ <span class="text-red-500">*</span></label>
@@ -120,7 +95,6 @@
           <input type="text" [(ngModel)]="walkInForm.customerCccd" placeholder="Nhập số căn cước" class="w-full px-3.5 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500 font-bold tracking-wider text-sm transition" />
         </div>
       </div>
-
       <div class="grid grid-cols-2 gap-4">
         <div>
           <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Ngày nhận phòng <span class="text-red-500">*</span></label>
@@ -131,25 +105,19 @@
           <input type="date" [(ngModel)]="walkInForm.checkOutDate" (change)="calculatePreviewPrice()" class="w-full px-3.5 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500 text-sm transition" />
         </div>
       </div>
-
       <div class="grid grid-cols-2 gap-4">
         <div>
           <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Gợi ý Voucher đang chạy</label>
-          <select class="w-full px-3.5 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500 text-sm bg-white text-slate-800 transition"
-                  (change)="onVoucherChange($event)">
+          <select class="w-full px-3.5 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500 text-sm bg-white text-slate-800 transition" (change)="onVoucherChange($event)">
             <option value="">-- Chọn nhanh Voucher --</option>
-            <option *ngFor="let v of availableVouchers" [value]="v.code">
-              🎁 {{ v.code }} (Giảm {{ v.discountPercentage }}%)
-            </option>
+            <option *ngFor="let v of availableVouchers" [value]="v.code">🎁 {{ v.code }} (Giảm {{ v.discountPercentage }}%)</option>
           </select>
-          <span class="text-[11px] text-slate-400 block mt-1" *ngIf="availableVouchers.length === 0">Hiện tại không có mã ưu đãi nào còn hạn.</span>
         </div>
         <div>
           <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Mã áp dụng thực tế</label>
-          <input type="text" [(ngModel)]="walkInForm.appliedCode" placeholder="Mã sẽ tự động điền" class="w-full px-3.5 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500 font-bold uppercase text-blue-600 tracking-wider text-sm bg-slate-50 transition" readonly />
+          <input type="text" [(ngModel)]="walkInForm.appliedCode" class="w-full px-3.5 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500 font-bold uppercase text-blue-600 tracking-wider text-sm bg-slate-50 transition" readonly />
         </div>
       </div>
-
       <div class="bg-slate-50 p-4 rounded-xl border border-slate-200/60 space-y-2" *ngIf="previewOriginalPrice > 0">
         <div class="flex justify-between text-xs text-slate-500 font-medium">
           <span>Giá phòng gốc tạm tính:</span>
@@ -165,13 +133,10 @@
           <span class="text-lg font-black text-emerald-600">{{ previewFinalAmount | currency:'VND':'symbol':'1.0-0' }}</span>
         </div>
       </div>
-
     </div>
-
     <div class="bg-slate-50 px-6 py-4 flex justify-end gap-3 border-t border-slate-100">
       <button class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-2 px-4 rounded-lg text-xs transition" (click)="isWalkInModalOpen = false">Đóng</button>
-      <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg text-xs transition shadow-md shadow-blue-600/10" (click)="onCreateWalkInBooking()">Lưu hệ thống & Check-in</button>
+      <button class="bg-blue-600 hover:bg-white text-white font-semibold py-2 px-4 rounded-lg text-xs transition shadow-md shadow-blue-600/10" (click)="onCreateWalkInBooking()">Lưu hệ thống & Check-in</button>
     </div>
-
   </div>
 </div>

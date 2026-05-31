@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.backend.dto.request.PromotionRequestDTO;
 import org.example.backend.dto.request.WalkInBookingRequestDTO;
 import org.example.backend.dto.response.BookingResponseDTO;
+import org.example.backend.dto.response.DashboardStatsResponseDTO;
 import org.example.backend.dto.response.PromotionResponseDTO;
 import org.example.backend.entity.*;
 import org.example.backend.entity.enums.BookingStatus;
@@ -17,7 +18,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -118,15 +121,15 @@ public class ManagementService {
                 .user(null)
                 .customerName(request.getCustomerName().trim())
                 .customerPhone(request.getCustomerPhone().trim())
-                .customerCccd(request.getCustomerCccd().trim()) // Lưu vết thông tin công an yêu cầu
+                .customerCccd(request.getCustomerCccd().trim())
                 .checkInDate(request.getCheckInDate())
                 .checkOutDate(request.getCheckOutDate())
                 .totalPrice(originalTotalPrice)
                 .discountAmount(discountAmount)
                 .finalAmount(finalAmount)
                 .promotion(promotion)
-                .status(BookingStatus.CHECK_IN) // Khách đặt quầy sẽ trực tiếp nhận phòng và ở luôn
-                .hotel(room.getHotel()) // Thừa hưởng ID khách sạn từ phòng vật lý
+                .status(BookingStatus.CHECK_IN)
+                .hotel(room.getHotel())
                 .build();
         booking = bookingRepository.save(booking);
 
@@ -198,6 +201,7 @@ public class ManagementService {
         promotion.setIsActive(!promotion.getIsActive());
         promotionRepository.save(promotion);
     }
+
     @Transactional(readOnly = true)
     public List<PromotionResponseDTO> getAvailablePromotionsForWalkIn() {
         return promotionRepository.findAvailablePromotions(LocalDate.now()).stream().map(p ->
@@ -211,20 +215,18 @@ public class ManagementService {
                         .build()
         ).collect(Collectors.toList());
     }
+
     @Transactional(readOnly = true)
     public Map<String, Object> previewWalkInPrice(String roomNumber, LocalDate checkIn, LocalDate checkOut, String appliedCode) {
         Room room = roomRepository.findByRoomNumber(roomNumber)
                 .orElseThrow(() -> new RuntimeException("Phòng không tồn tại!"));
 
-        // 1. Tính số đêm ở
         long totalNights = ChronoUnit.DAYS.between(checkIn, checkOut);
         if (totalNights <= 0) totalNights = 1;
 
-        // 2. Lấy giá gốc từ Loại phòng thực tế trong Database của bạn
         BigDecimal basePricePerNight = room.getRoomType().getBasePrice();
         BigDecimal originalTotalPrice = basePricePerNight.multiply(BigDecimal.valueOf(totalNights));
 
-        // 3. Tính toán giảm giá từ Voucher nếu có
         BigDecimal discountAmount = BigDecimal.ZERO;
         if (appliedCode != null && !appliedCode.trim().isEmpty()) {
             Promotion promotion = promotionRepository.findByCodeIgnoreCaseAndIsActiveTrue(appliedCode.trim()).orElse(null);
@@ -237,11 +239,132 @@ public class ManagementService {
         }
         BigDecimal finalAmount = originalTotalPrice.subtract(discountAmount);
 
-        // Trả về map dữ liệu cho Controller
         return Map.of(
                 "originalPrice", originalTotalPrice,
                 "discountAmount", discountAmount,
                 "finalAmount", finalAmount
         );
+    }
+
+    // =========================================================================
+    // 📊 3. PHÂN HỆ THỐNG KÊ DOANH THU & HIỆU SUẤT DASHBOARD (DOCKING FILTER)
+    // =========================================================================
+
+    /**
+     * 📊 NGHIỆP VỤ NÂNG CẤP: Tổng hợp số liệu báo cáo doanh thu động theo NGÀY / TUẦN / THÁNG / NĂM
+     * @param filterType Nhận các giá trị cấu hình: "DATE", "WEEK", "MONTH", "YEAR"
+     */
+    @Transactional(readOnly = true)
+    public DashboardStatsResponseDTO getDashboardStatsFiltered(String filterType) {
+        LocalDate today = LocalDate.now();
+        List<Invoice> allInvoices = invoiceRepository.findAll();
+
+        // 1. Tính tổng doanh thu thực tế đã thanh toán trong ngày hôm nay
+        BigDecimal revenueToday = allInvoices.stream()
+                .filter(inv -> inv.getPaymentDate() != null && inv.getPaymentDate().toLocalDate().isEqual(today))
+                .filter(inv -> inv.getPaymentStatus() == PaymentStatus.PAID)
+                .map(Invoice::getAmountPaid)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // 2. Đếm số lượng đơn đặt phòng phát sinh trong ngày hôm nay
+        long bookingsToday = bookingRepository.findAll().stream()
+                .filter(b -> b.getCheckInDate().isEqual(today))
+                .count();
+
+        // 3. Thống kê trạng thái phòng thời gian thực
+        long totalRooms = roomRepository.count();
+        long availableRooms = roomRepository.findAllByStatus(RoomStatus.AVAILABLE).size();
+
+        // 4. Phân tách và cấu trúc Map dữ liệu biểu đồ dựa trên bộ lọc thời gian chọn
+        Map<String, BigDecimal> chartData = new LinkedHashMap<>();
+        String type = (filterType != null) ? filterType.toUpperCase() : "WEEK";
+
+        switch (type) {
+            case "DATE":
+                // Lọc biểu đồ chi tiết: Hiển thị doanh thu 3 ngày gần đây để đối chiếu sát sườn
+                for (int i = 2; i >= 0; i--) {
+                    LocalDate targetDate = today.minusDays(i);
+                    String label = targetDate.format(DateTimeFormatter.ofPattern("dd/MM"));
+                    chartData.put(label, calculateDailyRevenue(allInvoices, targetDate));
+                }
+                break;
+
+            case "WEEK":
+                // Xu hướng thanh khoản trong 7 ngày gần nhất (Mặc định)
+                for (int i = 6; i >= 0; i--) {
+                    LocalDate targetDate = today.minusDays(i);
+                    String label = targetDate.format(DateTimeFormatter.ofPattern("dd/MM"));
+                    chartData.put(label, calculateDailyRevenue(allInvoices, targetDate));
+                }
+                break;
+
+            case "MONTH":
+                // Phân rã doanh thu theo 4 tuần trong tháng hiện tại
+                for (int i = 3; i >= 0; i--) {
+                    LocalDate endWeek = today.minusWeeks(i);
+                    LocalDate startWeek = endWeek.minusDays(6);
+                    String label = "Tuần " + (4 - i);
+                    chartData.put(label, calculatePeriodRevenue(allInvoices, startWeek, endWeek));
+                }
+                break;
+
+            case "YEAR":
+                // Tổng hợp báo cáo lũy kế theo 12 tháng trong năm
+                for (int i = 11; i >= 0; i--) {
+                    LocalDate targetMonth = today.minusMonths(i);
+                    String label = "Th. " + targetMonth.getMonthValue();
+
+                    BigDecimal monthlyRev = allInvoices.stream()
+                            .filter(inv -> inv.getPaymentDate() != null
+                                    && inv.getPaymentDate().getYear() == targetMonth.getYear()
+                                    && inv.getPaymentDate().getMonth() == targetMonth.getMonth())
+                            .filter(inv -> inv.getPaymentStatus() == PaymentStatus.PAID)
+                            .map(Invoice::getAmountPaid)
+                            .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                    chartData.put(label, monthlyRev);
+                }
+                break;
+
+            default:
+                // Fallback về dữ liệu tuần nếu truyền sai tham số
+                for (int i = 6; i >= 0; i--) {
+                    LocalDate targetDate = today.minusDays(i);
+                    chartData.put(targetDate.toString(), calculateDailyRevenue(allInvoices, targetDate));
+                }
+                break;
+        }
+
+        return DashboardStatsResponseDTO.builder()
+                .totalRevenueToday(revenueToday)
+                .totalBookingsToday(bookingsToday)
+                .availableRooms(availableRooms)
+                .totalRooms(totalRooms)
+                .last7DaysRevenue(chartData) // Tái tận dụng trường dữ liệu Map để đẩy cấu trúc động về UI
+                .build();
+    }
+
+    /**
+     * Hàm bổ trợ: Tính doanh thu một ngày cụ thể từ danh sách cache
+     */
+    private BigDecimal calculateDailyRevenue(List<Invoice> invoices, LocalDate date) {
+        return invoices.stream()
+                .filter(inv -> inv.getPaymentDate() != null && inv.getPaymentDate().toLocalDate().isEqual(date))
+                .filter(inv -> inv.getPaymentStatus() == PaymentStatus.PAID)
+                .map(Invoice::getAmountPaid)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    /**
+     * Hàm bổ trợ: Tính doanh thu trong khoảng thời gian (Phục vụ phân chia Tuần)
+     */
+    private BigDecimal calculatePeriodRevenue(List<Invoice> invoices, LocalDate start, LocalDate end) {
+        return invoices.stream()
+                .filter(inv -> inv.getPaymentDate() != null
+                        && !inv.getPaymentDate().toLocalDate().isBefore(start)
+                        && !inv.getPaymentDate().toLocalDate().isAfter(end))
+                .filter(inv -> inv.getPaymentStatus() == PaymentStatus.PAID)
+                .map(Invoice::getAmountPaid)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 }

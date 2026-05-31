@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { Router } from '@angular/router';
 import { HeaderComponent } from '../../components/header/header.component';
 import { FooterComponent } from '../../components/footer/footer.component';
@@ -16,6 +16,7 @@ import { RoomResponseDTO } from '../../models/room.model';
 export class HomeComponent implements OnInit {
   searchForm!: FormGroup;
   featuredRooms: RoomResponseDTO[] = [];
+  roomTypes: any[] = [];
 
   promotions = [
     { title: 'Giảm 20% mùa hè', code: 'SUMMER20' },
@@ -31,33 +32,52 @@ export class HomeComponent implements OnInit {
   ngOnInit(): void {
     this.initSearchForm();
     this.loadFeaturedRooms();
+    this.loadRoomTypes();
   }
 
   initSearchForm(): void {
     this.searchForm = this.fb.group({
-      location: [''],
+      roomType: ['', Validators.required],
       checkIn: ['', Validators.required],
-      checkOut: ['', Validators.required],
-      guestCount: [2, [Validators.required, Validators.min(1)]]
+      checkOut: ['', Validators.required]
+    }, { validators: this.dateValidator });
+  }
+
+  dateValidator(control: AbstractControl): ValidationErrors | null {
+    const checkIn = control.get('checkIn')?.value;
+    const checkOut = control.get('checkOut')?.value;
+    if (checkIn && checkOut && new Date(checkOut) <= new Date(checkIn)) {
+      return { dateInvalid: true };
+    }
+    return null;
+  }
+
+  loadRoomTypes(): void {
+    this.roomService.getRoomTypes().subscribe({
+      next: (types) => this.roomTypes = types,
+      error: () => this.roomTypes = [{ typeName: 'Deluxe' }, { typeName: 'Suite' }]
     });
   }
 
   loadFeaturedRooms(): void {
     this.roomService.getFeaturedRooms().subscribe({
-      next: (rooms) => this.featuredRooms = rooms,
-      error: (err) => {
-        console.error('Lỗi API', err);
-        // Dữ liệu giả định nếu Backend chưa chạy
-        this.featuredRooms = [
-          { roomId: 1, roomNumber: '101', typeName: 'Deluxe Room', price: 1500000, hotelName: 'Luxe Hotel Đà Nẵng', imageUrl: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=500' }
-        ];
-      }
+      next: (rooms) => this.featuredRooms = rooms
     });
   }
 
+  // Điều hướng tìm kiếm từ thanh search
   onSearch(): void {
     if (this.searchForm.valid) {
       this.router.navigate(['/rooms'], { queryParams: this.searchForm.value });
+    } else {
+      this.searchForm.markAllAsTouched();
     }
+  }
+
+  // Điều hướng nhanh khi click loại phòng
+  onSearchByRoomType(typeName: string): void {
+    this.router.navigate(['/rooms'], { 
+      queryParams: { roomType: typeName } 
+    });
   }
 }

@@ -5,6 +5,7 @@ import org.example.backend.dto.request.BookingRequest;
 import org.example.backend.dto.request.WalkInBookingRequestDTO;
 import org.example.backend.dto.response.BookingHistoryResponseDTO;
 import org.example.backend.dto.response.BookingResponseDTO;
+import org.example.backend.dto.response.DashboardStatsResponseDTO;
 import org.example.backend.dto.response.PromotionResponseDTO;
 import org.example.backend.entity.Booking;
 import org.example.backend.service.BookingService;
@@ -135,5 +136,11 @@ public class BookingController {
         java.time.LocalDate checkOut = java.time.LocalDate.parse(checkOutDate);
 
         return ResponseEntity.ok(managementService.previewWalkInPrice(roomNumber, checkIn, checkOut, appliedCode));
+    }
+
+    @GetMapping("/management/dashboard-stats")
+    public ResponseEntity<DashboardStatsResponseDTO> getDashboardStats(
+            @RequestParam(defaultValue = "WEEK") String filterType) {
+        return ResponseEntity.ok(managementService.getDashboardStatsFiltered(filterType));
     }
 }

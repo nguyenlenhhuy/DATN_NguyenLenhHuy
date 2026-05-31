@@ -4,26 +4,32 @@ import { HomeComponent } from './pages/home/home.component';
 import { RegisterComponent } from './pages/register/register.component';
 import { ForgotPasswordComponent } from './pages/forgot-password/forgot-password.component';
 import { AdminLayoutComponent } from './components/admin-layout/admin-layout.component';
-import { DashboardComponent } from './pages/admin/dashboard/dashboard.component';
 import { ProfileComponent } from './pages/profile/profile.component';
 import { UserManagementComponent } from './pages/admin/user-management/user-management.component';
+import { RoomsComponent } from './pages/rooms/rooms.component';
 
-// IMPORT 2 COMPONENT MỚI ĐÃ ĐƯỢC TÁCH RA RIÊNG BIỆT
+// IMPORT CÁC COMPONENT QUẢN TRỊ ĐỒNG BỘ CHUẨN KIẾN TRÚC
+import { OverviewComponent } from './components/overview/overview.component';
 import { BookingManagementComponent } from './components/booking-management/booking-management.component';
 import { PromotionManagementComponent } from './components/promotion-management/promotion-management.component';
 
 // Guard kiểm tra đặc quyền ADMIN cao cấp
 import { adminGuard } from './guards/admin.guard'; 
+import { FavoritesComponent } from './pages/favorites/favorites.component';
+import { RoomDetailComponent } from './pages/room-detail/room-detail.component';
 
 export const routes: Routes = [
   // ===========================================================================
   // 1. PHÂN HỆ NGƯỜI DÙNG & CÔNG KHAI (PUBLIC / CUSTOMER ROUTES)
   // ===========================================================================
   { path: 'home', component: HomeComponent },
+  { path: 'rooms', component: RoomsComponent },
+  { path: 'rooms/:id', component: RoomDetailComponent }, // ĐƯA DÒNG NÀY LÊN ĐÂY (Cạnh route 'rooms' cho dễ quản lý)
   { path: 'login', component: LoginComponent },
   { path: 'register', component: RegisterComponent },
   { path: 'forgot-password', component: ForgotPasswordComponent },
   { path: 'profile', component: ProfileComponent }, 
+  { path: 'favorites', component: FavoritesComponent }, // ĐƯA DÒNG NÀY LÊN PHÂN HỆ PUBLIC luôn
 
   // ===========================================================================
   // 2. PHÂN HỆ QUẢN TRỊ & VẬN HÀNH KHÁCH SẠN (ADMIN & STAFF PANEL)
@@ -31,45 +37,35 @@ export const routes: Routes = [
   { 
     path: 'admin', 
     component: AdminLayoutComponent, 
-    // KHÔNG khóa adminGuard ở đây nữa để tài khoản STAFF (Lễ tân) cũng vào được Layout chung
     children: [
-      // Màn hình tổng quan Dashboard (Cho phép cả hai hoặc khóa tùy bạn, ở đây tạm thời cho cả hai xem báo cáo)
-      { path: 'dashboard', component: DashboardComponent },
-      
-      // 🔐 CHỈ ADMIN: Quản lý tài khoản User hệ thống
+      { 
+        path: 'overview', 
+        component: OverviewComponent,
+        title: 'Tổng Quan Báo Cáo Doanh Thu'
+      },
       { 
         path: 'users', 
         component: UserManagementComponent,
-        canActivate: [adminGuard] // Chặn chặt nhân viên lễ tân vào chỉnh sửa tài khoản
+        canActivate: [adminGuard]
       }, 
-
-      // 🔐 CHỈ ADMIN: Sơ đồ ma trận quản lý hạ tầng phòng
       { 
         path: 'rooms', 
         loadComponent: () => import('./components/room-matrix/room-matrix.component').then(m => m.RoomMatrixComponent),
-        canActivate: [adminGuard], // Chặn nhân viên lễ tân thay đổi cấu hình phòng vật lý
+        canActivate: [adminGuard],
         title: 'Sơ đồ Ma trận Phòng - Hệ thống Admin'
       },
-
-      // 🛎️ CẢ ADMIN & STAFF: Phân hệ Quản lý đặt phòng & Nghiệp vụ Quầy
-      // Đường dẫn URL truy cập: /admin/bookings
       { 
-        path: 'bookings', 
+        path: 'booking-management', 
         component: BookingManagementComponent,
         title: 'Quản lý Đặt phòng & Thu ngân Quầy'
       },
-
-      // 🔐 CHỈ ADMIN: Phân hệ Quản lý và cấu hình mã Khuyến mãi (Voucher)
-      // Đường dẫn URL truy cập: /admin/promotions
       { 
         path: 'promotions', 
         component: PromotionManagementComponent,
-        canActivate: [adminGuard], // Khóa chặt, STAFF gõ URL này sẽ bị đá ra ngoài ngay lập tức!
+        canActivate: [adminGuard],
         title: 'Quản lý Chiến dịch Khuyến mãi - Admin'
       },
-
-      // Nếu chỉ gõ /admin -> Tự động hướng vào màn hình Dashboard
-      { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
+      { path: '', redirectTo: 'overview', pathMatch: 'full' }
     ]
   },
   
@@ -77,5 +73,5 @@ export const routes: Routes = [
   // 3. ĐIỀU HƯỚNG MẶC ĐỊNH & BẢO VỆ ĐƯỜNG DẪN SAI (FALLBACK ROUTES)
   // ===========================================================================
   { path: '', redirectTo: 'home', pathMatch: 'full' },
-  { path: '**', redirectTo: 'home' }
+  { path: '**', redirectTo: 'home' } // BẮT BUỘC PHẢI LÀ DÒNG CUỐI CÙNG CỦA MẢNG!
 ];
