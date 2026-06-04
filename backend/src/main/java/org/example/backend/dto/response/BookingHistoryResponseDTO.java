@@ -12,6 +12,12 @@ public class BookingHistoryResponseDTO {
     private Long bookingId;
     private String hotelName;
     private String hotelAddress;
+
+    // 🔥 ĐÃ BỔ SUNG: Kích hoạt thuộc tính để Builder trong BookingService hết báo đỏ
+    private String roomNumber;
+    private String roomType;
+    private Long roomId;
+
     private LocalDate checkInDate;
     private LocalDate checkOutDate;
     private BigDecimal totalPrice;

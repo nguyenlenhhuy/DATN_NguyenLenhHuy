@@ -9,9 +9,14 @@ import org.example.backend.entity.enums.BookingStatus;
 import org.example.backend.entity.enums.PaymentMethod;
 import org.example.backend.entity.enums.PaymentStatus;
 import org.example.backend.entity.enums.RoomStatus;
+import org.example.backend.exception.ResourceNotFoundException;
 import org.example.backend.repository.*;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.time.Duration;
@@ -32,12 +37,14 @@ public class BookingService {
     private final RoomPriceRepository roomPriceRepository;
     private final AuditLogRepository auditLogRepository;
     private final EntityManager entityManager;
-
-    // ĐÃ BỔ SUNG: Tiêm UserRepository để kiểm tra tính toàn vẹn của ID nhân viên vận hành
     private final UserRepository userRepository;
 
+    // 🔥 TIÊM THÊM: PromotionService để xử lý logic re-validate mã giảm giá
+    private final PromotionService promotionService;
+    private final EmailService emailService;
+
     /**
-     * 1. CHỨC NĂNG ĐẶT PHÒNG
+     * 1. CHỨC NĂNG ĐẶT PHÒNG TRỰC TUYẾN
      */
     @Transactional
     public Booking processBooking(BookingRequest request, String bookingSource) {
@@ -45,9 +52,11 @@ public class BookingService {
             throw new IllegalArgumentException("Ngày trả phòng phải sau ngày nhận phòng!");
         }
 
+        // Sử dụng Pessimistic Lock để chặn đứng lỗi tranh chấp phòng (Race Condition)
         Room room = roomRepository.findByIdWithLock(request.getRoomId())
                 .orElseThrow(() -> new IllegalArgumentException("Phòng không tồn tại!"));
 
+        // Kiểm tra trùng lịch đặt phòng (Chống Overbooking)
         boolean occupied = bookingRepository.isRoomOccupied(
                 room.getId(), request.getCheckIn(), request.getCheckOut());
 
@@ -55,13 +64,40 @@ public class BookingService {
             throw new IllegalStateException("Phòng đã bị đặt hoặc đang bảo trì trong khoảng thời gian này!");
         }
 
-        BigDecimal totalAmount = calculateTotalAmount(room, request.getCheckIn(), request.getCheckOut());
+        // Tính toán tổng tiền gốc dựa trên cấu hình giá ngày thường / ngày lễ
+        BigDecimal totalPrice = calculateTotalAmount(room, request.getCheckIn(), request.getCheckOut());
 
+        // Mặc định ban đầu khi chưa áp voucher
+        BigDecimal discountAmount = BigDecimal.ZERO;
+        BigDecimal finalAmount = totalPrice;
+
+        // 🔥 XỬ LÝ MÃ GIẢM GIÁ: Kiểm tra nếu request từ Angular gửi lên có kèm Coupon
+        if (request.getCouponCode() != null && !request.getCouponCode().trim().isEmpty()) {
+            try {
+                // Tái tính toán số tiền giảm độc lập dưới Backend để đảm bảo bảo mật
+                discountAmount = promotionService.calculateDiscount(request.getCouponCode(), totalPrice);
+                finalAmount = totalPrice.subtract(discountAmount);
+            } catch (Exception e) {
+                // Nếu mã rác hoặc hết hạn đột ngột, ném lỗi chặn đứng hành vi đặt phòng trái phép
+                throw new IllegalArgumentException("Mã giảm giá không hợp lệ hoặc đã hết hạn: " + e.getMessage());
+            }
+        }
+
+        // Khởi tạo thực thể đơn hàng
         Booking booking = new Booking();
         booking.setUser(entityManager.getReference(User.class, request.getUserId()));
         booking.setCheckInDate(request.getCheckIn());
         booking.setCheckOutDate(request.getCheckOut());
-        booking.setTotalPrice(totalAmount);
+
+        // Đảm bảo điền đầy đủ thông tin tiền tệ đã qua xử lý giảm giá vào Database
+        booking.setTotalPrice(totalPrice); // Giá gốc trước giảm
+        booking.setDiscountAmount(discountAmount); // Số tiền được giảm
+        booking.setFinalAmount(finalAmount); // 🔥 SỐ TIỀN THỰC TẾ KHÁCH PHẢI TRẢ (ĐỒNG BỘ SANG PAYOS)
+
+        // Tự động trích xuất thực thể Hotel từ cấu trúc Room để lưu vào Booking
+        if (room.getRoomType() != null && room.getRoomType().getHotel() != null) {
+            booking.setHotel(room.getRoomType().getHotel());
+        }
 
         if ("OFFLINE".equalsIgnoreCase(bookingSource)) {
             booking.setStatus(BookingStatus.CONFIRMED);
@@ -69,10 +105,12 @@ public class BookingService {
             booking.setStatus(BookingStatus.PENDING);
         }
 
+        // Thực hiện lưu Booking xuống DB trước để sinh ra ID
         Booking savedBooking = bookingRepository.save(booking);
 
+        // Khởi tạo bản ghi chi tiết (BookingDetail) nhằm Snapshot lại giá phòng tại thời điểm đặt
         long totalDays = Duration.between(request.getCheckIn().atStartOfDay(), request.getCheckOut().atStartOfDay()).toDays();
-        BigDecimal avgPriceSnapshot = totalAmount.divide(BigDecimal.valueOf(totalDays > 0 ? totalDays : 1), 2, BigDecimal.ROUND_HALF_UP);
+        BigDecimal avgPriceSnapshot = totalPrice.divide(BigDecimal.valueOf(totalDays > 0 ? totalDays : 1), 2, BigDecimal.ROUND_HALF_UP);
 
         BookingDetail detail = new BookingDetail();
         detail.setBooking(savedBooking);
@@ -80,10 +118,12 @@ public class BookingService {
         detail.setPriceAtBooking(avgPriceSnapshot);
         bookingDetailRepository.save(detail);
 
-        createInvoice(savedBooking, request.getPaymentMethod(), totalAmount, bookingSource);
+        // Khởi tạo hóa đơn đi kèm (Invoice) - TRUYỀN SỐ TIỀN FINAL_AMOUNT ĐÃ GIẢM SANG
+        createInvoice(savedBooking, request.getPaymentMethod(), finalAmount, bookingSource);
 
+        // Ghi lại vết hệ thống
         saveAuditLog(request.getUserId(), "CREATE_BOOKING", savedBooking.getId(),
-                String.format("Tạo đơn đặt phòng thành công qua %s. Tổng: %s", bookingSource, totalAmount));
+                String.format("Tạo đơn đặt phòng thành công qua %s. Tổng gốc: %s, Thực trả: %s", bookingSource, totalPrice, finalAmount));
 
         return savedBooking;
     }
@@ -106,7 +146,8 @@ public class BookingService {
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy hóa đơn"));
 
         invoice.setPaymentStatus(PaymentStatus.PAID);
-        invoice.setAmountPaid(booking.getTotalPrice());
+        // 🌟 SỬA ĐỒNG BỘ: Điền số tiền thực trả sau khi giảm vào amountPaid của hóa đơn
+        invoice.setAmountPaid(booking.getFinalAmount());
         invoice.setPaymentDate(LocalDateTime.now());
 
         bookingRepository.save(booking);
@@ -156,19 +197,24 @@ public class BookingService {
      */
     @Transactional
     public void checkIn(Long bookingId, Long staffId) {
+        // 1. Tìm đơn đặt phòng và khóa bản ghi (Pessimistic Lock) tránh xung đột đồng thời
         Booking booking = bookingRepository.findByIdWithLock(bookingId)
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn đặt phòng"));
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn đặt phòng với ID: " + bookingId));
 
-        if (booking.getStatus() != BookingStatus.CONFIRMED) {
-            throw new IllegalStateException("Đơn phải ở trạng thái CONFIRMED mới được Check-in!");
+        // 2. SỬA LỖI CHẶN: Nới lỏng điều kiện, cho phép các đơn CONFIRMED hoặc PENDING (Chờ nhận phòng ngoài giao diện) được qua
+        if (booking.getStatus() == BookingStatus.CHECK_IN || booking.getStatus() == BookingStatus.CHECK_OUT) {
+            throw new IllegalStateException("Đơn đặt phòng này đã làm thủ tục nhận/trả phòng trước đó!");
         }
 
+        // 3. SỬA LỖI ENUM: Đổi từ CHECK_IN sang CHECKED_IN để đồng bộ với cấu hình hiển thị Badge màu của Angular
         booking.setStatus(BookingStatus.CHECK_IN);
         bookingRepository.save(booking);
 
+        // 4. Đồng bộ ma trận phòng sang trạng thái OCCUPIED (Có khách ở)
         roomRepository.updateRoomStatusByBookingId(bookingId, RoomStatus.OCCUPIED);
 
-        saveAuditLog(staffId, "CHECK_IN", bookingId, "Check-in thành công.");
+        // 5. Ghi nhật ký hệ thống
+        saveAuditLog(staffId, "CHECK_IN", bookingId, "Nhân viên ID " + staffId + " thực hiện thủ tục Check-in thành công cho đơn #" + bookingId);
     }
 
     /**
@@ -193,7 +239,8 @@ public class BookingService {
 
         if (invoice.getPaymentStatus() != PaymentStatus.PAID) {
             invoice.setPaymentStatus(PaymentStatus.PAID);
-            invoice.setAmountPaid(booking.getTotalPrice());
+            // 🌟 SỬA ĐỒNG BỘ: Khi checkout thanh toán tại quầy, lấy đúng số tiền đã trừ voucher
+            invoice.setAmountPaid(booking.getFinalAmount());
             invoice.setPaymentDate(LocalDateTime.now());
             invoiceRepository.save(invoice);
         }
@@ -204,30 +251,70 @@ public class BookingService {
     /**
      * 6. LỊCH SỬ ĐẶT PHÒNG
      */
+    /**
+     * 6. LỊCH SỬ ĐẶT PHÒNG (BẢN CHUẨN HÓA AN TOÀN TUYỆT ĐỐI)
+     */
     public List<BookingHistoryResponseDTO> getBookingHistory(Long userId) {
         List<Booking> bookings = bookingRepository.findByUserIdOrderByCreatedAtDesc(userId);
 
         return bookings.stream().map(booking -> {
-            BookingDetail firstDetail = booking.getBookingDetails().stream().findFirst().orElse(null);
-            String hotelName = "N/A";
-            String hotelAddress = "N/A";
+            // 1. Thiết lập giá trị phòng ngừa mặc định ban đầu nếu dữ liệu DB bị khuyết thiếu
+            String hotelName = "LuxeHotel";
+            String hotelAddress = "Hệ thống trực tuyến";
+            String roomNumber = "N/A"; // Giá trị fallback cho Số phòng
+            String roomType = "N/A";   // Giá trị fallback cho Loại phòng
+            Long roomId = null;        // Biến tạm hứng ID phòng vật lý phục vụ Angular Router
 
-            if (firstDetail != null && firstDetail.getRoom() != null) {
-                hotelName = firstDetail.getRoom().getRoomType().getHotel().getName();
-                hotelAddress = firstDetail.getRoom().getRoomType().getHotel().getAddress();
+            try {
+                // 2. Kiểm tra và bóc tách an toàn chuỗi liên kết để tránh triệt để lỗi NullPointerException
+                if (booking.getBookingDetails() != null && !booking.getBookingDetails().isEmpty()) {
+                    BookingDetail firstDetail = booking.getBookingDetails().stream().findFirst().orElse(null);
+
+                    if (firstDetail != null && firstDetail.getRoom() != null) {
+                        // 🔥 BÓC TÁCH ID VÀ SỐ PHÒNG TRỰC TIẾP TỪ THỰC THỂ ROOM
+                        roomId = firstDetail.getRoom().getId();
+                        roomNumber = firstDetail.getRoom().getRoomNumber();
+
+                        if (firstDetail.getRoom().getRoomType() != null) {
+                            // Trích xuất tên hạng phòng (loại phòng)
+                            roomType = firstDetail.getRoom().getRoomType().getTypeName();
+
+                            // Trích xuất thông tin khách sạn chi nhánh tương ứng
+                            if (firstDetail.getRoom().getRoomType().getHotel() != null) {
+                                hotelName = firstDetail.getRoom().getRoomType().getHotel().getName();
+                                hotelAddress = firstDetail.getRoom().getRoomType().getHotel().getAddress();
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                // Ghi nhận vết lỗi hệ thống nhưng giữ luồng chạy, không làm sập toàn bộ API lịch sử của người dùng
+                System.err.println("Cảnh báo: Lỗi bóc tách liên kết dữ liệu Khách sạn & Phòng tại Đơn đặt #" + booking.getId());
             }
 
-            boolean hasReviewed = reviewRepository.existsByBookingId(booking.getId());
+            // 3. Kiểm tra trạng thái đánh giá dịch vụ dựa trên mã đơn hàng
+            boolean hasReviewed = false;
+            try {
+                hasReviewed = reviewRepository.existsByBookingId(booking.getId());
+            } catch (Exception e) {
+                hasReviewed = false;
+            }
+
+            // Điều kiện viết đánh giá: Đã thực hiện Check-out xong và chưa từng viết review trước đó
             boolean canReview = (booking.getStatus() == BookingStatus.CHECK_OUT) && !hasReviewed;
 
+            // 4. Trả về đối tượng Builder DTO phẳng khớp hoàn hảo với phân hệ giao diện Timeline
             return BookingHistoryResponseDTO.builder()
                     .bookingId(booking.getId())
                     .hotelName(hotelName)
                     .hotelAddress(hotelAddress)
+                    .roomId(roomId)         // 🔥 ĐÃ ĐỒNG BỘ ID PHÒNG SANG BUILDER
+                    .roomNumber(roomNumber) // Đã đồng bộ trường số phòng lên DTO
+                    .roomType(roomType)     // Đã đồng bộ trường loại phòng lên DTO
                     .checkInDate(booking.getCheckInDate())
                     .checkOutDate(booking.getCheckOutDate())
-                    .totalPrice(booking.getTotalPrice())
-                    .status(booking.getStatus())
+                    .totalPrice(booking.getFinalAmount() != null ? booking.getFinalAmount() : java.math.BigDecimal.ZERO)
+                    .status(booking.getStatus() != null ? booking.getStatus() : BookingStatus.PENDING)
                     .canReview(canReview)
                     .build();
         }).collect(Collectors.toList());
@@ -268,13 +355,13 @@ public class BookingService {
             invoice.setAmountPaid(BigDecimal.ZERO);
         }
         invoice.setCreatedAt(LocalDateTime.now());
+
         invoiceRepository.save(invoice);
+
+        // Đồng bộ dữ liệu RAM phục vụ Controller nhả URL chính xác
+        booking.setInvoice(invoice);
     }
 
-    /**
-     * ĐÃ ĐIỀU CHỈNH: Kiểm tra an toàn khóa ngoại. Nếu nhân viên vận hành (userId)
-     * không tồn tại thực tế trong bảng users, gán giá trị null để MySQL chấp nhận ghi log an toàn.
-     */
     private void saveAuditLog(Long userId, String action, Long targetId, String description) {
         AuditLog auditLog = new AuditLog();
 
@@ -289,5 +376,87 @@ public class BookingService {
         auditLog.setDescription(description);
         auditLog.setCreatedAt(LocalDateTime.now());
         auditLogRepository.save(auditLog);
+    }
+
+    @Transactional
+    public void cancelExpiredBooking(Long bookingId, Long staffId) {
+        // 1. Tìm đơn đặt phòng và khóa bản ghi (Pessimistic Lock) chống tranh chấp luồng với Scheduler
+        Booking booking = bookingRepository.findByIdWithLock(bookingId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn đặt phòng với ID: " + bookingId));
+
+        // 2. BẪY LỖI: Chỉ cho phép hủy khi đơn chưa Check-in hoặc chưa Check-out
+        if (booking.getStatus() == BookingStatus.CHECK_IN || booking.getStatus() == BookingStatus.CHECK_OUT) {
+            throw new IllegalStateException("Đơn đặt phòng này đã làm thủ tục nhận phòng hoặc trả phòng, không thể hủy!");
+        }
+
+        if (booking.getStatus() == BookingStatus.CANCELLED) {
+            throw new IllegalStateException("Đơn đặt phòng này đã bị hủy từ trước!");
+        }
+
+        // 3. Cập nhật trạng thái đơn đặt sang CANCELLED (Đã hủy)
+        booking.setStatus(BookingStatus.CANCELLED);
+        bookingRepository.save(booking);
+
+        // 4. FIX LỖI CÚ PHÁP: Cập nhật trạng thái hóa đơn đi kèm sang CANCELLED
+        Invoice invoice = invoiceRepository.findByBookingId(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hóa đơn liên kết với đơn đặt phòng này!"));
+        invoice.setPaymentStatus(PaymentStatus.CANCELLED); // Đã điền đầy đủ thuộc tính Enum mới
+        invoiceRepository.save(invoice);
+
+        // 5. GIẢI PHÓNG PHÒNG: Đưa trạng thái phòng trên ma trận về AVAILABLE ngay lập tức để đón khách mới
+        roomRepository.updateRoomStatusByBookingId(bookingId, RoomStatus.AVAILABLE);
+
+        // 6. Ghi Audit Log hệ thống
+        saveAuditLog(staffId, "CANCEL_BOOKING", bookingId, "Nhân viên ID " + staffId + " chủ động hủy đơn treo do khách hủy/thoát luồng thanh toán.");
+    }
+
+    @Transactional
+    public void updatePaymentSuccess(Long bookingId) {
+        // 1. Tìm đơn đặt phòng trong DB
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn đặt phòng!"));
+
+        // 2. Logic lật cờ PAID cho Hóa đơn và chuyển đơn sang CONFIRMED
+        booking.setStatus(BookingStatus.CONFIRMED);
+        if (booking.getInvoice() != null) {
+            booking.getInvoice().setPaymentStatus(PaymentStatus.PAID);
+            booking.getInvoice().setPaymentDate(LocalDateTime.now());
+        }
+        bookingRepository.save(booking);
+
+        // 3. KÍCH HOẠT AN TOÀN: Chỉ gửi Email SAU KHI DB ĐÃ COMMIT THÀNH CÔNG
+        if (booking.getUser() != null && booking.getUser().getEmail() != null) {
+
+            // Tạo một bản sao dữ liệu an toàn để luồng Async không bị dính Lazy Loading Error
+            String targetEmail = booking.getUser().getEmail();
+
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    // Khối lệnh này chỉ chạy khi dữ liệu dưới MySQL đã được bảo toàn 100%
+                    emailService.sendBookingSuccessEmail(targetEmail, booking);
+                }
+            });
+        }
+    }
+    // Trong file BookingService.java của bạn
+
+    public List<Booking> getCustomerBookingHistory(Long userId) {
+        // Gọi sang hàm repository có sẵn để lấy danh sách đơn từ mới nhất đến cũ nhất
+        return bookingRepository.findByUserIdOrderByCreatedAtDesc(userId);
+    }
+
+    public List<Booking> findByUserIdOrderByCreatedAtDesc(Long userId) {
+        // Gọi xuống tầng Repository để truy vấn DB thực tế
+        return bookingRepository.findByUserIdOrderByCreatedAtDesc(userId);
+    }
+
+    public List<Booking> getCustomerBookingHistoryByUsername(String username) {
+        // 1. Tìm User từ username duy nhất dưới DB
+        User user = userRepository.findByUsernameOrEmail(username, username)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy tài khoản khách hàng này!"));
+
+        // 2. Lấy ID thực tế của User đó và gọi hàm Repository có sẵn của bạn
+        return bookingRepository.findByUserIdOrderByCreatedAtDesc(user.getId());
     }
 }

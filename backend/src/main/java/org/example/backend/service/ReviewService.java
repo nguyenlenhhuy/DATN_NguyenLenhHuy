@@ -2,6 +2,7 @@ package org.example.backend.service;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.example.backend.dto.request.ReplyRequestDTO;
 import org.example.backend.dto.request.ReviewRequestDTO;
 import org.example.backend.dto.response.ReviewResponseDTO;
 import org.example.backend.entity.*;
@@ -31,14 +32,27 @@ public class ReviewService {
         Booking booking = bookingRepository.findById(dto.getBookingId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn hàng"));
 
+        // 1. CHỐT CHẶN AN TOÀN: Đảm bảo Booking có chứa thông tin User trước khi xử lý tiếp
+        if (booking.getUser() == null) {
+            throw new IllegalStateException("Đơn đặt phòng này bị lỗi dữ liệu (không có thông tin khách hàng). Vui lòng kiểm tra lại Database.");
+        }
+
+        // 2. Kiểm tra quyền sở hữu đơn hàng (Lúc này gọi .getId() mới an toàn 100%)
         if (!booking.getUser().getId().equals(userId)) {
             throw new IllegalStateException("Bạn không có quyền đánh giá đơn hàng này");
         }
 
+        // 3. Kiểm tra nghiệp vụ khách đã check-out chưa
+        if (booking.getStatus() == null || !booking.getStatus().name().equals("CHECKED_OUT")) {
+            throw new IllegalStateException("Bạn chỉ có thể đánh giá sau khi đã hoàn tất thủ tục trả phòng (Check-out).");
+        }
+
+        // 4. Kiểm tra xem đã đánh giá chưa (Tránh spam)
         if (reviewRepository.existsByBookingId(dto.getBookingId())) {
             throw new ReviewAlreadyExistsException("Đơn hàng này đã được đánh giá");
         }
 
+        // 5. Map dữ liệu và lưu
         Review review = new Review();
         review.setBooking(booking);
         review.setUser(booking.getUser());
@@ -55,23 +69,26 @@ public class ReviewService {
         }
 
         Review saved = reviewRepository.save(review);
+
+        // 6. Cập nhật lại thống kê sao của khách sạn
         updateHotelStats(booking.getHotel().getId());
         return mapToDTO(saved);
     }
 
-    // ================= DÀNH CHO ADMIN =================
+    // ================= DÀNH CHO ADMIN / STAFF =================
 
     /**
-     * Cập nhật phản hồi từ Admin/Staff cho đánh giá
+     * Cập nhật phản hồi từ Admin/Staff cho đánh giá của khách hàng.
      */
     @Transactional
-    public ReviewResponseDTO replyReview(Long reviewId, String content) {
+    public ReviewResponseDTO replyReview(Long reviewId, ReplyRequestDTO replyDTO) {
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đánh giá để phản hồi"));
 
-        review.setReplyContent(content);
-        Review saved = reviewRepository.save(review);
+        // Chỉ cập nhật nội dung reply, giữ nguyên rating và comment cũ của khách
+        review.setReplyContent(replyDTO.getReplyContent());
 
+        Review saved = reviewRepository.save(review);
         return mapToDTO(saved);
     }
 
@@ -105,7 +122,6 @@ public class ReviewService {
     // ================= HÀM HỖ TRỢ =================
 
     private void updateHotelStats(Long hotelId) {
-        // Thực hiện tính toán lại avg_rating và total_reviews trong bảng hotels
         Object[] stats = (Object[]) reviewRepository.getRatingStats(hotelId);
         if (stats != null && stats.length > 0) {
             Object[] data = (Object[]) stats[0];

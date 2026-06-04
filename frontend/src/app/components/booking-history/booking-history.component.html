@@ -1,0 +1,206 @@
+<div class="max-w-6xl mx-auto p-4 pt-24 md:p-8 md:pt-28 bg-slate-50/50 min-h-screen">
+  
+  <div class="mb-6">
+    <h2 class="text-2xl md:text-3xl font-black text-gray-950 tracking-tight flex items-center gap-3">
+      <span>🕒</span> Kỳ nghỉ của tôi
+    </h2>
+    <p class="text-xs md:text-sm text-gray-500 mt-1">Bấm vào các thẻ chỉ số để lọc đơn phòng. Quản lý trạng thái và đóng góp ý kiến lưu trú.</p>
+  </div>
+
+  <div *ngIf="errorMessage" class="mb-6 p-4 bg-red-50 border border-red-100 text-red-700 rounded-2xl flex items-center gap-3 text-sm font-semibold shadow-sm">
+    <span>⚠️</span> {{ errorMessage }}
+  </div>
+
+  <div *ngIf="!isLoading && !errorMessage && allBookings.length > 0" 
+       class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+    
+    <div (click)="filterByStatus('ALL')" 
+         [ngClass]="{'border-blue-500 bg-blue-50/30 ring-2 ring-blue-100': currentFilter === 'ALL'}" 
+         class="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm hover:shadow-md cursor-pointer transition-all duration-200">
+      <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Tổng đơn đặt</p>
+      <h3 class="text-2xl font-black text-gray-900 mt-1">{{ totalBookingsCount }}</h3>
+    </div>
+
+    <div (click)="filterByStatus('CHECK_IN')" 
+         [ngClass]="{'border-emerald-500 bg-emerald-50/30 ring-2 ring-emerald-100': currentFilter === 'CHECK_IN'}" 
+         class="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm hover:shadow-md cursor-pointer transition-all duration-200">
+      <p class="text-xs font-bold text-emerald-500 uppercase tracking-wider">Đang lưu trú</p>
+      <h3 class="text-2xl font-black text-emerald-600 mt-1">{{ activeBookingsCount }}</h3>
+    </div>
+
+    <div (click)="filterByStatus('COMPLETED')" 
+         [ngClass]="{'border-purple-500 bg-purple-50/30 ring-2 ring-purple-100': currentFilter === 'COMPLETED'}" 
+         class="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm hover:shadow-md cursor-pointer transition-all duration-200">
+      <p class="text-xs font-bold text-purple-500 uppercase tracking-wider">Đã hoàn thành</p>
+      <h3 class="text-2xl font-black text-purple-600 mt-1">{{ completedBookingsCount }}</h3>
+    </div>
+
+    <div class="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm text-gray-800">
+      <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Tổng chi tiêu</p>
+      <h3 class="text-2xl font-black text-slate-800 mt-1">{{ totalSpentAmount | currency:'VND':'symbol':'1.0-0' }}</h3>
+    </div>
+  </div>
+
+  <div *ngIf="isLoading" class="text-center py-12 text-gray-400 text-sm">
+    🔄 Đang đồng bộ hóa dữ liệu thời gian thực...
+  </div>
+
+  <div *ngIf="!isLoading && !errorMessage && filteredBookings.length === 0" 
+       class="text-center py-16 bg-white rounded-3xl border border-gray-100 shadow-sm max-w-md mx-auto">
+    <div class="text-5xl mb-4">📭</div>
+    <h3 class="text-lg font-bold text-gray-800">Không tìm thấy kết quả</h3>
+    <p class="text-xs text-gray-400 mt-1">Không có đơn đặt phòng nào khớp với danh mục bộ lọc này.</p>
+    <button (click)="filterByStatus('ALL')" class="mt-4 px-4 py-2 bg-gray-900 text-white font-bold text-xs rounded-xl">
+      Hiển thị tất cả đơn
+    </button>
+  </div>
+
+  <div class="relative pl-8 md:pl-12 space-y-6" *ngIf="!isLoading && !errorMessage && filteredBookings.length > 0">
+    
+    <div class="absolute left-4 md:left-6 top-4 bottom-4 w-0.5 bg-gray-200/70"></div>
+
+    <div *ngFor="let b of filteredBookings" 
+         class="bg-white border border-gray-100 rounded-2xl p-5 md:p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 relative group"
+         [ngClass]="{'opacity-65 bg-gray-50/50': b.status === 'CANCELLED'}">
+      
+      <div class="absolute -left-7 md:-left-9 top-8 w-4 h-4 rounded-full border-4 border-white shadow-sm transition-transform group-hover:scale-125 z-10"
+           [ngClass]="{
+             'bg-amber-400 ring-4 ring-amber-100': b.status === 'PENDING',
+             'bg-sky-500 ring-4 ring-sky-100': b.status === 'CONFIRMED',
+             'bg-emerald-500 ring-4 ring-emerald-100': b.status === 'CHECK_IN',
+             'bg-violet-500 ring-4 ring-violet-100': b.status === 'CHECK_OUT',
+             'bg-rose-400': b.status === 'CANCELLED'
+           }">
+      </div>
+
+      <div class="space-y-3 flex-1 w-full pl-2">
+        <div class="flex items-center gap-2.5 flex-wrap">
+          <span class="font-black text-gray-900 text-base tracking-tight">Mã đơn: #{{ b.bookingId }}</span>
+          
+          <span [ngSwitch]="b.status">
+            <span *ngSwitchCase="'PENDING'" class="px-2.5 py-0.5 rounded-md text-xs font-bold bg-yellow-100 text-yellow-800">⏳ Chờ thanh toán</span>
+            <span *ngSwitchCase="'CONFIRMED'" class="px-2.5 py-0.5 rounded-md text-xs font-bold bg-sky-100 text-sky-700">📅 Đã xác nhận</span>
+            <span *ngSwitchCase="'CHECK_IN'" class="px-2.5 py-0.5 rounded-md text-xs font-bold bg-emerald-100 text-emerald-700">🔑 Đang lưu trú</span>
+            <span *ngSwitchCase="'CHECK_OUT'" class="px-2.5 py-0.5 rounded-md text-xs font-bold bg-violet-100 text-violet-700">🚪 Đã trả phòng</span>
+            <span *ngSwitchCase="'CANCELLED'" class="px-2.5 py-0.5 rounded-md text-xs font-bold bg-rose-100 text-rose-700">🚫 Đã hủy đơn</span>
+          </span>
+        </div>
+
+        <div class="text-gray-600 text-sm space-y-1">
+          <p class="font-bold text-gray-800 flex items-center gap-1.5">🏨 {{ b.hotelName }}</p>
+          <p class="text-xs text-gray-400">📍 {{ b.hotelAddress }}</p>
+          
+          <p class="text-xs font-bold text-indigo-600 flex items-center gap-1.5 pt-0.5">
+            <span>🔑</span> Số phòng: <span class="bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">Phòng {{ b.roomNumber }}</span>
+            <span class="text-gray-300 font-normal">|</span> Hạng phòng: <span class="text-gray-700 font-medium">{{ b.roomType }}</span>
+          </p>
+
+          <p class="text-xs font-medium text-gray-500 pt-1">
+            📅 {{ b.checkInDate | date:'dd/MM/yyyy' }} ➔ {{ b.checkOutDate | date:'dd/MM/yyyy' }}
+            <span class="px-2 py-0.5 bg-gray-100 text-gray-700 rounded-md font-bold text-[11px] ml-1">
+              {{ getNightCount(b.checkInDate, b.checkOutDate) }} đêm
+            </span>
+          </p>
+        </div>
+
+        <div class="pt-2 max-w-xs w-full" *ngIf="b.status !== 'CANCELLED'">
+          <div class="w-full bg-gray-100 rounded-full h-1.5">
+            <div class="h-1.5 rounded-full transition-all duration-500"
+                 [ngClass]="{
+                   'bg-yellow-400': b.status === 'PENDING',
+                   'bg-sky-500': b.status === 'CONFIRMED',
+                   'bg-emerald-500': b.status === 'CHECK_IN',
+                   'bg-violet-500': b.status === 'CHECK_OUT'
+                 }" [style.width.%]="getProgress(b.status)">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="w-full lg:w-auto pt-4 lg:pt-0 border-t lg:border-t-0 border-gray-100 flex flex-col sm:flex-row lg:flex-col justify-between lg:justify-center items-start sm:items-center lg:items-end gap-4 shrink-0">
+        
+        <div class="bg-emerald-50/70 px-4 py-2.5 rounded-xl text-left lg:text-right border border-emerald-100/40 w-full sm:w-auto lg:w-full">
+          <span class="text-[10px] text-gray-400 block font-bold uppercase tracking-wider">Tổng thanh toán</span>
+          <span class="text-xl font-black text-emerald-600 tracking-tight" [ngClass]="{'text-gray-400 line-through': b.status === 'CANCELLED'}">
+            {{ b.totalPrice | currency:'VND':'symbol':'1.0-0' }}
+          </span>
+        </div>
+
+        <div class="flex flex-col gap-2 w-full sm:w-auto">
+          <div class="flex gap-2 flex-wrap">
+            <button (click)="openDetailModal(b)" class="px-3 py-1.5 bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-700 rounded-lg text-xs font-bold transition">Xem chi tiết</button>
+            
+            <button *ngIf="b.status !== 'CANCELLED' && b.status !== 'PENDING'" 
+                    (click)="printInvoicePDF(b)" 
+                    class="px-3 py-1.5 bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-600 rounded-lg text-xs font-bold transition">
+              Hóa đơn PDF
+            </button>
+            
+            <button *ngIf="b.status === 'CHECK_OUT' || b.status === 'CANCELLED'" (click)="reBookRoom(b)" class="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-600 rounded-lg text-xs font-bold transition">Đặt lại</button>
+          </div>
+
+          <div class="pt-1 flex justify-start lg:justify-end">
+            <button *ngIf="b.canReview" (click)="openReviewModal(b.bookingId)" class="w-full text-center bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white text-xs font-bold py-1.5 px-3.5 rounded-lg transition shadow-md shadow-indigo-50">
+              ⭐ Viết đánh giá
+            </button>
+            <div *ngIf="b.status === 'CHECK_OUT' && !b.canReview" class="flex flex-col items-start lg:items-end gap-1">
+              <div class="flex text-amber-400 text-sm">★★★★★</div>
+              <span class="text-[11px] font-bold text-gray-400">⭐ Bạn đã đánh giá 5/5</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="isDetailModalOpen && selectedBooking" class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+    <div class="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-gray-100 space-y-4">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 class="text-lg font-black text-gray-900">📄 Chi Tiết Đơn Phòng #{{ selectedBooking.bookingId }}</h3>
+        <button (click)="closeDetailModal()" class="text-gray-400 hover:text-gray-600 text-xl font-bold">&times;</button>
+      </div>
+      <div class="space-y-2 text-sm text-gray-600">
+        <p><strong>Chi nhánh:</strong> {{ selectedBooking.hotelName }}</p>
+        <p><strong>Địa chỉ:</strong> {{ selectedBooking.hotelAddress }}</p>
+        <p><strong>Số phòng vật lý:</strong> <span class="font-bold text-indigo-600">Phòng {{ selectedBooking.roomNumber }}</span></p>
+        <p><strong>Hạng cấu hình phòng:</strong> {{ selectedBooking.roomType }}</p>
+        <p><strong>Ngày nhận phòng:</strong> {{ selectedBooking.checkInDate | date:'dd/MM/yyyy' }} (Sau 14:00)</p>
+        <p><strong>Ngày trả phòng:</strong> {{ selectedBooking.checkOutDate | date:'dd/MM/yyyy' }} (Trước 12:00)</p>
+        <p><strong>Số đêm lưu trú:</strong> {{ getNightCount(selectedBooking.checkInDate, selectedBooking.checkOutDate) }} đêm</p>
+        <p class="pt-2 text-base text-gray-900 border-t"><strong>Số tiền quyết toán:</strong> <span class="text-emerald-600 font-extrabold">{{ selectedBooking.totalPrice | currency:'VND':'symbol':'1.0-0' }}</span></p>
+      </div>
+      <div class="pt-2 text-right">
+        <button (click)="closeDetailModal()" class="px-4 py-2 bg-gray-900 text-white font-bold text-xs rounded-xl hover:bg-gray-800 transition">Đóng lại</button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="isReviewModalOpen" class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+    <div class="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-gray-100 space-y-4">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 class="text-lg font-black text-gray-900">⭐ Đánh Giá Dịch Vụ Lưu Trú</h3>
+        <button (click)="closeReviewModal()" class="text-gray-400 hover:text-gray-600 text-xl font-bold">&times;</button>
+      </div>
+      <div class="space-y-1.5">
+        <label class="text-xs font-bold text-gray-500 uppercase">Mức độ hài lòng của bạn:</label>
+        <select [(ngModel)]="reviewRating" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm font-bold text-gray-800 focus:outline-none">
+          <option [value]="5">⭐⭐⭐⭐⭐ Hoàn hảo (5/5)</option>
+          <option [value]="4">⭐⭐⭐⭐ Tốt (4/5)</option>
+          <option [value]="3">⭐⭐⭐ Tạm ổn (3/5)</option>
+          <option [value]="2">⭐⭐ Không hài lòng (2/5)</option>
+          <option [value]="1">⭐ Rất tệ (1/5)</option>
+        </select>
+      </div>
+      <div class="space-y-1.5">
+        <label class="text-xs font-bold text-gray-500 uppercase">Chia sẻ trải nghiệm thực tế:</label>
+        <textarea [(ngModel)]="reviewComment" rows="4" placeholder="Phòng ốc có sạch sẽ không? Nhân viên phục vụ ra sao?..." class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:outline-none placeholder:text-gray-300"></textarea>
+      </div>
+      <div class="flex justify-end gap-2 pt-2 border-t">
+        <button (click)="closeReviewModal()" class="px-4 py-2 bg-gray-100 text-gray-600 font-bold text-xs rounded-xl hover:bg-gray-200 transition">Hủy bỏ</button>
+        <button (click)="submitReview()" class="px-4 py-2 bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-bold text-xs rounded-xl">Gửi đánh giá</button>
+      </div>
+    </div>
+  </div>
+
+</div>

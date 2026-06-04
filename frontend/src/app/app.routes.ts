@@ -17,6 +17,7 @@ import { PromotionManagementComponent } from './components/promotion-management/
 import { adminGuard } from './guards/admin.guard'; 
 import { FavoritesComponent } from './pages/favorites/favorites.component';
 import { RoomDetailComponent } from './pages/room-detail/room-detail.component';
+import { BookingHistoryComponent } from './components/booking-history/booking-history.component';
 
 export const routes: Routes = [
   // ===========================================================================
@@ -24,12 +25,15 @@ export const routes: Routes = [
   // ===========================================================================
   { path: 'home', component: HomeComponent },
   { path: 'rooms', component: RoomsComponent },
-  { path: 'rooms/:id', component: RoomDetailComponent }, // ĐƯA DÒNG NÀY LÊN ĐÂY (Cạnh route 'rooms' cho dễ quản lý)
+  { path: 'rooms/:id', component: RoomDetailComponent }, 
   { path: 'login', component: LoginComponent },
   { path: 'register', component: RegisterComponent },
   { path: 'forgot-password', component: ForgotPasswordComponent },
   { path: 'profile', component: ProfileComponent }, 
-  { path: 'favorites', component: FavoritesComponent }, // ĐƯA DÒNG NÀY LÊN PHÂN HỆ PUBLIC luôn
+  { path: 'favorites', component: FavoritesComponent }, 
+  
+  // ✔️ ĐÃ ĐẨY LÊN ĐÂY: Nằm trong vùng an toàn, không lo bị chặn ngầm nữa
+  { path: 'history', component: BookingHistoryComponent }, 
 
   // ===========================================================================
   // 2. PHÂN HỆ QUẢN TRỊ & VẬN HÀNH KHÁCH SẠN (ADMIN & STAFF PANEL)
@@ -73,5 +77,5 @@ export const routes: Routes = [
   // 3. ĐIỀU HƯỚNG MẶC ĐỊNH & BẢO VỆ ĐƯỜNG DẪN SAI (FALLBACK ROUTES)
   // ===========================================================================
   { path: '', redirectTo: 'home', pathMatch: 'full' },
-  { path: '**', redirectTo: 'home' } // BẮT BUỘC PHẢI LÀ DÒNG CUỐI CÙNG CỦA MẢNG!
+  { path: '**', redirectTo: 'home' } // ✔️ CHUẨN: Luôn luôn nằm ở đáy mảng để hứng các URL gõ bậy
 ];

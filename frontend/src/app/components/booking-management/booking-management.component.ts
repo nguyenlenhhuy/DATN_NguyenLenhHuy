@@ -8,7 +8,7 @@ import { BookingManagementService, BookingResponseDTO, WalkInBookingRequestDTO }
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './booking-management.component.html',
-  styles: []
+  styleUrls: ['./booking-management.component.scss'] // Đã đổi sang liên kết file scss của bạn
 })
 export class BookingManagementComponent implements OnInit {
   bookings: BookingResponseDTO[] = [];
@@ -22,7 +22,7 @@ export class BookingManagementComponent implements OnInit {
 
   // Biến lọc
   searchTerm: string = '';
-  checkInDateFilter: string = ''; // Lọc chính xác bằng trường checkInDate
+  checkInDateFilter: string = '';
 
   walkInForm: WalkInBookingRequestDTO = {
     roomNumber: '', customerName: '', customerPhone: '', customerCccd: '',
@@ -31,7 +31,6 @@ export class BookingManagementComponent implements OnInit {
 
   constructor(private bookingService: BookingManagementService) {}
 
-  // Getter lọc dữ liệu dùng trực tiếp b.checkInDate
   get filteredBookings(): BookingResponseDTO[] {
     return this.bookings.filter(b => {
       const matchName = b.customerName.toLowerCase().includes(this.searchTerm.toLowerCase());
@@ -105,6 +104,22 @@ export class BookingManagementComponent implements OnInit {
     this.bookingService.processCheckIn(bookingId).subscribe({
       next: (res: any) => { alert(res.message); this.loadBookings(); }
     });
+  }
+
+  // 🔥 HÀM MỚI: Xử lý kích hoạt hủy đơn đặt phòng treo 5 phút tại quầy
+  onProcessCancel(bookingId: number): void {
+    if (confirm(`Xác nhận thực hiện HỦY đơn đặt phòng #${bookingId} và giải phóng phòng vật lý về kho trống?`)) {
+      const staffId = Number(localStorage.getItem('staffId') || 1);
+      
+      // Đảm bảo hàm cancelBooking(bookingId, staffId) đã được bạn khai báo trong booking-management.service.ts
+      this.bookingService.cancelBooking(bookingId, staffId).subscribe({
+        next: (res: any) => {
+          alert(res.message || 'Đã hủy đơn hàng và mở khóa phòng trống thành công!');
+          this.loadBookings();
+        },
+        error: (err: any) => alert('Hủy đơn thất bại: ' + (err.error?.message || err.message))
+      });
+    }
   }
 
   onProcessCheckOut(bookingId: number): void {

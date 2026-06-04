@@ -52,12 +52,16 @@
               <a routerLink="/profile" (click)="closeDropdown()" class="flex items-center px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition">
                 <span class="mr-3 text-base">👤</span> Thông tin cá nhân
               </a>
+
+              <a (click)="onHistoryClick()" class="flex items-center px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition cursor-pointer">
+                <span class="mr-3 text-base">🕒</span> Lịch sử đặt phòng
+              </a>
               
               <a routerLink="/favorites" (click)="closeDropdown()" class="flex items-center px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-blue-50 hover:text-red-600 transition">
                 <span class="mr-3 text-base">❤️</span> Phòng yêu thích
               </a>
 
-              <a routerLink="/profile" [queryParams]="{tab: 'password'}" (click inversion)="closeDropdown()" class="flex items-center px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition">
+              <a routerLink="/profile" [queryParams]="{tab: 'password'}" (click)="closeDropdown()" class="flex items-center px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition">
                 <span class="mr-3 text-base">🔑</span> Đổi mật khẩu
               </a>
               

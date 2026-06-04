@@ -1,6 +1,5 @@
 package org.example.backend.service;
 
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.entity.Booking;
@@ -34,26 +33,31 @@ public class PaymentService {
     private final BookingRepository bookingRepository;
     private final DailyRevenueStatRepository revenueStatRepository;
 
-
     @Transactional
     public String createPaymentLink(Long invoiceId) throws Exception {
         Invoice invoice = invoiceRepository.findById(invoiceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Hóa đơn không tồn tại: " + invoiceId));
 
+        int totalAmount = invoice.getBooking().getFinalAmount().intValue();
+
         // PayOS yêu cầu danh sách món hàng
         ItemData item = ItemData.builder()
                 .name("Thanh toán đặt phòng #" + invoice.getBooking().getId())
                 .quantity(1)
-                .price(invoice.getAmountPaid().intValue())
+                .price(totalAmount)
                 .build();
 
+        // 🔥 TÍNH TOÁN: Thời gian hiện tại + 5 phút (5 * 60 giây)
+        long expiredAtInSeconds = (System.currentTimeMillis() / 1000) + 300;
+
         PaymentData paymentData = PaymentData.builder()
-                .orderCode(invoice.getId()) // ID hóa đơn dùng làm mã đơn hàng
-                .amount(invoice.getAmountPaid().intValue())
+                .orderCode(invoice.getId())
+                .amount(totalAmount)
                 .description("HMS PAY " + invoice.getId())
-                .returnUrl("http://localhost:4200/payment/success") // URL Frontend của bạn
+                .returnUrl("http://localhost:4200/payment/success")
                 .cancelUrl("http://localhost:4200/payment/cancel")
                 .items(Collections.singletonList(item))
+                .expiredAt(expiredAtInSeconds) // 🔥 ĐÂY RỒI: Truyền thời gian hết hạn sang PayOS
                 .build();
 
         CheckoutResponseData data = payOS.createPaymentLink(paymentData);
@@ -73,21 +77,25 @@ public class PaymentService {
             return;
         }
 
-        // 1. Cập nhật Invoice (Sử dụng LocalDateTime thay cho java.util.Date)
+        // Lấy số tiền thực tế khách vừa thanh toán thành công qua PayOS
+        BigDecimal actualAmount = invoice.getBooking().getFinalAmount();
+
+        // ✅ SỬA BUG 2: Cập nhật trạng thái kèm theo điền số tiền thực tế vào hóa đơn
         invoice.setPaymentStatus(PaymentStatus.PAID);
+        invoice.setAmountPaid(actualAmount); // Lưu lại số tiền để database ghi nhận chính xác
         invoice.setPaymentDate(LocalDateTime.now());
 
-        // 2. Cập nhật Booking
+        // 2. Cập nhật Booking sang trạng thái đã xác nhận phòng
         Booking booking = invoice.getBooking();
         booking.setStatus(BookingStatus.CONFIRMED);
 
-        // 3. Cập nhật thống kê doanh thu
-        updateDailyRevenue(invoice.getAmountPaid());
+        // ✅ SỬA BUG 3: Truyền số tiền thực tế (actualAmount) vào thống kê doanh thu thay vì số 0 ban đầu
+        updateDailyRevenue(actualAmount);
 
         invoiceRepository.save(invoice);
         bookingRepository.save(booking);
 
-        log.info("Xử lý thanh toán thành công cho hóa đơn số: {}", invoiceId);
+        log.info("Xử lý thanh toán thành công cho hóa đơn số: {}. Số tiền: {}", invoiceId, actualAmount);
     }
 
     /**
@@ -96,7 +104,6 @@ public class PaymentService {
     private void updateDailyRevenue(BigDecimal amount) {
         LocalDate today = LocalDate.now();
 
-        // Sử dụng findById với LocalDate và Builder của Lombok
         DailyRevenueStat stat = revenueStatRepository.findById(today)
                 .orElseGet(() -> DailyRevenueStat.builder()
                         .statDate(today)

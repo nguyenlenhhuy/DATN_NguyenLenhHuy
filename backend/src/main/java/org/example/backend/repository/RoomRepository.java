@@ -1,12 +1,12 @@
 package org.example.backend.repository;
 
 import jakarta.persistence.LockModeType;
-import org.springframework.transaction.annotation.Transactional;
 import org.example.backend.entity.Room;
 import org.example.backend.entity.enums.RoomStatus;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 
@@ -28,7 +28,7 @@ public interface RoomRepository extends JpaRepository<Room, Long>, JpaSpecificat
     boolean existsByRoomTypeId(@Param("roomTypeId") Long roomTypeId);
 
     @Modifying
-    @Transactional // Quan trọng cho các thao tác UPDATE
+    @Transactional // Quan trọng cho các thao tác UPDATE đơn lẻ trực tiếp
     @Query("UPDATE Room r SET r.status = :status WHERE r.id IN " +
             "(SELECT bd.room.id FROM BookingDetail bd WHERE bd.booking.id = :bookingId)")
     void updateRoomStatusByBookingId(@Param("bookingId") Long bookingId, @Param("status") RoomStatus status);
@@ -48,4 +48,15 @@ public interface RoomRepository extends JpaRepository<Room, Long>, JpaSpecificat
     Optional<Room> findByRoomNumber(String roomNumber);
 
     List<Room> findAllByStatus(RoomStatus status);
+
+    /**
+     * 🔥 HÀM MỚI ĐƯỢC TÍCH HỢP:
+     * Giải phóng hàng loạt phòng vật lý thuộc các đơn đặt phòng bị hủy về trạng thái AVAILABLE.
+     * Sử dụng câu lệnh sub-query lồng nhau để tối ưu hóa hiệu năng, giảm số lượng kết nối tới DB.
+     */
+    @Modifying
+    @Query("UPDATE Room r SET r.status = :status WHERE r.id IN (" +
+            "SELECT bd.room.id FROM BookingDetail bd WHERE bd.booking.id IN :bookingIds" +
+            ")")
+    void releaseRoomsByBookingIds(@Param("status") RoomStatus status, @Param("bookingIds") List<Long> bookingIds);
 }

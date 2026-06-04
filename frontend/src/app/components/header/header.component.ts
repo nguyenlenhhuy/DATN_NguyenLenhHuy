@@ -7,7 +7,7 @@ import { AuthService } from '../../services/auth.service';
   selector: 'app-header',
   standalone: true,
   imports: [CommonModule, RouterModule],
-  templateUrl: './header.component.html' // FIX: Xóa bỏ dòng styleUrl lỗi để biên dịch mượt mà
+  templateUrl: './header.component.html'
 })
 export class HeaderComponent implements OnInit {
   isDropdownOpen = false;
@@ -54,5 +54,15 @@ export class HeaderComponent implements OnInit {
   onRoomsClick(): void {
     console.log("Đã click vào menu Phòng");
     this.router.navigate(['/rooms']);
+  }
+
+  /**
+   * 🔥 HÀM MỚI ĐƯỢC THÊM:
+   * Xử lý đóng Dropdown và ép lệnh chuyển trang sang trang Lịch sử đặt phòng
+   */
+  onHistoryClick(): void {
+    this.isDropdownOpen = false; // Đóng menu thả xuống ngay lập tức
+    console.log("Đang điều hướng sang trang Lịch sử đặt phòng...");
+    this.router.navigate(['/history']); // Kích hoạt bộ định tuyến chuyển sang màn hình lịch sử
   }
 }

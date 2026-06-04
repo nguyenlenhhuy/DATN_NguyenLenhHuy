@@ -6,10 +6,12 @@ import { authInterceptor } from './interceptors/auth.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
+    // Kích hoạt ma trận định tuyến chuẩn hóa
     provideRouter(routes),
-    provideHttpClient(),
+    
+    // Cung cấp một HttpClient duy nhất có gắn Interceptor xử lý JWT Token
     provideHttpClient(
-      withInterceptors([authInterceptor]) // Quan trọng nhất dòng này
+      withInterceptors([authInterceptor])
     )
   ]
 };

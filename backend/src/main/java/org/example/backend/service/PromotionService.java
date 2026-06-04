@@ -8,6 +8,9 @@ import org.example.backend.repository.PromotionRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -39,9 +42,6 @@ public class PromotionService {
      */
     @Transactional
     public void createPromotion(PromotionRequestDTO request) {
-        // Kiểm tra xem mã code này đã tồn tại trong hệ thống chưa để tránh trùng lặp dữ liệu độc bản
-        // (Nếu cần bạn có thể bổ sung thêm logic validation tại đây)
-
         Promotion promotion = Promotion.builder()
                 .code(request.getCode().toUpperCase().trim()) // Chuẩn hóa mã viết hoa toàn bộ
                 .discountPercentage(request.getDiscountPercentage())
@@ -52,16 +52,46 @@ public class PromotionService {
 
         promotionRepository.save(promotion);
     }
+
+    /**
+     * Nghiệp vụ bật/tắt trạng thái hoạt động của Voucher
+     */
     @Transactional
     public void togglePromotionStatus(Long id) {
-        // Tìm kiếm voucher trong DB, nếu không thấy thì ném lỗi lập tức
         Promotion promotion = promotionRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Mã khuyến mãi không tồn tại trên hệ thống!"));
 
-        // Đảo ngược trạng thái vật lý (Đang true thành false, đang false thành true)
         promotion.setIsActive(!promotion.getIsActive());
-
-        // Lưu lại sự thay đổi xuống MySQL
         promotionRepository.save(promotion);
+    }
+
+    /**
+     * 🔥 NGHIỆP VỤ 3 MỚI ĐƯỢC BỔ SUNG:
+     * Kiểm tra tính hợp lệ của mã và tính toán số tiền được giảm giá
+     */
+    @Transactional(readOnly = true)
+    public BigDecimal calculateDiscount(String code, BigDecimal currentAmount) {
+        String cleanCode = code.trim();
+
+        // 1. Tìm kiếm mã voucher công khai đang hoạt động
+        Promotion promotion = promotionRepository.findByCodeIgnoreCaseAndIsActiveTrue(cleanCode)
+                .orElseThrow(() -> new RuntimeException("Mã giảm giá không tồn tại hoặc đã bị vô hiệu hóa!"));
+
+        // 2. 🔥 SỬA TẠI ĐÂY: Đổi sang LocalDate để đồng bộ kiểu dữ liệu với Entity của bạn
+        java.time.LocalDate now = java.time.LocalDate.now();
+
+        if (now.isBefore(promotion.getStartDate())) {
+            throw new RuntimeException("Mã giảm giá chưa đến thời gian áp dụng!");
+        }
+        if (now.isAfter(promotion.getEndDate())) {
+            throw new RuntimeException("Mã giảm giá này đã hết hạn sử dụng!");
+        }
+
+        // 3. Tính toán số tiền được giảm theo %
+        BigDecimal percentage = BigDecimal.valueOf(promotion.getDiscountPercentage());
+        BigDecimal discountAmount = currentAmount.multiply(percentage)
+                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+
+        return discountAmount;
     }
 }

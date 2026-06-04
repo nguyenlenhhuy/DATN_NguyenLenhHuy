@@ -1,5 +1,6 @@
 package org.example.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import lombok.*;
 import org.example.backend.entity.enums.BookingStatus;
 import jakarta.persistence.*;
@@ -77,6 +78,7 @@ public class Booking {
 
     // ĐÃ BỔ SUNG QUAN TRỌNG: Ánh xạ hai chiều tới Invoice giúp dứt điểm lỗi "Cannot resolve symbol 'invoice'"
     @OneToOne(mappedBy = "booking", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonManagedReference
     private Invoice invoice;
 
     @PrePersist

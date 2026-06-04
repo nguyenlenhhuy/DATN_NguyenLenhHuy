@@ -1,85 +1,82 @@
 <app-header></app-header>
 
-<main class="min-h-screen bg-gradient-to-b from-slate-50 to-white pt-[110px] pb-24 font-sans antialiased text-gray-800">
+<main class="min-h-screen bg-slate-50 pt-[110px] pb-24 font-sans antialiased text-gray-800">
   <div class="container mx-auto px-4 max-w-7xl">
 
-    <div class="flex items-center justify-between mb-6">
+    <div class="flex items-center justify-between mb-8">
       <button
         (click)="goBack()"
-        class="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-gray-400 hover:text-blue-700 transition-all group"
+        class="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-gray-500 hover:text-blue-700 transition-colors group"
       >
-        <span class="text-sm transition-transform group-hover:-translate-x-1">←</span>
-        Quay lại danh sách phòng
+        <span class="text-lg transition-transform duration-300 group-hover:-translate-x-1">←</span>
+        Quay lại
       </button>
 
-      <div class="hidden md:flex items-center gap-2 text-xs font-semibold text-gray-400">
-        <span>Phòng nghỉ</span>
-        <span>/</span>
-        <span class="text-gray-700 font-black">{{ room.typeName }}</span>
+      <div class="hidden md:flex items-center gap-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+        <span class="hover:text-gray-600 cursor-pointer transition-colors">Phòng nghỉ</span>
+        
+        <ng-container *ngIf="room">
+          <span>/</span>
+          <span class="text-blue-700 font-black">{{ room.typeName }}</span>
+        </ng-container>
+
       </div>
     </div>
 
-    <div *ngIf="isLoading" class="flex flex-col items-center justify-center py-32 gap-5">
-      <div class="w-10 h-10 border-[3px] border-blue-700 border-t-transparent rounded-full animate-spin"></div>
+    <div *ngIf="isLoading" class="flex flex-col items-center justify-center py-32 gap-6">
+      <div class="w-12 h-12 border-[4px] border-blue-100 border-t-blue-700 rounded-full animate-spin"></div>
       <p class="text-xs uppercase tracking-[0.2em] font-black text-gray-400">
-        Đang tải dữ liệu phòng cao cấp...
+        Đang tải thông tin...
       </p>
     </div>
 
     <div
       *ngIf="!isLoading && room"
-      class="grid grid-cols-1 xl:grid-cols-3 gap-8 items-start"
+      class="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start"
     >
-
-      <div class="xl:col-span-2 flex flex-col gap-8">
-
-        <div
-          class="relative w-full aspect-[16/9] rounded-3xl overflow-hidden shadow-2xl shadow-slate-200 border border-white group"
-        >
-
+      <div class="xl:col-span-8 flex flex-col gap-8">
+        
+        <div class="relative w-full aspect-[16/9] rounded-3xl overflow-hidden shadow-xl shadow-slate-200/50 group bg-slate-200">
           <img
             [src]="selectedImage"
             alt="Room Preview"
             class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
           />
+          
+          <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-transparent pointer-events-none"></div>
 
-          <div class="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent"></div>
-
-          <div class="absolute top-5 left-5 flex flex-wrap gap-2 z-20">
-            <div class="bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full text-[11px] font-black text-gray-800 shadow">
-              ⭐ 4.9 Excellent
+          <div class="absolute top-6 left-6 flex flex-wrap gap-2 z-20">
+            <div class="bg-white/95 backdrop-blur-sm px-4 py-2 rounded-full text-xs font-black text-gray-800 shadow-sm flex items-center gap-1">
+              <span class="text-yellow-400">★</span> 4.9 Excellent
             </div>
-
-            <div class="bg-blue-600/90 backdrop-blur-md px-3 py-1.5 rounded-full text-[11px] font-black text-white shadow">
+            <div class="bg-blue-600/95 backdrop-blur-sm px-4 py-2 rounded-full text-xs font-black text-white shadow-sm flex items-center gap-1">
               🌊 Ocean View
             </div>
-
             <div
               *ngIf="room.status === 'AVAILABLE'"
-              class="bg-emerald-500/90 backdrop-blur-md px-3 py-1.5 rounded-full text-[11px] font-black text-white shadow animate-pulse"
+              class="bg-emerald-500/95 backdrop-blur-sm px-4 py-2 rounded-full text-xs font-black text-white shadow-sm flex items-center gap-1 animate-pulse"
             >
-              🔥 Còn phòng
+              🔥 Đang Hot
             </div>
           </div>
 
           <button
             type="button"
             (click)="prevImage()"
-            class="absolute left-5 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white p-3 rounded-full shadow-xl opacity-0 group-hover:opacity-100 transition-all hover:scale-110 z-20"
+            class="absolute left-6 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-gray-800 p-3 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 z-20"
           >
-            <span class="text-lg font-black">←</span>
+            <span class="text-xl font-black leading-none">‹</span>
           </button>
-
           <button
             type="button"
             (click)="nextImage()"
-            class="absolute right-5 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white p-3 rounded-full shadow-xl opacity-0 group-hover:opacity-100 transition-all hover:scale-110 z-20"
+            class="absolute right-6 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-gray-800 p-3 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 z-20"
           >
-            <span class="text-lg font-black">→</span>
+            <span class="text-xl font-black leading-none">›</span>
           </button>
 
-          <div class="absolute bottom-5 right-5 z-20">
-            <div class="bg-black/60 backdrop-blur-md text-white text-[11px] font-black px-4 py-1.5 rounded-full">
+          <div class="absolute bottom-6 right-6 z-20">
+            <div class="bg-black/50 backdrop-blur-md text-white text-xs font-bold px-4 py-2 rounded-full tracking-wider">
               {{ currentIndex + 1 }} / {{ $any(room).albumImages?.length || 1 }}
             </div>
           </div>
@@ -87,201 +84,241 @@
 
         <div
           *ngIf="$any(room).albumImages && $any(room).albumImages.length > 0"
-          class="flex gap-3 overflow-x-auto pb-2"
+          class="flex gap-4 overflow-x-auto pb-4 scrollbar-hide"
         >
-          <div
+          <button
             *ngFor="let url of $any(room).albumImages; let i = index"
             (click)="changePreviewImage(url, i)"
             [ngClass]="
               currentIndex === i
-                ? 'border-blue-700 ring-4 ring-blue-100 scale-105'
-                : 'border-gray-200 hover:border-blue-300'
+                ? 'ring-2 ring-blue-700 ring-offset-2 opacity-100'
+                : 'opacity-60 hover:opacity-100 hover:ring-2 hover:ring-gray-300 hover:ring-offset-2'
             "
-            class="relative w-28 h-20 rounded-2xl overflow-hidden border-2 cursor-pointer shrink-0 transition-all bg-white"
+            class="relative w-24 h-16 rounded-xl overflow-hidden cursor-pointer shrink-0 transition-all duration-200 bg-slate-200 focus:outline-none"
           >
-            <img
-              [src]="url"
-              alt="Thumbnail"
-              class="w-full h-full object-cover"
-            />
-          </div>
+            <img [src]="url" alt="Thumbnail" class="w-full h-full object-cover" />
+          </button>
         </div>
 
-        <div
-          class="bg-white rounded-3xl p-8 border border-slate-100 shadow-xl shadow-slate-100 flex flex-col gap-8"
-        >
-
-          <div class="flex flex-col gap-5 border-b border-slate-100 pb-7">
-
+        <div class="bg-white rounded-3xl p-8 lg:p-10 shadow-sm border border-slate-100 flex flex-col gap-10">
+          
+          <div class="flex flex-col gap-4 border-b border-slate-100 pb-8">
             <div class="flex flex-wrap items-center gap-3">
-              <span
-                class="text-[11px] font-black uppercase tracking-[0.2em] text-blue-700 bg-blue-50 px-3 py-1.5 rounded-full"
-              >
+              <span class="text-[10px] font-black uppercase tracking-[0.2em] text-blue-700 bg-blue-50 px-3 py-1.5 rounded-md">
                 {{ room.typeName }}
               </span>
-
               <span
-                [ngClass]="
-                  room.status === 'AVAILABLE'
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
-                    : 'bg-rose-50 text-rose-700 border-rose-100'
-                "
-                class="text-[11px] font-bold px-3 py-1.5 rounded-full border flex items-center gap-2"
+                [ngClass]="room.status === 'AVAILABLE' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'"
+                class="text-[11px] font-bold px-3 py-1.5 rounded-md flex items-center gap-2"
               >
                 <span
                   class="w-2 h-2 rounded-full"
-                  [ngClass]="
-                    room.status === 'AVAILABLE'
-                      ? 'bg-emerald-500'
-                      : 'bg-rose-500'
-                  "
+                  [ngClass]="room.status === 'AVAILABLE' ? 'bg-emerald-500' : 'bg-rose-500'"
                 ></span>
-
-                {{
-                  room.status === 'AVAILABLE'
-                    ? 'Sẵn sàng đặt ngay'
-                    : 'Đã hết phòng'
-                }}
+                {{ room.status === 'AVAILABLE' ? 'Sẵn sàng đặt ngay' : 'Đã hết phòng' }}
               </span>
             </div>
 
             <div>
-              <h1
-                class="text-4xl font-black tracking-tight text-gray-900 leading-tight"
-              >
+              <h1 class="text-3xl lg:text-4xl font-black tracking-tight text-gray-900 leading-tight">
                 Deluxe Ocean View Suite
               </h1>
-
-              <p class="text-gray-400 mt-2 font-semibold text-sm">
-                📍 Phòng {{ room.roomNumber }} •
-                {{ room.hotelName || 'Huy Luxury Hotel & Resort' }}
+              <p class="text-gray-500 mt-3 font-medium text-sm flex items-center gap-2">
+                <span class="text-gray-400">📍</span> Phòng {{ room.roomNumber }} • {{ room.hotelName || 'Huy Luxury Hotel & Resort' }}
               </p>
             </div>
+          </div>
 
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
-
-              <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4">
-                <div class="text-2xl mb-2">🏢</div>
-                <div class="text-xs text-gray-400 font-bold uppercase">Tầng</div>
-                <div class="font-black text-gray-800 mt-1">
-                  {{ room.floor || 1 }}
-                </div>
-              </div>
-
-              <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4">
-                <div class="text-2xl mb-2">👥</div>
-                <div class="text-xs text-gray-400 font-bold uppercase">Khách</div>
-                <div class="font-black text-gray-800 mt-1">
-                  {{ $any(room).maxGuests || 2 }} người
-                </div>
-              </div>
-
-              <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4">
-                <div class="text-2xl mb-2">📐</div>
-                <div class="text-xs text-gray-400 font-bold uppercase">Diện tích</div>
-                <div class="font-black text-gray-800 mt-1">
-                  35m²
-                </div>
-              </div>
-
-              <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4">
-                <div class="text-2xl mb-2">🌊</div>
-                <div class="text-xs text-gray-400 font-bold uppercase">View</div>
-                <div class="font-black text-gray-800 mt-1">
-                  Hướng biển
-                </div>
-              </div>
-
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="bg-slate-50 rounded-2xl p-5 flex flex-col justify-center items-center text-center transition-colors hover:bg-slate-100">
+              <div class="text-2xl mb-2">🏢</div>
+              <div class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Tầng</div>
+              <div class="font-black text-gray-800 mt-1">{{ room.floor || 1 }}</div>
+            </div>
+            <div class="bg-slate-50 rounded-2xl p-5 flex flex-col justify-center items-center text-center transition-colors hover:bg-slate-100">
+              <div class="text-2xl mb-2">👥</div>
+              <div class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Khách</div>
+              <div class="font-black text-gray-800 mt-1">{{ $any(room).maxGuests || 2 }} người</div>
+            </div>
+            <div class="bg-slate-50 rounded-2xl p-5 flex flex-col justify-center items-center text-center transition-colors hover:bg-slate-100">
+              <div class="text-2xl mb-2">📐</div>
+              <div class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Diện tích</div>
+              <div class="font-black text-gray-800 mt-1">35m²</div>
+            </div>
+            <div class="bg-slate-50 rounded-2xl p-5 flex flex-col justify-center items-center text-center transition-colors hover:bg-slate-100">
+              <div class="text-2xl mb-2">🌊</div>
+              <div class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">View</div>
+              <div class="font-black text-gray-800 mt-1">Hướng biển</div>
             </div>
           </div>
 
           <div>
-            <h3 class="text-xl font-black text-gray-900 mb-4">
-              Mô tả phòng
-            </h3>
-
-            <p class="text-gray-500 leading-8 text-[15px]">
-              Chào mừng bạn đến với không gian nghỉ dưỡng phân khúc thượng lưu
-              thuộc hệ thống của chúng tôi. Căn phòng sở hữu lối kiến trúc
-              tân cổ điển tinh tế, kết hợp cửa kính kịch trần mở ra tầm nhìn
-              toàn cảnh đại dương khoáng đạt.
+            <h3 class="text-lg font-black text-gray-900 mb-4">Tổng quan</h3>
+            <p class="text-gray-600 leading-relaxed text-base">
+              Chào mừng bạn đến với không gian nghỉ dưỡng phân khúc thượng lưu thuộc hệ thống của chúng tôi. Căn phòng sở hữu lối kiến trúc tân cổ điển tinh tế, kết hợp cửa kính kịch trần mở ra tầm nhìn toàn cảnh đại dương khoáng đạt, mang lại trải nghiệm thư giãn tuyệt đối.
             </p>
           </div>
 
           <div>
-            <h3 class="text-xl font-black text-gray-900 mb-5">
-              Tiện ích nổi bật
-            </h3>
-
+            <h3 class="text-lg font-black text-gray-900 mb-5">Tiện ích nổi bật</h3>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-
-              <div class="flex items-center gap-4 p-4 rounded-2xl border border-slate-100 bg-slate-50 hover:bg-white hover:shadow-lg transition-all">
-                <span class="text-2xl">🌐</span>
+              <div class="flex items-start gap-4 p-4 rounded-2xl border border-slate-100 hover:border-blue-100 hover:bg-blue-50/50 transition-all">
+                <span class="text-2xl leading-none mt-1">🌐</span>
                 <div>
-                  <div class="font-black text-sm">Wifi tốc độ cao</div>
-                  <div class="text-xs text-gray-400">5G tốc độ ổn định</div>
+                  <div class="font-black text-sm text-gray-900">Wifi tốc độ cao</div>
+                  <div class="text-xs text-gray-500 mt-1">5G tốc độ ổn định</div>
                 </div>
               </div>
-
-              <div class="flex items-center gap-4 p-4 rounded-2xl border border-slate-100 bg-slate-50 hover:bg-white hover:shadow-lg transition-all">
-                <span class="text-2xl">❄️</span>
+              <div class="flex items-start gap-4 p-4 rounded-2xl border border-slate-100 hover:border-blue-100 hover:bg-blue-50/50 transition-all">
+                <span class="text-2xl leading-none mt-1">❄️</span>
                 <div>
-                  <div class="font-black text-sm">Điều hòa trung tâm</div>
-                  <div class="text-xs text-gray-400">Hoạt động 24/7</div>
+                  <div class="font-black text-sm text-gray-900">Điều hòa trung tâm</div>
+                  <div class="text-xs text-gray-500 mt-1">Điều chỉnh cá nhân</div>
                 </div>
               </div>
-
-              <div class="flex items-center gap-4 p-4 rounded-2xl border border-slate-100 bg-slate-50 hover:bg-white hover:shadow-lg transition-all">
-                <span class="text-2xl">📺</span>
+              <div class="flex items-start gap-4 p-4 rounded-2xl border border-slate-100 hover:border-blue-100 hover:bg-blue-50/50 transition-all">
+                <span class="text-2xl leading-none mt-1">📺</span>
                 <div>
-                  <div class="font-black text-sm">Smart TV 4K</div>
-                  <div class="text-xs text-gray-400">Netflix miễn phí</div>
+                  <div class="font-black text-sm text-gray-900">Smart TV 4K</div>
+                  <div class="text-xs text-gray-500 mt-1">Tích hợp sẵn Netflix</div>
                 </div>
               </div>
-
             </div>
           </div>
 
-          <div class="border-t border-slate-100 pt-6">
-            <h3 class="text-xl font-black text-gray-900 mb-5">
-              Chính sách lưu trú
-            </h3>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-
+          <div class="bg-slate-50 p-6 rounded-2xl">
+            <h3 class="text-lg font-black text-gray-900 mb-5">Chính sách lưu trú</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-y-5 gap-x-8">
               <div class="flex items-start gap-3">
-                <span class="text-lg">⏱️</span>
+                <span class="text-gray-400 mt-0.5">⏱️</span>
                 <div>
-                  <div class="font-black text-sm">Nhận phòng</div>
-                  <div class="text-sm text-gray-500">Từ 14:00 PM</div>
+                  <div class="font-black text-sm text-gray-800">Nhận phòng</div>
+                  <div class="text-sm text-gray-500 mt-0.5">Từ 14:00 PM</div>
+                </div>
+              </div>
+              <div class="flex items-start gap-3">
+                <span class="text-gray-400 mt-0.5">⏱️</span>
+                <div>
+                  <div class="font-black text-sm text-gray-800">Trả phòng</div>
+                  <div class="text-sm text-gray-500 mt-0.5">Trước 12:00 AM</div>
+                </div>
+              </div>
+              <div class="flex items-start gap-3">
+                <span class="text-gray-400 mt-0.5">🚭</span>
+                <div>
+                  <div class="font-black text-sm text-gray-800">Không hút thuốc</div>
+                  <div class="text-sm text-gray-500 mt-0.5">Áp dụng cho toàn bộ không gian phòng</div>
+                </div>
+              </div>
+              <div class="flex items-start gap-3">
+                <span class="text-gray-400 mt-0.5">🐾</span>
+                <div>
+                  <div class="font-black text-sm text-gray-800">Không thú nuôi</div>
+                  <div class="text-sm text-gray-500 mt-0.5">Để đảm bảo tiêu chuẩn vệ sinh</div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="border-t border-slate-100 pt-10 mt-10">
+              <div class="flex items-center justify-between mb-8">
+                <h3 class="text-2xl font-black text-gray-900 flex items-center gap-3">
+                  Đánh giá từ khách hàng
+                </h3>
+                <div class="bg-blue-50 text-blue-700 text-sm px-4 py-1.5 rounded-full font-black flex items-center gap-2">
+                  <span class="text-yellow-500 text-lg leading-none">★</span> 
+                  4.9 (128 đánh giá)
                 </div>
               </div>
 
-              <div class="flex items-start gap-3">
-                <span class="text-lg">⏱️</span>
-                <div>
-                  <div class="font-black text-sm">Trả phòng</div>
-                  <div class="text-sm text-gray-500">Trước 12:00 AM</div>
-                </div>
-              </div>
+              <div class="bg-slate-50 rounded-3xl p-6 md:p-8 mb-10 border border-slate-100">
+                <h4 class="font-bold text-gray-800 mb-5 text-sm uppercase tracking-wider">Chia sẻ trải nghiệm của bạn</h4>
 
-              <div class="flex items-start gap-3">
-                <span class="text-lg">🚭</span>
-                <div>
-                  <div class="font-black text-sm">Không hút thuốc</div>
-                  <div class="text-sm text-gray-500">
-                    Cấm hút thuốc trong phòng
+                <div class="flex items-center gap-4 mb-5">
+                  <div class="flex gap-1 cursor-pointer" (mouseleave)="hoveredStar = 0">
+                    <ng-container *ngFor="let star of [1, 2, 3, 4, 5]">
+                      <svg
+                        (click)="userRating = star"
+                        (mouseenter)="hoveredStar = star"
+                        [ngClass]="(hoveredStar || userRating) >= star ? 'text-yellow-400 scale-110' : 'text-gray-300 hover:scale-110'"
+                        class="w-8 h-8 transition-all duration-200 drop-shadow-sm"
+                        fill="currentColor" viewBox="0 0 20 20"
+                      >
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      </svg>
+                    </ng-container>
                   </div>
+                  <span class="text-sm font-bold text-yellow-600 transition-opacity" [class.opacity-0]="!userRating && !hoveredStar">
+                    {{ hoveredStar || userRating }} Sao - {{ getRatingText(hoveredStar || userRating) }}
+                  </span>
+                </div>
+
+                <div class="relative focus-within:ring-2 focus-within:ring-blue-500 rounded-2xl transition-all shadow-sm">
+                  <textarea
+                    [(ngModel)]="reviewContent"
+                    rows="3"
+                    placeholder="Bạn cảm thấy thế nào về dịch vụ và căn phòng này?"
+                    class="w-full rounded-2xl border border-slate-200 p-5 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-transparent resize-none bg-white"
+                  ></textarea>
+                </div>
+
+                <div class="flex justify-end mt-4">
+                  <button
+                    [disabled]="!userRating || !reviewContent.trim() || isSubmittingReview"
+                    [ngClass]="
+                      userRating && reviewContent.trim() && !isSubmittingReview
+                        ? 'bg-gray-900 hover:bg-black text-white shadow-lg transform hover:-translate-y-0.5' 
+                        : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    "
+                    class="px-8 py-3 rounded-xl font-black text-sm uppercase tracking-wider transition-all duration-300 flex items-center gap-2"
+                    (click)="submitReview()"
+                  >
+                    <svg *ngIf="isSubmittingReview" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    {{ isSubmittingReview ? 'Đang gửi...' : 'Gửi đánh giá' }}
+                  </button>
                 </div>
               </div>
 
-              <div class="flex items-start gap-3">
-                <span class="text-lg">🐾</span>
-                <div>
-                  <div class="font-black text-sm">Không thú nuôi</div>
-                  <div class="text-sm text-gray-500">
-                    Không cho phép mang thú cưng
+              <div class="flex flex-col gap-8">
+                <div *ngFor="let review of reviews" class="border-b border-slate-100 pb-8 last:border-0">
+                  
+                  <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4">
+                    <div class="flex items-center gap-4">
+                      <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-100 to-blue-50 border border-blue-100 flex items-center justify-center text-blue-700 font-black text-lg shrink-0">
+                        {{ getInitials(review.userName) }}
+                      </div>
+                      <div>
+                        <div class="font-bold text-gray-900">{{ review.userName }}</div>
+                        <div class="text-xs font-semibold text-gray-400 mt-1 flex items-center gap-2">
+                          🗓️ {{ review.createdAt | date:'dd/MM/yyyy' }}
+                          <span class="text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider font-bold">Khách xác thực</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="flex gap-0.5 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100">
+                       <span *ngFor="let star of [1,2,3,4,5]" [ngClass]="star <= review.rating ? 'text-yellow-400' : 'text-gray-200'" class="text-base leading-none">★</span>
+                    </div>
                   </div>
+                  
+                  <p class="text-gray-600 text-sm leading-relaxed sm:pl-16">
+                    {{ review.comment }}
+                  </p>
+
+                  <div *ngIf="review.replyContent" class="mt-5 sm:ml-16 bg-blue-50/60 rounded-2xl p-5 border border-blue-100 relative">
+                    <div class="absolute -top-2 left-6 w-4 h-4 bg-blue-50/60 border-t border-l border-blue-100 transform rotate-45"></div>
+                    
+                    <div class="flex items-center gap-2 mb-2">
+                      <span class="text-lg leading-none">🏨</span>
+                      <span class="font-black text-xs uppercase tracking-wider text-blue-900">Phản hồi từ Khách sạn</span>
+                    </div>
+                    <p class="text-sm text-gray-700 leading-relaxed font-medium">
+                      {{ review.replyContent }}
+                    </p>
+                  </div>
+
                 </div>
               </div>
 
@@ -291,140 +328,101 @@
         </div>
       </div>
 
-      <div
-        class="sticky top-[120px] bg-white rounded-3xl border border-slate-100 shadow-2xl shadow-slate-200/70 overflow-hidden"
-      >
-
-        <div class="p-6 border-b border-slate-100">
-
-          <div class="flex items-center justify-between mb-4">
-            <div>
-              <div class="text-xs uppercase tracking-[0.2em] font-black text-gray-400 mb-2">
-                Giá phòng
+      <!-- CỘT PHẢI: FORM ĐẶT PHÒNG -->
+      <div class="xl:col-span-4">
+        <div class="sticky top-[120px] bg-white rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/50 overflow-hidden">
+          
+          <div class="p-6 md:p-8 border-b border-slate-100 bg-slate-50/50">
+            <div class="flex items-start justify-between mb-6">
+              <div>
+                <div class="text-[10px] uppercase tracking-[0.2em] font-black text-gray-400 mb-2">Giá mỗi đêm</div>
+                <div class="flex items-baseline gap-1">
+                  <span class="text-3xl font-black text-blue-700">{{ formatPrice(room.price) }}</span>
+                  <span class="text-gray-500 font-semibold text-sm">/ đêm</span>
+                </div>
               </div>
-
-              <div class="flex items-end gap-1">
-                <span class="text-4xl font-black text-blue-700 leading-none">
-                  {{ formatPrice(room.price) }}
-                </span>
-
-                <span class="text-gray-400 font-bold text-sm mb-1">
-                  / đêm
-                </span>
+              <div class="bg-white border border-slate-200 text-gray-800 px-3 py-1.5 rounded-xl text-sm font-black shadow-sm flex items-center gap-1">
+                <span class="text-yellow-400">★</span> 4.9
               </div>
             </div>
 
-            <div class="bg-blue-50 text-blue-700 px-3 py-2 rounded-2xl text-sm font-black">
-              ⭐ 4.9
+            <div class="flex flex-col gap-3 text-sm">
+              <div class="flex items-center gap-2 text-emerald-600 font-semibold">
+                <span class="bg-emerald-100 text-emerald-700 rounded-full w-5 h-5 flex items-center justify-center text-xs">✓</span>
+                Miễn phí hủy phòng
+              </div>
+              <div class="flex items-center gap-2 text-emerald-600 font-semibold">
+                <span class="bg-emerald-100 text-emerald-700 rounded-full w-5 h-5 flex items-center justify-center text-xs">✓</span>
+                Xác nhận đặt phòng ngay lập tức
+              </div>
             </div>
           </div>
 
-          <div class="flex flex-col gap-2 text-sm">
-
-            <div class="flex items-center gap-2 text-emerald-600 font-bold">
-              ✔ Miễn phí hủy phòng
-            </div>
-
-            <div class="flex items-center gap-2 text-emerald-600 font-bold">
-              ✔ Xác nhận đặt phòng ngay lập tức
-            </div>
-
-            <div class="flex items-center gap-2 text-emerald-600 font-bold">
-              ✔ Không cần thanh toán trước
-            </div>
-
-          </div>
-        </div>
-
-        <div class="p-6 flex flex-col gap-5">
-
-          <div class="grid grid-cols-2 gap-3">
-
-            <div class="border border-slate-200 rounded-2xl p-4">
-              <div class="text-[11px] uppercase font-black tracking-wider text-gray-400 mb-1">
-                Check-in
+          <div class="p-6 md:p-8 flex flex-col gap-5">
+            <div class="grid grid-cols-2 gap-3">
+              <div class="border border-slate-200 rounded-2xl p-3 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition-all bg-white relative">
+                <label class="block text-[10px] uppercase font-black tracking-wider text-gray-400 mb-1 cursor-pointer">Nhận phòng</label>
+                <input type="date" [(ngModel)]="checkInDate" (change)="calculateTotal()" class="w-full font-black text-gray-800 bg-transparent border-0 p-0 focus:ring-0 cursor-pointer outline-none text-sm">
               </div>
-
-              <div class="font-black text-gray-800">
-                20/08/2026
+              <div class="border border-slate-200 rounded-2xl p-3 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition-all bg-white relative">
+                <label class="block text-[10px] uppercase font-black tracking-wider text-gray-400 mb-1 cursor-pointer">Trả phòng</label>
+                <input type="date" [(ngModel)]="checkOutDate" (change)="calculateTotal()" class="w-full font-black text-gray-800 bg-transparent border-0 p-0 focus:ring-0 cursor-pointer outline-none text-sm">
               </div>
             </div>
 
-            <div class="border border-slate-200 rounded-2xl p-4">
-              <div class="text-[11px] uppercase font-black tracking-wider text-gray-400 mb-1">
-                Check-out
+            <div class="border border-slate-200 rounded-2xl p-3 bg-slate-50 cursor-not-allowed">
+              <div class="text-[10px] uppercase font-black tracking-wider text-gray-400 mb-1">Khách lưu trú</div>
+              <div class="font-black text-gray-800 text-sm">2 Người lớn</div>
+            </div>
+
+            <div class="border border-slate-200 rounded-2xl p-3 flex items-center justify-between focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition-all bg-white">
+              <input type="text" [(ngModel)]="couponCode" placeholder="Nhập mã giảm giá..." class="font-bold text-sm text-gray-800 bg-transparent border-0 p-0 focus:ring-0 w-full placeholder-gray-400 outline-none">
+              <button (click)="applyCoupon()" class="text-[11px] font-black text-blue-700 uppercase tracking-widest ml-3 hover:text-blue-900 shrink-0 px-2 py-1 bg-blue-50 rounded-lg transition-colors">Áp dụng</button>
+            </div>
+
+            <div class="bg-slate-50 rounded-2xl p-5 border border-slate-200 mt-2">
+              <div class="flex items-center justify-between text-sm mb-3">
+                <span class="text-gray-500 font-medium underline decoration-dashed decoration-gray-300 underline-offset-4">{{ formatPrice(room.price) }} × {{ numberOfNights }} đêm</span>
+                <span class="font-black text-gray-800">{{ formatPrice(room.price * numberOfNights) }}</span>
               </div>
-
-              <div class="font-black text-gray-800">
-                21/08/2026
+              <div *ngIf="discount > 0" class="flex items-center justify-between text-sm mb-3 text-emerald-600">
+                <span class="font-semibold">Khuyến mãi</span>
+                <span class="font-black">-{{ formatPrice(discount) }}</span>
+              </div>
+              <div class="flex items-center justify-between text-sm mb-4">
+                <span class="text-gray-500 font-medium underline decoration-dashed decoration-gray-300 underline-offset-4">Phí dịch vụ & Thuế</span>
+                <span class="font-black text-gray-800">Miễn phí</span>
+              </div>
+              <div class="border-t border-slate-200 pt-4 flex items-center justify-between">
+                <span class="font-black text-base text-gray-900 uppercase">Tổng cộng</span>
+                <span class="text-2xl font-black text-rose-600">{{ formatPrice(totalPrice) }}</span>
               </div>
             </div>
 
-          </div>
-
-          <div class="border border-slate-200 rounded-2xl p-4">
-            <div class="text-[11px] uppercase font-black tracking-wider text-gray-400 mb-1">
-              Khách lưu trú
-            </div>
-
-            <div class="font-black text-gray-800">
-              2 người lớn
-            </div>
-          </div>
-
-          <div class="bg-slate-50 rounded-2xl p-5 border border-slate-100">
-
-            <div class="flex items-center justify-between text-sm mb-3">
-              <span class="text-gray-500 font-semibold">
-                {{ formatPrice(room.price) }} × 1 đêm
-              </span>
-
-              <span class="font-black text-gray-800">
-                {{ formatPrice(room.price) }}
-              </span>
-            </div>
-
-            <div class="flex items-center justify-between text-sm mb-3">
-              <span class="text-gray-500 font-semibold">
-                Phí dịch vụ
-              </span>
-
-              <span class="font-black text-gray-800">
-                0 ₫
-              </span>
-            </div>
-
-            <div class="border-t border-slate-200 pt-4 flex items-center justify-between">
-              <span class="font-black text-lg text-gray-900">
-                Tổng cộng
-              </span>
-
-              <span class="text-3xl font-black text-red-600">
-                {{ formatPrice(room.price) }}
-              </span>
-            </div>
+            <!-- NÚT ĐẶT PHÒNG DUY NHẤT VÀ CHUẨN XÁC -->
+            <button
+              (click)="bookRoom()"
+              [disabled]="room.status !== 'AVAILABLE' || isBooking"
+              [ngClass]="
+                room.status === 'AVAILABLE' && !isBooking
+                  ? 'bg-gradient-to-r from-blue-700 to-blue-600 hover:from-blue-800 hover:to-blue-700 text-white shadow-lg shadow-blue-700/30 transform hover:-translate-y-0.5'
+                  : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+              "
+              class="w-full py-4 mt-2 rounded-2xl font-black uppercase tracking-[0.15em] text-sm transition-all duration-300 flex justify-center items-center gap-2"
+            >
+              <svg *ngIf="isBooking" class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              
+              {{ isBooking ? 'ĐANG CHUYỂN HƯỚNG...' : (room.status === 'AVAILABLE' ? '🔒 Đặt phòng ngay' : 'Phòng hiện đã hết') }}
+            </button>
+            <!-- KẾT THÚC NÚT ĐẶT PHÒNG -->
 
           </div>
-
-          <button
-            [disabled]="room.status !== 'AVAILABLE'"
-            [ngClass]="
-              room.status === 'AVAILABLE'
-                ? 'bg-blue-700 hover:bg-blue-800 text-white hover:scale-[1.02]'
-                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-            "
-            class="w-full py-4 rounded-2xl font-black uppercase tracking-[0.15em] transition-all shadow-lg shadow-blue-700/20"
-          >
-            {{
-              room.status === 'AVAILABLE'
-                ? 'Đặt phòng ngay'
-                : 'Phòng hiện đã hết'
-            }}
-          </button>
-
         </div>
       </div>
-
+      
     </div>
   </div>
 </main>

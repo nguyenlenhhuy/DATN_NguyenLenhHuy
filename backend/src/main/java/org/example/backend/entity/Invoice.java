@@ -1,5 +1,6 @@
 package org.example.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import org.example.backend.entity.enums.PaymentMethod;
 import org.example.backend.entity.enums.PaymentStatus;
 import jakarta.persistence.*;
@@ -22,6 +23,7 @@ public class Invoice {
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "booking_id", unique = true)
+    @JsonBackReference
     private Booking booking;
 
     @Enumerated(EnumType.STRING)
