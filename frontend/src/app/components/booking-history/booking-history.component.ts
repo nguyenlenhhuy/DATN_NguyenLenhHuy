@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common'; 
 import { RouterModule, Router } from '@angular/router'; 
 import { FormsModule } from '@angular/forms'; 
-// 🔑 ĐỒNG BỘ: Nhập trực tiếp Interface chuẩn có đầy đủ roomId, roomNumber, roomType từ file Service gốc
+// Nhập trực tiếp kiểu dữ liệu phẳng đồng bộ từ Service gốc
 import { BookingManagementService, BookingHistoryResponseDTO } from '../../services/booking-management.service';
 
 @Component({
@@ -18,21 +18,29 @@ export class BookingHistoryComponent implements OnInit {
   isLoading: boolean = true;
   errorMessage: string = '';
 
+  // 📊 BỘ LỌC TRẠNG THÁI HIỆN TẠI
   currentFilter: string = 'ALL'; 
+
+  // 📊 BỘ CHỈ SỐ THỐNG KÊ DASHBOARD
   totalBookingsCount = 0;
   activeBookingsCount = 0;
   completedBookingsCount = 0;
   totalSpentAmount = 0;
 
+  // 🔍 TRẠNG THÁI POPUP XEM CHI TIẾT
   selectedBooking: BookingHistoryResponseDTO | null = null;
   isDetailModalOpen: boolean = false;
 
+  // ⭐ TRẠNG THÁI POPUP ĐÁNH GIÁ DỊCH VỤ
   reviewBookingId: number | null = null;
   isReviewModalOpen: boolean = false;
   reviewRating: number = 5; 
   reviewComment: string = '';
 
-  constructor(private bookingService: BookingManagementService, private router: Router) {}
+  constructor(
+    private bookingService: BookingManagementService, 
+    private router: Router
+  ) {}
 
   ngOnInit(): void {
     this.loadHistory();
@@ -43,13 +51,13 @@ export class BookingHistoryComponent implements OnInit {
     this.bookingService.getCustomerHistory().subscribe({
       next: (data: BookingHistoryResponseDTO[]) => {
         this.allBookings = data;
-        this.filteredBookings = data;
-        this.calculateStats();
+        this.filteredBookings = data; 
+        this.calculateStats(); 
         this.isLoading = false;
       },
       error: (err: any) => {
-        console.error('Lỗi kết nối API lịch sử:', err);
-        this.errorMessage = err.error?.message || 'Không thể tải danh sách lịch sử lúc này!';
+        console.error('Lỗi kết nối API lịch sử phòng:', err);
+        this.errorMessage = err.error?.message || 'Không thể tải danh sách lịch sử kỳ nghỉ lúc này!';
         this.isLoading = false;
       }
     });
@@ -64,6 +72,9 @@ export class BookingHistoryComponent implements OnInit {
       .reduce((sum, b) => sum + b.totalPrice, 0);
   }
 
+  // =========================================================================
+  // ⚡ SỰ KIỆN: LỌC THÔNG TIN PHÒNG THEO TỪNG CARD STATS DASHBOARD
+  // =========================================================================
   filterByStatus(statusType: string): void {
     this.currentFilter = statusType;
     if (statusType === 'ALL') {
@@ -75,6 +86,9 @@ export class BookingHistoryComponent implements OnInit {
     }
   }
 
+  // =========================================================================
+  // ⚡ SỰ KIỆN: XEM CHI TIẾT ĐƠN ĐẶT PHÒNG
+  // =========================================================================
   openDetailModal(booking: BookingHistoryResponseDTO): void {
     this.selectedBooking = booking;
     this.isDetailModalOpen = true;
@@ -86,25 +100,89 @@ export class BookingHistoryComponent implements OnInit {
   }
 
   // =========================================================================
-  // ⚡ LUỒNG ĐẶT LẠI - ĐIỀU HƯỚNG THẲNG ĐẾN ĐÍCH DANH CHI TIẾT CĂN PHÒNG PHÒNG
+  // ⚡ SỰ KIỆN: ĐẶT LẠI PHÒNG - ĐIỀU HƯỚNG ĐÍCH DANH CHI TIẾT PHÒNG VỪA ĐẶT
   // =========================================================================
   reBookRoom(booking: BookingHistoryResponseDTO): void {
-    // 1. Kiểm tra an toàn biến động trường ID phòng tránh lỗi Undefined ngoài giao diện
     if (!booking.roomId) {
       alert('Không tìm thấy thông tin phòng vật lý để thực hiện luồng đặt lại!');
       return;
     }
 
-    // 2. Logging vết hệ thống lên DevTools phục vụ debug nhanh
-    console.log(`Đang chuyển hướng người dùng đến trang chi tiết của phòng ID: #${booking.roomId}`);
-
-    // 3. Thực hiện điều hướng kèm mốc thời gian lưu trú cũ làm gợi ý mặc định
+    console.log(`Đang điều hướng người dùng quay lại phòng ID: #${booking.roomId}`);
+    
     this.router.navigate([`/rooms/${booking.roomId}`], {
       queryParams: {
         checkIn: booking.checkInDate,
         checkOut: booking.checkOutDate
       }
     });
+  }
+
+  // =========================================================================
+  // ⚡ SỰ KIỆN: ĐÓNG MỞ POPUP KHỐI ĐÁNH GIÁ
+  // =========================================================================
+  openReviewModal(bookingId: number): void {
+    this.reviewBookingId = bookingId;
+    this.reviewRating = 5; 
+    this.reviewComment = '';
+    this.isReviewModalOpen = true;
+  }
+
+  closeReviewModal(): void {
+    this.isReviewModalOpen = false;
+    this.reviewBookingId = null;
+  }
+
+  // =========================================================================
+  // ⚡ ĐÃ CẬP NHẬT CHUẨN CÚ PHÁP: GỬI ĐÁNH GIÁ REAL-TIME XUỐNG API SPRING BOOT
+  // =========================================================================
+  submitReview(): void {
+    if (!this.reviewBookingId) return;
+
+    if (!this.reviewComment.trim()) {
+      alert('Vui lòng nhập nội dung chia sẻ trải nghiệm lưu trú trước khi gửi!');
+      return;
+    }
+
+    // 🔥 Sửa dứt điểm dấu đóng mở và ngắt token mũi tên => chính xác
+    this.bookingService.submitReview(this.reviewBookingId, this.reviewRating, this.reviewComment).subscribe({
+      next: (response: any) => {
+        alert(`Cảm ơn bạn đã đóng góp ý kiến ${this.reviewRating}/5 sao cho dịch vụ!`);
+        
+        const updatedBooking = this.allBookings.find(b => b.bookingId === this.reviewBookingId);
+        if (updatedBooking) {
+          updatedBooking.canReview = false; 
+        }
+        
+        this.closeReviewModal(); 
+      },
+      error: (err: any) => { // 🔥 Đã sửa chính xác từ "->" sang "=>" sạch lỗi biên dịch
+        console.error('Lỗi khi đẩy gói tin đánh giá lên cơ sở dữ liệu:', err);
+        alert(err.error?.message || 'Có lỗi xảy ra, hệ thống chưa thể lưu nhận xét lúc này!');
+      }
+    });
+  }
+
+  // =========================================================================
+  // HÀM TIỆN ÍCH TÍNH TOÁN HIỂN THỊ TIMELINE
+  // =========================================================================
+  getNightCount(checkIn: string, checkOut: string): number {
+    const start = new Date(checkIn);
+    const end = new Date(checkOut);
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays > 0 ? diffDays : 1;
+  }
+
+  getProgress(status: string): number {
+    switch (status) {
+      case 'PENDING': return 25;
+      case 'CONFIRMED': return 50;
+      case 'CHECK_IN': return 75;
+      case 'CHECK_OUT': return 100;
+      case 'CANCELLED': return 100;
+      default: return 0;
+    }
   }
 
   // =========================================================================
@@ -196,48 +274,5 @@ export class BookingHistoryComponent implements OnInit {
     `);
     printWindow.document.close();
   }
-
-  openReviewModal(bookingId: number): void {
-    this.reviewBookingId = bookingId;
-    this.reviewRating = 5; 
-    this.reviewComment = '';
-    this.isReviewModalOpen = true;
-  }
-
-  closeReviewModal(): void {
-    this.isReviewModalOpen = false;
-    this.reviewBookingId = null;
-  }
-
-  submitReview(): void {
-    if (!this.reviewComment.trim()) {
-      alert('Vui lòng nhập nội dung đánh giá trước khi gửi!');
-      return;
-    }
-    alert(`Cảm ơn bạn đã đánh giá ${this.reviewRating}/5 sao cho kỳ nghỉ này!`);
-    const updatedBooking = this.allBookings.find(b => b.bookingId === this.reviewBookingId);
-    if (updatedBooking) {
-      updatedBooking.canReview = false; 
-    }
-    this.closeReviewModal();
-  }
-
-  getNightCount(checkIn: string, checkOut: string): number {
-    const start = new Date(checkIn);
-    const end = new Date(checkOut);
-    const diffTime = Math.abs(end.getTime() - start.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays > 0 ? diffDays : 1;
-  }
-
-  getProgress(status: string): number {
-    switch (status) {
-      case 'PENDING': return 25;
-      case 'CONFIRMED': return 50;
-      case 'CHECK_IN': return 75;
-      case 'CHECK_OUT': return 100;
-      case 'CANCELLED': return 100;
-      default: return 0;
-    }
-  }
+  
 }

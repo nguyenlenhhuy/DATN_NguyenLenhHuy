@@ -271,7 +271,7 @@ public class BookingService {
                     BookingDetail firstDetail = booking.getBookingDetails().stream().findFirst().orElse(null);
 
                     if (firstDetail != null && firstDetail.getRoom() != null) {
-                        // 🔥 BÓC TÁCH ID VÀ SỐ PHÒNG TRỰC TIẾP TỪ THỰC THỂ ROOM
+                        // BÓC TÁCH ID VÀ SỐ PHÒNG TRỰC TIẾP TỪ THỰC THỂ ROOM
                         roomId = firstDetail.getRoom().getId();
                         roomNumber = firstDetail.getRoom().getRoomNumber();
 
@@ -301,6 +301,7 @@ public class BookingService {
             }
 
             // Điều kiện viết đánh giá: Đã thực hiện Check-out xong và chưa từng viết review trước đó
+            // Đảm bảo trạng thái so khớp lý tưởng với BookingStatus.CHECK_OUT (hoặc CHECKED_OUT tùy thiết kế Enum của bạn)
             boolean canReview = (booking.getStatus() == BookingStatus.CHECK_OUT) && !hasReviewed;
 
             // 4. Trả về đối tượng Builder DTO phẳng khớp hoàn hảo với phân hệ giao diện Timeline
@@ -308,7 +309,7 @@ public class BookingService {
                     .bookingId(booking.getId())
                     .hotelName(hotelName)
                     .hotelAddress(hotelAddress)
-                    .roomId(roomId)         // 🔥 ĐÃ ĐỒNG BỘ ID PHÒNG SANG BUILDER
+                    .roomId(roomId)         // ĐÃ ĐỒNG BỘ ID PHÒNG SANG BUILDER
                     .roomNumber(roomNumber) // Đã đồng bộ trường số phòng lên DTO
                     .roomType(roomType)     // Đã đồng bộ trường loại phòng lên DTO
                     .checkInDate(booking.getCheckInDate())

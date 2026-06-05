@@ -40,4 +40,6 @@ public class Review {
 
     @OneToMany(mappedBy = "review", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ReviewMedia> mediaList;
+    @Column(name = "is_hidden")
+    private boolean hidden = false;
 }

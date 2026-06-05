@@ -1,0 +1,123 @@
+<div class="space-y-6">
+  
+  <div class="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <div>
+      <h2 class="text-xl font-black text-slate-800 tracking-tight flex items-center gap-2">
+        <span>⭐</span> Quản lý Đánh giá & Phản hồi
+      </h2>
+      <p class="text-xs text-slate-400 mt-1 font-medium">Kiểm duyệt bình luận tiêu cực và tương tác phản hồi khách hàng.</p>
+    </div>
+    
+    <div class="flex items-center gap-3 w-full md:w-auto">
+      <label class="text-xs font-black text-slate-500 whitespace-nowrap uppercase tracking-wider">Lọc theo phòng:</label>
+      
+      <select 
+        [(ngModel)]="selectedRoomId" 
+        (change)="onRoomFilterChange()"
+        class="bg-slate-50 border border-slate-200 text-slate-700 text-xs font-semibold rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all cursor-pointer shadow-sm min-w-[180px]"
+      >
+        <option value="">📂 Tất cả các phòng</option>
+        
+        <option *ngFor="let rm of rooms" [value]="rm.id || rm.roomId || ''">
+          🚪 Phòng {{ rm.roomNumber }} ({{ rm.typeName }})
+        </option>
+      </select>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse">
+        <thead>
+          <tr class="border-b border-slate-200 bg-slate-50 text-[11px] font-black uppercase tracking-wider text-slate-400">
+            <th class="p-4 w-1/4">Khách hàng</th>
+            <th class="p-4 w-1/12 text-center">Xếp hạng</th>
+            <th class="p-4 w-5/12">Nội dung trải nghiệm</th>
+            <th class="p-4 w-1/6 text-center">Trạng thái</th>
+            <th class="p-4 w-1/6 text-right">Hành động</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          
+          <ng-container *ngFor="let review of reviews">
+            <tr class="hover:bg-slate-50/50 transition-colors bg-white">
+              <td class="p-4">
+                <div class="font-bold text-slate-800 text-sm tracking-tight">{{ review.userName }}</div>
+                <div class="text-[10px] font-medium text-slate-400 mt-0.5 flex items-center gap-1">
+                  <span>🗓️</span> {{ review.createdAt | date:'dd/MM/yyyy HH:mm' }}
+                </div>
+              </td>
+              
+              <td class="p-4 text-center">
+                <div class="inline-flex items-center gap-1 bg-amber-50 text-amber-600 text-xs px-2.5 py-1 rounded-lg font-black border border-amber-100/60 shadow-sm">
+                  ★ {{ review.rating }}
+                </div>
+              </td>
+              
+              <td class="p-4 text-sm text-slate-600">
+                <div class="leading-relaxed font-semibold text-slate-700">{{ review.comment }}</div>
+                <div *ngIf="review.replyContent" class="text-xs text-blue-600 mt-2 font-bold flex items-start gap-1 bg-blue-50/50 p-2 rounded-xl border border-blue-100/40">
+                  <span class="shrink-0">🏨 Phản hồi:</span>
+                  <span class="text-slate-500 font-medium italic">"{{ review.replyContent }}"</span>
+                </div>
+              </td>
+              
+              <td class="p-4 text-center">
+                <span [ngClass]="review.hidden ? 'bg-rose-50 text-rose-700 border-rose-100' : 'bg-emerald-50 text-emerald-700 border-emerald-100'"
+                      class="px-3 py-1 rounded-full text-[11px] font-bold border tracking-wide">
+                  {{ review.hidden ? '🚫 Đang ẩn' : '✅ Công khai' }}
+                </span>
+              </td>
+              
+              <td class="p-4 text-right">
+                <div class="inline-flex gap-1.5 justify-end items-center">
+                  <button 
+                    (click)="toggleReplyForm(review.id!, review.replyContent)"
+                    class="bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border border-blue-100/60 active:scale-95"
+                  >
+                    💬 {{ review.replyContent ? 'Sửa phản hồi' : 'Phản hồi' }}
+                  </button>
+                  
+                  <button 
+                    (click)="onToggleVisibility(review)"
+                    [ngClass]="review.hidden ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/10' : 'bg-slate-800 hover:bg-slate-900 shadow-slate-900/10'"
+                    class="text-white px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95"
+                  >
+                    {{ review.hidden ? '👁️ Hiện' : '🔒 Ẩn' }}
+                  </button>
+                </div>
+              </td>
+            </tr>
+
+            <tr *ngIf="activeReplyId === review.id" class="bg-slate-50/40">
+              <td colspan="5" class="p-4">
+                <div class="flex flex-col gap-3 max-w-4xl bg-white p-5 rounded-2xl border border-slate-200 shadow-sm ml-4 mr-4 animate-fade-in">
+                  <label class="text-xs font-black text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                    <span class="w-1.5 h-3 bg-blue-600 rounded-full"></span> Viết lời phản hồi gửi tới khách hàng:
+                  </label>
+                  <textarea
+                    [(ngModel)]="replyInputs[review.id!]"
+                    rows="2"
+                    placeholder="Nhập lời cảm ơn hoặc giải đáp thắc mắc, phản ánh dịch vụ của khách..."
+                    class="w-full text-sm text-slate-800 border border-slate-200 rounded-xl p-3.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50/20 placeholder-slate-400"
+                  ></textarea>
+                  <div class="flex justify-end gap-2">
+                    <button (click)="activeReplyId = null" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition-colors">Hủy bỏ</button>
+                    <button (click)="submitAdminReply(review)" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md shadow-blue-600/10">Xác nhận gửi</button>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </ng-container>
+
+          <tr *ngIf="reviews.length === 0">
+            <td colspan="5" class="p-16 text-center text-sm font-semibold text-slate-400 bg-white">
+              📭 Không tìm thấy dữ liệu đánh giá nào cho phân khu phòng này.
+            </td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

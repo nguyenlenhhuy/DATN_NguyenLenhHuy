@@ -14,4 +14,5 @@ public class ReviewResponseDTO {
     private String replyContent;
     private LocalDateTime createdAt;
     private List<String> mediaUrls;
+    private boolean hidden;
 }

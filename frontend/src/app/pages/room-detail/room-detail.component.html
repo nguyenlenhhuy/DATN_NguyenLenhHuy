@@ -19,7 +19,6 @@
           <span>/</span>
           <span class="text-blue-700 font-black">{{ room.typeName }}</span>
         </ng-container>
-
       </div>
     </div>
 
@@ -47,7 +46,7 @@
 
           <div class="absolute top-6 left-6 flex flex-wrap gap-2 z-20">
             <div class="bg-white/95 backdrop-blur-sm px-4 py-2 rounded-full text-xs font-black text-gray-800 shadow-sm flex items-center gap-1">
-              <span class="text-yellow-400">★</span> 4.9 Excellent
+              <span class="text-yellow-400">★</span> {{ reviews.length > 0 ? (getAverageRating() | number:'1.1-1') : '0.0' }}
             </div>
             <div class="bg-blue-600/95 backdrop-blur-sm px-4 py-2 rounded-full text-xs font-black text-white shadow-sm flex items-center gap-1">
               🌊 Ocean View
@@ -77,17 +76,17 @@
 
           <div class="absolute bottom-6 right-6 z-20">
             <div class="bg-black/50 backdrop-blur-md text-white text-xs font-bold px-4 py-2 rounded-full tracking-wider">
-              {{ currentIndex + 1 }} / {{ $any(room).albumImages?.length || 1 }}
+              {{ currentIndex + 1 }} / {{ $any(room).imageUrls?.length || 1 }}
             </div>
           </div>
         </div>
 
         <div
-          *ngIf="$any(room).albumImages && $any(room).albumImages.length > 0"
+          *ngIf="$any(room).imageUrls && $any(room).imageUrls.length > 0"
           class="flex gap-4 overflow-x-auto pb-4 scrollbar-hide"
         >
           <button
-            *ngFor="let url of $any(room).albumImages; let i = index"
+            *ngFor="let url of $any(room).imageUrls; let i = index"
             (click)="changePreviewImage(url, i)"
             [ngClass]="
               currentIndex === i
@@ -121,10 +120,10 @@
 
             <div>
               <h1 class="text-3xl lg:text-4xl font-black tracking-tight text-gray-900 leading-tight">
-                Deluxe Ocean View Suite
+                {{ room.typeName }} Premium Suite
               </h1>
               <p class="text-gray-500 mt-3 font-medium text-sm flex items-center gap-2">
-                <span class="text-gray-400">📍</span> Phòng {{ room.roomNumber }} • {{ room.hotelName || 'Huy Luxury Hotel & Resort' }}
+                <span class="text-gray-400">📍</span> Phòng {{ room.roomNumber }} • {{ room.hotelName || 'LuxeHotel Group' }}
               </p>
             </div>
           </div>
@@ -138,7 +137,7 @@
             <div class="bg-slate-50 rounded-2xl p-5 flex flex-col justify-center items-center text-center transition-colors hover:bg-slate-100">
               <div class="text-2xl mb-2">👥</div>
               <div class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Khách</div>
-              <div class="font-black text-gray-800 mt-1">{{ $any(room).maxGuests || 2 }} người</div>
+              <div class="font-black text-gray-800 mt-1">2 người lớn</div>
             </div>
             <div class="bg-slate-50 rounded-2xl p-5 flex flex-col justify-center items-center text-center transition-colors hover:bg-slate-100">
               <div class="text-2xl mb-2">📐</div>
@@ -200,7 +199,7 @@
                 <span class="text-gray-400 mt-0.5">⏱️</span>
                 <div>
                   <div class="font-black text-sm text-gray-800">Trả phòng</div>
-                  <div class="text-sm text-gray-500 mt-0.5">Trước 12:00 AM</div>
+                  <div class="text-sm text-gray-500 mt-0.5">Before 12:00 AM</div>
                 </div>
               </div>
               <div class="flex items-start gap-3">
@@ -226,11 +225,11 @@
                 </h3>
                 <div class="bg-blue-50 text-blue-700 text-sm px-4 py-1.5 rounded-full font-black flex items-center gap-2">
                   <span class="text-yellow-500 text-lg leading-none">★</span> 
-                  4.9 (128 đánh giá)
+                  {{ reviews.length > 0 ? (getAverageRating() | number:'1.1-1') : '0.0' }} ({{ reviews.length }} đánh giá)
                 </div>
               </div>
 
-              <div class="bg-slate-50 rounded-3xl p-6 md:p-8 mb-10 border border-slate-100">
+              <div *ngIf="false" class="bg-slate-50 rounded-3xl p-6 md:p-8 mb-10 border border-slate-100">
                 <h4 class="font-bold text-gray-800 mb-5 text-sm uppercase tracking-wider">Chia sẻ trải nghiệm của bạn</h4>
 
                 <div class="flex items-center gap-4 mb-5">
@@ -262,21 +261,8 @@
                 </div>
 
                 <div class="flex justify-end mt-4">
-                  <button
-                    [disabled]="!userRating || !reviewContent.trim() || isSubmittingReview"
-                    [ngClass]="
-                      userRating && reviewContent.trim() && !isSubmittingReview
-                        ? 'bg-gray-900 hover:bg-black text-white shadow-lg transform hover:-translate-y-0.5' 
-                        : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                    "
-                    class="px-8 py-3 rounded-xl font-black text-sm uppercase tracking-wider transition-all duration-300 flex items-center gap-2"
-                    (click)="submitReview()"
-                  >
-                    <svg *ngIf="isSubmittingReview" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    {{ isSubmittingReview ? 'Đang gửi...' : 'Gửi đánh giá' }}
+                  <button (click)="submitReview()" class="px-8 py-3 bg-gray-900 text-white rounded-xl font-black text-sm uppercase tracking-wider">
+                    Gửi đánh giá
                   </button>
                 </div>
               </div>
@@ -318,7 +304,10 @@
                       {{ review.replyContent }}
                     </p>
                   </div>
+                </div>
 
+                <div *ngIf="reviews.length === 0" class="text-center py-12 text-gray-400 text-sm font-medium">
+                  📭 Phòng nghỉ này chưa nhận được lượt bình luận công khai nào.
                 </div>
               </div>
 
@@ -328,7 +317,6 @@
         </div>
       </div>
 
-      <!-- CỘT PHẢI: FORM ĐẶT PHÒNG -->
       <div class="xl:col-span-4">
         <div class="sticky top-[120px] bg-white rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/50 overflow-hidden">
           
@@ -342,7 +330,7 @@
                 </div>
               </div>
               <div class="bg-white border border-slate-200 text-gray-800 px-3 py-1.5 rounded-xl text-sm font-black shadow-sm flex items-center gap-1">
-                <span class="text-yellow-400">★</span> 4.9
+                <span class="text-yellow-400">★</span> {{ reviews.length > 0 ? (getAverageRating() | number:'1.1-1') : '0.0' }}
               </div>
             </div>
 
@@ -399,7 +387,6 @@
               </div>
             </div>
 
-            <!-- NÚT ĐẶT PHÒNG DUY NHẤT VÀ CHUẨN XÁC -->
             <button
               (click)="bookRoom()"
               [disabled]="room.status !== 'AVAILABLE' || isBooking"
@@ -414,10 +401,8 @@
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-              
               {{ isBooking ? 'ĐANG CHUYỂN HƯỚNG...' : (room.status === 'AVAILABLE' ? '🔒 Đặt phòng ngay' : 'Phòng hiện đã hết') }}
             </button>
-            <!-- KẾT THÚC NÚT ĐẶT PHÒNG -->
 
           </div>
         </div>

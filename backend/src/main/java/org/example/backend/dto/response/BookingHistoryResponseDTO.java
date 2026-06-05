@@ -1,22 +1,26 @@
 package org.example.backend.dto.response;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.example.backend.entity.enums.BookingStatus;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Data
 @Builder
+@NoArgsConstructor  // 🔥 ĐÃ THÊM: Tạo hàm dựng không tham số, bắt buộc phải có để Jackson mapping JSON không bị lỗi
+@AllArgsConstructor // 🔥 ĐÃ THÊM: Đi kèm với @Builder và NoArgsConstructor để Lombok sinh mã chuẩn xác
 public class BookingHistoryResponseDTO {
     private Long bookingId;
     private String hotelName;
     private String hotelAddress;
 
-    // 🔥 ĐÃ BỔ SUNG: Kích hoạt thuộc tính để Builder trong BookingService hết báo đỏ
+    // Các thuộc tính bóc tách dữ liệu phòng phẳng phục vụ Angular Timeline và Đặt lại
+    private Long roomId;
     private String roomNumber;
     private String roomType;
-    private Long roomId;
 
     private LocalDate checkInDate;
     private LocalDate checkOutDate;

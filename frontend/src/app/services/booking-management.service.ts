@@ -12,10 +12,10 @@ export interface BookingHistoryResponseDTO {
   totalPrice: number;   // Số tiền thực trả sau khi trừ voucher
   status: string;       // Hệ trạng thái: PENDING, CONFIRMED, CHECK_IN, CHECK_OUT, CANCELLED
   canReview: boolean;   // Trạng thái bật/ẩn nút viết đánh giá
-  hotelImage: string;
-  roomNumber: string;
-  roomType: string;
-  roomId: number;
+  hotelImage: string;   // Giữ nguyên thuộc tính theo cấu trúc file cũ của bạn
+  roomNumber: string;   // Sắp xếp gọn gàng
+  roomType: string;     // Sắp xếp gọn gàng
+  roomId: number;       // Sắp xếp gọn gàng
 }
 
 export interface BookingResponseDTO {
@@ -51,6 +51,8 @@ export interface WalkInBookingRequestDTO {
 export class BookingManagementService {
   
   private apiUrl = 'http://localhost:8080/api/bookings/management/bookings';
+  // 🔥 Khai báo endpoint riêng kết nối trực tiếp đến ReviewController của bạn
+  private reviewApiUrl = 'http://localhost:8080/api/reviews'; 
 
   constructor(private http: HttpClient) {}
 
@@ -100,5 +102,20 @@ export class BookingManagementService {
    */
   getCustomerHistory(): Observable<BookingHistoryResponseDTO[]> {
     return this.http.get<BookingHistoryResponseDTO[]>(`http://localhost:8080/api/bookings/customer/history`);
+  }
+
+  // =========================================================================
+  // ⚡ ĐÃ THÊM: HÀM GỬI ĐÁNH GIÁ CHUẨN ĐỒNG BỘ VỚI REVIEWREQUESTDTO CỦA BACKEND
+  // =========================================================================
+  submitReview(bookingId: number, rating: number, comment: string): Observable<any> {
+    const payload = {
+      bookingId: bookingId,
+      rating: rating,
+      comment: comment,
+      mediaUrls: [] // Đóng gói mảng rỗng để khớp với List<String> của ReviewRequestDTO dưới Java
+    };
+    
+    // Bắn gói tin HTTP POST gọi trực tiếp đến endpoint xử lý lưu đánh giá thời gian thực
+    return this.http.post(`${this.reviewApiUrl}/submit`, payload);
   }
 }

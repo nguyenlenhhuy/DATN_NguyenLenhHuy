@@ -1,9 +1,8 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { Observable, throwError } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable } from 'rxjs';
 
-// Định nghĩa DTO gửi lên (Khớp 100% với Backend)
+// Định nghĩa DTO gửi lên Backend
 export interface ReviewRequestDTO {
   bookingId: number;
   rating: number;
@@ -11,32 +10,52 @@ export interface ReviewRequestDTO {
   mediaUrls?: string[];
 }
 
+// 🔥 CẬP NHẬT: Định nghĩa trực tiếp và EXPORT sang cho các bên dùng chung
+export interface ReviewResponseDTO {
+  id?: number;
+  userName: string;
+  rating: number;
+  comment: string;
+  replyContent?: string;
+  createdAt: string | Date;
+  mediaUrls?: string[];
+  hidden: boolean; // 🔥 Đã thêm thuộc tính quản lý ẩn/hiện đồng bộ Backend
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class ReviewService {
-  // Thay đổi URL này theo domain thực tế của backend
   private apiUrl = 'http://localhost:8080/api/reviews';
 
   constructor(private http: HttpClient) {}
 
+  // --- API DÀNH CHO CUSTOMER ---
   submitReview(data: ReviewRequestDTO): Observable<any> {
-    return this.http.post(`${this.apiUrl}/submit`, data).pipe(
-      catchError(this.handleError)
-    );
+    return this.http.post(`${this.apiUrl}/submit`, data);
   }
 
-  // Hàm xử lý lỗi chung để báo về Component
-  private handleError(error: HttpErrorResponse) {
-    let errorMessage = 'Đã có lỗi xảy ra, vui lòng thử lại sau.';
-    
-    // Nếu Backend trả về message lỗi cụ thể (ví dụ: "Bạn chỉ có thể đánh giá sau khi check-out")
-    if (error.error && typeof error.error === 'string') {
-      errorMessage = error.error;
-    } else if (error.error && error.error.message) {
-      errorMessage = error.error.message;
-    }
-    
-    return throwError(() => new Error(errorMessage));
+  getReviewsByRoomId(roomId: number): Observable<ReviewResponseDTO[]> {
+    return this.http.get<ReviewResponseDTO[]>(`${this.apiUrl}/room/${roomId}`);
+  }
+
+  // --- 🔥 THÊM MỚI: API DÀNH CHO ADMIN ---
+  
+  // 1. Lấy danh sách phân trang cho Admin
+  findAllForAdmin(page: number, size: number): Observable<any> {
+    const params = new HttpParams()
+      .set('page', page.toString())
+      .set('size', size.toString());
+    return this.http.get<any>(`${this.apiUrl}/admin/all`, { params });
+  }
+
+  // 2. Phản hồi bình luận
+  replyReview(reviewId: number, replyContent: string): Observable<ReviewResponseDTO> {
+    return this.http.put<ReviewResponseDTO>(`${this.apiUrl}/admin/${reviewId}/reply`, { replyContent });
+  }
+
+  // 3. Thay đổi trạng thái Ẩn/Hiện
+  toggleReviewVisibility(reviewId: number): Observable<ReviewResponseDTO> {
+    return this.http.put<ReviewResponseDTO>(`${this.apiUrl}/admin/${reviewId}/toggle-visibility`, {});
   }
 }

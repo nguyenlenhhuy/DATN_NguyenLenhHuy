@@ -13,6 +13,9 @@ import { OverviewComponent } from './components/overview/overview.component';
 import { BookingManagementComponent } from './components/booking-management/booking-management.component';
 import { PromotionManagementComponent } from './components/promotion-management/promotion-management.component';
 
+// 🔥 THÊM MỚI: Import ReviewManagementComponent vào hệ thống định tuyến
+import { ReviewManagementComponent } from './components/review-management/review-management.component';
+
 // Guard kiểm tra đặc quyền ADMIN cao cấp
 import { adminGuard } from './guards/admin.guard'; 
 import { FavoritesComponent } from './pages/favorites/favorites.component';
@@ -69,6 +72,16 @@ export const routes: Routes = [
         canActivate: [adminGuard],
         title: 'Quản lý Chiến dịch Khuyến mãi - Admin'
       },
+      
+      // =========================================================================
+      // 🔥 THÊM CHÍNH XÁC ĐOẠN NÀY: Định tuyến kích hoạt màn hình Quản lý Đánh giá
+      // =========================================================================
+      {
+        path: 'reviews',
+        component: ReviewManagementComponent,
+        title: 'Quản lý Đánh giá & Phản hồi Khách hàng'
+      },
+      
       { path: '', redirectTo: 'overview', pathMatch: 'full' }
     ]
   },

@@ -14,6 +14,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -25,40 +26,56 @@ public class ReviewService {
     private final HotelRepository hotelRepository;
     private final AuditLogRepository auditLogRepository;
 
-    // ================= DÀNH CHO KHÁCH HÀNG =================
+    // ================= DÀNH CHO KHÁCH HÀNG THAM QUAN PHÒNG =================
+
+    /**
+     * 🔥 THÊM MỚI: Lấy danh sách đánh giá thật của phòng từ Database MySQL
+     * Đưa qua hàm mapToDTO để bứt gãy lỗi vòng lặp tuần hoàn JSON (Infinite Recursion Error)
+     */
+    public List<ReviewResponseDTO> getReviewsByRoomId(Long roomId) {
+        // Gọi xuống câu lệnh SQL vừa cập nhật ở Bước 1
+        List<Review> reviews = reviewRepository.findByBookingRoomIdOrderByCreatedAtDesc(roomId);
+
+        // Trả về mảng rỗng an toàn nếu không tìm thấy bản ghi nào dưới MySQL
+        if (reviews == null || reviews.isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+
+        return reviews.stream()
+                .map(this::mapToDTO)
+                .toList();
+    }
+
+    // ================= DÀNH CHO KHÁCH HÀNG ĐẶT PHÒNG =================
 
     @Transactional
     public ReviewResponseDTO submitReview(Long userId, ReviewRequestDTO dto) {
         Booking booking = bookingRepository.findById(dto.getBookingId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn hàng"));
 
-        // 1. CHỐT CHẶN AN TOÀN: Đảm bảo Booking có chứa thông tin User trước khi xử lý tiếp
         if (booking.getUser() == null) {
             throw new IllegalStateException("Đơn đặt phòng này bị lỗi dữ liệu (không có thông tin khách hàng). Vui lòng kiểm tra lại Database.");
         }
 
-        // 2. Kiểm tra quyền sở hữu đơn hàng (Lúc này gọi .getId() mới an toàn 100%)
         if (!booking.getUser().getId().equals(userId)) {
             throw new IllegalStateException("Bạn không có quyền đánh giá đơn hàng này");
         }
 
-        // 3. Kiểm tra nghiệp vụ khách đã check-out chưa
-        if (booking.getStatus() == null || !booking.getStatus().name().equals("CHECKED_OUT")) {
+        if (booking.getStatus() == null || !booking.getStatus().name().equals("CHECK_OUT")) {
             throw new IllegalStateException("Bạn chỉ có thể đánh giá sau khi đã hoàn tất thủ tục trả phòng (Check-out).");
         }
 
-        // 4. Kiểm tra xem đã đánh giá chưa (Tránh spam)
         if (reviewRepository.existsByBookingId(dto.getBookingId())) {
             throw new ReviewAlreadyExistsException("Đơn hàng này đã được đánh giá");
         }
 
-        // 5. Map dữ liệu và lưu
         Review review = new Review();
         review.setBooking(booking);
         review.setUser(booking.getUser());
         review.setHotel(booking.getHotel());
         review.setRating(dto.getRating());
         review.setComment(dto.getComment());
+        review.setCreatedAt(LocalDateTime.now());
 
         if (dto.getMediaUrls() != null) {
             List<ReviewMedia> mediaList = dto.getMediaUrls().stream()
@@ -69,32 +86,22 @@ public class ReviewService {
         }
 
         Review saved = reviewRepository.save(review);
-
-        // 6. Cập nhật lại thống kê sao của khách sạn
         updateHotelStats(booking.getHotel().getId());
         return mapToDTO(saved);
     }
 
     // ================= DÀNH CHO ADMIN / STAFF =================
 
-    /**
-     * Cập nhật phản hồi từ Admin/Staff cho đánh giá của khách hàng.
-     */
     @Transactional
     public ReviewResponseDTO replyReview(Long reviewId, ReplyRequestDTO replyDTO) {
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đánh giá để phản hồi"));
 
-        // Chỉ cập nhật nội dung reply, giữ nguyên rating và comment cũ của khách
         review.setReplyContent(replyDTO.getReplyContent());
-
         Review saved = reviewRepository.save(review);
         return mapToDTO(saved);
     }
 
-    /**
-     * Admin xóa đánh giá vi phạm
-     */
     @Transactional
     public void deleteReviewByAdmin(Long reviewId, Long adminId) {
         Review review = reviewRepository.findById(reviewId)
@@ -103,7 +110,6 @@ public class ReviewService {
         Long hotelId = review.getHotel().getId();
         String description = "Admin xóa đánh giá ID: " + reviewId + " của khách " + review.getUser().getFullName();
 
-        // Lưu nhật ký hệ thống
         AuditLog log = new AuditLog(adminId, "DELETE_REVIEW", reviewId, description);
         auditLogRepository.save(log);
 
@@ -111,15 +117,12 @@ public class ReviewService {
         updateHotelStats(hotelId);
     }
 
-    /**
-     * Lấy danh sách đánh giá cho Admin quản lý
-     */
     public Page<ReviewResponseDTO> findAllForAdmin(int page, int size) {
         return reviewRepository.findAll(PageRequest.of(page, size))
                 .map(this::mapToDTO);
     }
 
-    // ================= HÀM HỖ TRỢ =================
+    // ================= HÀM HỖ TRỢ ĐỒNG BỘ MATRIX =================
 
     private void updateHotelStats(Long hotelId) {
         Object[] stats = (Object[]) reviewRepository.getRatingStats(hotelId);
@@ -140,7 +143,7 @@ public class ReviewService {
     private ReviewResponseDTO mapToDTO(Review review) {
         return ReviewResponseDTO.builder()
                 .id(review.getId())
-                .userName(review.getUser().getFullName())
+                .userName(review.getUser() != null ? review.getUser().getFullName() : "Khách ẩn danh")
                 .rating(review.getRating())
                 .comment(review.getComment())
                 .replyContent(review.getReplyContent())
@@ -149,4 +152,16 @@ public class ReviewService {
                         review.getMediaList().stream().map(ReviewMedia::getMediaUrl).toList() : List.of())
                 .build();
     }
+    @Transactional
+    public ReviewResponseDTO toggleReviewVisibility(Long reviewId) {
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đánh giá yêu cầu"));
+
+        // Đảo ngược trạng thái: Nếu đang hiện (false) -> ẩn (true) và ngược lại
+        review.setHidden(!review.isHidden());
+
+        Review updated = reviewRepository.save(review);
+        return mapToDTO(updated);
+    }
+
 }
