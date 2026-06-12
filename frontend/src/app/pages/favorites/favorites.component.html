@@ -3,86 +3,126 @@
 <main class="min-h-screen bg-gray-50/50 pt-[110px] pb-20 font-sans">
   <div class="container mx-auto px-4 max-w-7xl">
     
-    <div class="mb-10 text-center md:text-left">
+    <div class="mb-12 text-center md:text-left border-b border-gray-100 pb-5">
       <h1 class="text-3xl font-black text-gray-900 tracking-tight">❤️ Phòng bạn đã lưu</h1>
-      <p class="text-sm text-gray-400 mt-1 font-medium">Danh sách các phòng khách sạn bạn đang quan tâm và theo dõi lịch trình.</p>
+      <p class="text-sm text-gray-400 mt-1 font-medium">Danh sách các không gian nghỉ dưỡng bạn đang quan tâm và theo dõi lịch trình tại LuxeHotel.</p>
     </div>
 
-    <div *ngIf="isLoading" class="text-center py-20 text-gray-400 font-medium">
+    <div class="text-center py-20 text-gray-400 font-medium" *ngIf="isLoading">
       <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-blue-600 border-t-transparent mb-4 shadow-sm"></div>
       <p class="text-sm tracking-wide">Đang đồng bộ danh sách phòng yêu thích thực tế...</p>
     </div>
 
-    <div *ngIf="!isLoading && favoriteRooms.length === 0" class="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-200 p-8 max-w-xl mx-auto shadow-sm">
-      <div class="text-5xl mb-4 animate-pulse">🍂</div>
+    <div class="text-center py-20 bg-white rounded-[32px] border border-dashed border-gray-200 p-8 max-w-xl mx-auto shadow-sm" *ngIf="!isLoading && favoriteRooms.length === 0">
+      <div class="text-5xl mb-4 animate-bounce">🍂</div>
       <h3 class="text-lg font-bold text-gray-800">Danh sách trống</h3>
-      <p class="text-gray-400 mt-1.5 text-sm max-w-xs mx-auto mb-6">Bạn chưa bấm lưu bất kỳ phòng khách sạn nào trong hệ thống LuxeHotel.</p>
-      <button routerLink="/rooms" class="px-5 py-2.5 bg-blue-600 text-white font-bold text-sm rounded-xl hover:bg-blue-700 shadow-md shadow-blue-100 transition active:scale-95">
+      <p class="text-gray-400 mt-1.5 text-sm max-w-xs mx-auto mb-6">Bạn chưa bấm lưu bất kỳ phòng khách sạn nào trong hệ thống LuxeHotel Resort.</p>
+      <button routerLink="/rooms" class="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-sm rounded-xl hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-500/10 transition transform active:scale-95">
         Khám phá phòng ngay
       </button>
     </div>
 
-    <div *ngIf="!isLoading && favoriteRooms.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8" *ngIf="!isLoading && favoriteRooms.length > 0">
       
-      <div *ngFor="let room of favoriteRooms" class="bg-white rounded-2xl shadow-sm border border-gray-100/60 overflow-hidden hover:-translate-y-1.5 hover:shadow-xl hover:shadow-gray-200/60 transition-all duration-300 group flex flex-col h-full relative">
+      <div *ngFor="let room of favoriteRooms" 
+           class="bg-white rounded-[24px] overflow-hidden border border-gray-100 shadow-sm transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 group flex flex-col h-full relative">
         
-        <div class="relative h-56 bg-gray-50 overflow-hidden shrink-0">
-          <img [src]="room.imageUrl || 'https://images.unsplash.com/photo-1582719478250-c89404bb8a0e?q=80&w=1000&auto=format&fit=crop'" 
-               alt="{{ room.typeName }}" 
-               class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
-          <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-80"></div>
+        <div class="relative pt-[66%] overflow-hidden bg-gray-100 shrink-0 cursor-pointer" (click)="viewRoomDetail(room.roomId, $event)">
+          <img [src]="getRoomImage(room)" 
+               (error)="onImageError($event)"
+               [alt]="room.roomNumber" 
+               class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105">
+          <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10"></div>
 
-          <div class="absolute bottom-3 left-3 bg-white/20 backdrop-blur-md px-2.5 py-1 rounded-md text-[11px] font-bold text-white border border-white/10 tracking-wide">
-            🚪 Số phòng: {{ room.roomNumber }}
+          <div class="absolute inset-0 overflow-hidden pointer-events-none">
+            <div class="absolute top-0 -left-full w-1/2 h-full bg-white/25 skew-x-12 opacity-40 group-hover:left-[150%] transition-all duration-1000 ease-out"></div>
+          </div>
+
+          <div class="absolute top-4 left-4 bg-blue-600/90 backdrop-blur-md px-3 py-1.5 rounded-lg text-[10px] font-black text-white uppercase tracking-widest shadow-sm z-10">
+            {{ room.typeName || 'Standard' }}
+          </div>
+
+          <div class="absolute bottom-4 left-4 bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-full text-[11px] font-bold shadow-sm z-10 flex items-center gap-1.5"
+               [ngClass]="room.status === 'AVAILABLE' ? 'text-emerald-700' : 'text-rose-700'">
+            <span class="w-2 h-2 rounded-full" [ngClass]="room.status === 'AVAILABLE' ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'"></span>
+            {{ room.status === 'AVAILABLE' ? 'Còn trống' : 'Đã hết phòng' }}
           </div>
 
           <button (click)="onRemoveFavorite(room, $event)" 
-                  class="absolute top-4 right-4 w-9 h-9 bg-white/90 backdrop-blur-sm rounded-full shadow-md hover:bg-white hover:scale-110 active:scale-90 transition-all duration-200 flex items-center justify-center text-base focus:outline-none z-10" 
+                  class="absolute top-4 right-4 w-10 h-10 bg-black/60 border border-white/10 backdrop-blur-md rounded-full shadow-md hover:bg-black/80 hover:scale-110 active:scale-90 transition-all duration-200 flex items-center justify-center text-base focus:outline-none z-20" 
                   title="Xóa khỏi danh sách lưu">
-            <span class="scale-110 text-red-500 filter drop-shadow-sm">❤️</span>
+            <span class="scale-110 text-amber-400 filter drop-shadow-sm">❤️</span>
           </button>
         </div>
 
         <div class="p-6 flex flex-col flex-grow">
-          <div class="flex items-center justify-between">
-            <span class="text-[10px] font-extrabold text-blue-600 uppercase tracking-widest bg-blue-50 px-2.5 py-1 rounded-md">{{ room.typeName }}</span>
-            <span [ngClass]="room.status === 'AVAILABLE' || !room.status ? 'text-emerald-700 bg-emerald-50 border-emerald-100' : 'text-rose-700 bg-rose-50 border-rose-100'" class="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border tracking-wide">
-              {{ room.status === 'AVAILABLE' || !room.status ? '● Trống' : '● Hết phòng' }}
-            </span>
+          
+          <div class="flex justify-between items-start">
+            <h3 class="text-2xl font-black text-gray-800 group-hover:text-blue-600 transition-colors line-clamp-1 tracking-tight cursor-pointer" 
+                (click)="viewRoomDetail(room.roomId, $event)">
+              Phòng {{ room.roomNumber }}
+            </h3>
+            <div class="flex items-center gap-1 bg-amber-50 px-2 py-1 rounded-lg shrink-0 mt-1">
+              <span class="text-amber-500 text-sm leading-none">★</span>
+              <span class="font-bold text-gray-800 text-sm leading-none">{{ room.rating ? (room.rating | number:'1.1-1') : '4.9' }}</span>
+            </div>
+          </div>
+
+          <div *ngIf="room.appliedPromotion" class="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-widest bg-rose-50 text-rose-600 border border-rose-100 shadow-sm w-fit">
+            🔥 GIẢM {{ room.appliedPromotion.discountPercentage }}% (MÃ: {{ room.appliedPromotion.code }})
           </div>
           
-          <h3 class="text-xl font-extrabold text-gray-900 mt-3 group-hover:text-blue-600 transition-colors line-clamp-1 tracking-tight">{{ room.hotelName }}</h3>
-          
-          <div class="flex items-center gap-1.5 mt-1.5 text-xs text-gray-400">
-            <span class="text-amber-400 font-bold text-sm">★</span>
-            <span class="font-bold text-gray-800">4.9</span>
-            <span>(182 đánh giá)</span>
-            <span class="text-gray-300">|</span>
-            <span class="text-emerald-600 font-semibold bg-emerald-50 px-1.5 py-0.5 rounded text-[10px]">Hủy miễn phí</span>
+          <div class="grid grid-cols-2 gap-y-3 gap-x-4 my-5 text-gray-500 text-xs font-medium">
+            <div class="flex items-center gap-2"><span class="text-blue-400 text-base leading-none">🌐</span> Wifi miễn phí</div>
+            <div class="flex items-center gap-2"><span class="text-blue-400 text-base leading-none">❄️</span> Điều hòa 2 chiều</div>
+            <div class="flex items-center gap-2"><span class="text-indigo-500 text-base leading-none">🛏️</span> Giường King cỡ lớn</div>
+            <div class="flex items-center gap-2"><span class="text-blue-400 text-base leading-none">🌊</span> View hướng thoáng mát</div>
           </div>
           
-          <div class="grid grid-cols-2 gap-y-2 gap-x-4 mt-4 pt-3.5 border-t border-gray-100 text-gray-500 text-[11px] font-semibold">
-            <span class="flex items-center gap-1.5">🌐 Wifi miễn phí</span>
-            <span class="flex items-center gap-1.5">❄️ Điều hòa 2 chiều</span>
-            <span class="flex items-center gap-1.5">🛏️ Giường King cỡ lớn</span>
-            <span class="flex items-center gap-1.5">🌊 View hướng biển</span>
+          <div class="mb-5 pb-5 border-b border-gray-100 flex flex-col gap-1.5">
+            <div class="flex items-start gap-2 text-xs text-gray-500">
+              <span class="text-gray-300 mt-0.5">•</span>
+              <span>Diện tích rộng rãi, ban công riêng lý tưởng.</span>
+            </div>
+            <div class="flex items-start gap-2 text-xs text-gray-500">
+              <span class="text-gray-300 mt-0.5">•</span>
+              <span>Đầy đủ tiện nghi hiện đại cho kỳ nghỉ trọn vẹn.</span>
+            </div>
           </div>
           
-          <div class="flex items-center justify-between mt-6 pt-4 border-t border-gray-100/80">
+          <div class="flex items-end justify-between mt-auto">
             <div>
-              <span class="text-[10px] text-gray-400 block font-bold uppercase tracking-wider">Giá phòng/Đêm</span>
-              <span class="text-2xl font-black text-blue-600 tracking-tight">{{ formatPrice(room.price) }}</span>
+              <span class="text-[10px] text-gray-400 block font-bold uppercase tracking-wider mb-1">Giá phòng/Đêm</span>
+              
+              <div *ngIf="room.appliedPromotion" class="flex flex-col">
+                <span class="text-xs text-gray-400 line-through font-semibold mb-0.5">{{ formatPrice(room.price) }}</span>
+                <span class="text-2xl font-black text-rose-600 tracking-tight border-b-2 border-rose-600 pb-0.5 inline-block w-fit leading-none">
+                  {{ formatPrice(room.price * (1 - room.appliedPromotion.discountPercentage / 100)) }}
+                </span>
+              </div>
+
+              <div *ngIf="!room.appliedPromotion">
+                <span class="text-2xl font-black text-blue-600 tracking-tight border-b-2 border-blue-600 pb-0.5 inline-block w-fit leading-none">
+                  {{ formatPrice(room.price) }}
+                </span>
+              </div>
             </div>
             
             <div class="flex items-center gap-2">
-              <button [routerLink]="['/rooms', room.roomId]" class="px-4 py-2.5 border border-gray-200 text-gray-600 rounded-xl font-bold text-xs hover:bg-gray-50 hover:border-gray-400 hover:text-gray-900 transition-all">
+              <button (click)="viewRoomDetail(room.roomId, $event)" 
+                      class="px-4 py-2.5 bg-gradient-to-b from-gray-50 to-gray-200 border border-gray-300 text-gray-700 rounded-xl font-bold text-xs shadow-sm hover:from-gray-100 hover:to-gray-200 active:scale-95 transition-all">
                 Chi tiết
+              </button>
+              
+              <button [disabled]="room.status !== 'AVAILABLE'" 
+                      (click)="bookNow($event, room)" 
+                      class="px-5 py-2.5 bg-gradient-to-b from-blue-500 to-blue-700 text-white rounded-xl font-bold text-xs shadow-md hover:from-blue-600 hover:to-blue-800 active:scale-95 disabled:from-gray-200 disabled:to-slate-300 disabled:text-gray-400 disabled:shadow-none disabled:cursor-not-allowed transition-all">
+                Đặt ngay
               </button>
             </div>
           </div>
 
         </div>
-
       </div>
     </div>
 

@@ -120,7 +120,7 @@
       &.card-available .card-header { background-color: #2ed573; }
       &.card-occupied .card-header { background-color: #ff4757; }
       &.card-cleaning .card-header { background-color: #ffa502; }
-      &.card-dirty .card-header { background-color: #ffa502; } // ĐÃ SỬA: Thêm màu nền vàng đồng bộ cho trạng thái DIRTY
+      &.card-dirty .card-header { background-color: #ffa502; }
       &.card-maintenance .card-header { background-color: #747d8c; }
 
       .card-body {
@@ -215,7 +215,7 @@
           .carousel-viewport {
             position: relative; 
             width: 100%;
-            height: 340px;
+            height: 240px; // 🔥 ĐÃ SỬA: Hạ bớt khung bọc tỉ lệ vàng để vừa mắt form
             background-color: #1e293b;
             display: flex;
             justify-content: center;
@@ -224,8 +224,9 @@
             .carousel-active-img {
               width: 100%;
               height: 100%;
-              object-fit: contain; 
+              object-fit: cover; // 🔥 ĐÃ SỬA: Chuyển từ contain sang cover để lấp đầy trọn vẹn khung bọc, xóa bỏ khoảng đen dẹt ảnh
               background-color: #0f172a;
+              object-position: center; // Cân tâm bức ảnh
             }
 
             .carousel-nav-btn {
@@ -381,7 +382,6 @@
   from { opacity: 0; transform: scale(0.96); }
   to { opacity: 1; transform: scale(1); }
 }
-// Khối CSS bổ sung phục vụ cho tính năng Quản lý loại phòng hệ thống
 
 .btn-type-config {
   background-color: #0284c7;
@@ -396,7 +396,7 @@
 }
 
 .type-config-box {
-  width: 720px !important; // Rộng hơn một chút để chứa bảng thống kê
+  width: 720px !important;
   
   .type-header {
     background-color: #0f172a !important;
@@ -480,4 +480,44 @@
       }
     }
   }
+  /* Cập nhật lại cấu trúc dàn hàng cho cân đối */
+.form-row-two {
+  display: flex;
+  gap: 20px; /* Tăng gap để khoảng cách giữa 2 ô rộng rãi hơn */
+  width: 100%;
+  
+  .form-group {
+    flex: 1; /* Chia đều 50-50 cho 2 ô */
+    min-width: 0; /* Giúp input không bị tràn khi nội dung quá dài */
+    
+    label { 
+      font-size: 13px; 
+      font-weight: 600; 
+      color: #475569; 
+      margin-bottom: 6px; 
+      display: block; 
+    }
+    
+    .input-field, .select-field {
+      width: 100%; /* Ép input lấp đầy 100% không gian của form-group */
+      padding: 10px 14px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 14px;
+      box-sizing: border-box; /* Cực kỳ quan trọng: đảm bảo padding không làm vỡ khung */
+      transition: border-color 0.2s;
+
+      &:focus {
+        border-color: #3b82f6;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      }
+    }
+  }
+}
+
+/* Thêm khoảng cách giữa các hàng để không bị dính vào nhau */
+.margin-top {
+  margin-top: 16px !important;
+}
 }

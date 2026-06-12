@@ -4,15 +4,12 @@ import { ActivatedRoute, RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 
 import { RoomService } from '../../services/room.service';
-import { RoomResponseDTO as RoomModelDTO } from '../../models/room.model'; // Đổi tên alias để tránh trùng lặp nếu cần
+import { RoomResponseDTO as RoomModelDTO } from '../../models/room.model'; 
 import { HeaderComponent } from '../../components/header/header.component';
 import { HttpClient, HttpParams } from '@angular/common/http';
-
-// 🔥 ĐÃ SỬA BƯỚC 3: Gộp chung ReviewResponseDTO lấy từ Service tập trung, xóa bỏ khối khai báo cứng cũ ở đầu trang
 import { ReviewService, ReviewRequestDTO, ReviewResponseDTO } from '../../services/review.service'; 
-
-// Import Booking Service
 import { BookingService, BookingRequestDTO } from '../../services/booking.service';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-room-detail',
@@ -22,13 +19,11 @@ import { BookingService, BookingRequestDTO } from '../../services/booking.servic
   styleUrl: './room-detail.component.scss'
 })
 export class RoomDetailComponent implements OnInit {
-  // --- STATE QUẢN LÝ THÔNG TIN PHÒNG ---
-  room!: RoomModelDTO; // Sử dụng DTO từ Room Model
+  room!: RoomModelDTO; 
   isLoading = true;
   selectedImage: string = ''; 
   currentIndex: number = 0; 
 
-  // --- STATE TÍNH TOÁN ĐẶT PHÒNG ---
   checkInDate: string = ''; 
   checkOutDate: string = '';
   numberOfNights: number = 1;
@@ -37,14 +32,12 @@ export class RoomDetailComponent implements OnInit {
   totalPrice: number = 0;
   isBooking: boolean = false; 
 
-  // --- STATE ĐÁNH GIÁ & BÌNH LUẬN ---
   userRating: number = 0;
   hoveredStar: number = 0;
   reviewContent: string = ''; 
   isSubmittingReview: boolean = false; 
   currentBookingId: number = 1; 
 
-  // Mảng động hứng dữ liệu bình luận từ MySQL
   reviews: ReviewResponseDTO[] = []; 
 
   constructor(
@@ -53,7 +46,8 @@ export class RoomDetailComponent implements OnInit {
     private reviewService: ReviewService,
     private bookingService: BookingService, 
     private router: Router,
-    private http: HttpClient 
+    private http: HttpClient,
+    public authService: AuthService 
   ) {}
 
   ngOnInit(): void {
@@ -61,7 +55,7 @@ export class RoomDetailComponent implements OnInit {
     if (roomIdStr) {
       const roomId = Number(roomIdStr);
       this.loadRoomDetail(roomId);
-      this.loadRoomReviews(roomId); // Tự động kích hoạt nạp review động
+      this.loadRoomReviews(roomId); 
     } else {
       this.router.navigate(['/rooms']);
     }
@@ -74,41 +68,47 @@ export class RoomDetailComponent implements OnInit {
     this.checkOutDate = this.formatDateToYYYYMMDD(tomorrow);
   }
 
-  // ==========================================
-  // LUỒNG TẢI ĐÁNH GIÁ THỰC TẾ TỪ BACKEND
-  // ==========================================
   loadRoomReviews(roomId: number): void {
     this.reviewService.getReviewsByRoomId(roomId).subscribe({
       next: (data: ReviewResponseDTO[]) => {
-        this.reviews = data; // Đổ mảng dữ liệu thật từ database vào giao diện
+        this.reviews = data; 
       },
       error: (err: any) => {
-        console.error('Hệ thống: Không thể tải danh sách bình luận của phòng này:', err);
+        console.error('Hệ thống: Không thể tải danh sách bình luận:', err);
       }
     });
   }
 
-  // 🔥 Hàm tính trung bình cộng số sao real-time từ mảng reviews
   getAverageRating(): number {
     if (!this.reviews || this.reviews.length === 0) return 0;
     const totalStars = this.reviews.reduce((sum, item) => sum + item.rating, 0);
     return totalStars / this.reviews.length;
   }
 
-  // ==========================================
-  // XỬ LÝ DỮ LIỆU PHÒNG & HÌNH ẢNH
-  // ==========================================
   loadRoomDetail(id: number): void {
     this.isLoading = true;
     this.roomService.getRoomById(id).subscribe({
-      next: (data: any) => {
+      next: (data: RoomModelDTO) => {
         this.room = data;
         
-        if (this.room.imageUrls && this.room.imageUrls.length > 0) {
-          this.selectedImage = this.room.imageUrls[0];
+        // Xử lý ảnh bìa
+        const roomAny = this.room as any;
+        if (roomAny.albumImages && roomAny.albumImages.length > 0) {
+          this.selectedImage = roomAny.albumImages[0];
           this.currentIndex = 0;
         } else {
           this.selectedImage = this.room.imageUrl || 'https://images.unsplash.com/photo-1582719478250-c89404bb8a0e?q=80&w=1000&auto=format&fit=crop';
+        }
+        
+        // 🔥 ĐÃ SỬA: Chỉ tự động áp dụng mã giảm giá khi người dùng ĐÃ ĐĂNG NHẬP
+        if (this.room.appliedPromotions && this.room.appliedPromotions.length > 0) {
+          this.couponCode = this.room.appliedPromotions[0].code;
+          
+          if (this.authService.isLoggedIn()) {
+            setTimeout(() => {
+              this.applyCoupon();
+            }, 300);
+          }
         }
         
         this.isLoading = false;
@@ -127,7 +127,8 @@ export class RoomDetailComponent implements OnInit {
   }
 
   nextImage(): void {
-    const album = this.room.imageUrls;
+    // FIX TS2339
+    const album = (this.room as any).albumImages;
     if (album && this.currentIndex < album.length - 1) {
       this.currentIndex++;
       this.selectedImage = album[this.currentIndex];
@@ -135,7 +136,8 @@ export class RoomDetailComponent implements OnInit {
   }
 
   prevImage(): void {
-    const album = this.room.imageUrls;
+    // FIX TS2339
+    const album = (this.room as any).albumImages;
     if (album && this.currentIndex > 0) {
       this.currentIndex--;
       this.selectedImage = album[this.currentIndex];
@@ -151,30 +153,39 @@ export class RoomDetailComponent implements OnInit {
     this.router.navigate(['/rooms']);
   }
 
-  // ==========================================
-  // XỬ LÝ TÍNH TOÁN TIỀN PHÒNG
-  // ==========================================
   calculateTotal(): void {
     if (!this.checkInDate || !this.checkOutDate) return;
-    
     const start = new Date(this.checkInDate);
     const end = new Date(this.checkOutDate);
     const diffDays = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
-    
     this.numberOfNights = diffDays;
     this.discount = 0; 
     this.updateFinalPrice();
   }
 
-  applyCoupon(): void {
+  onCouponChange(value: string): void {
+    if (!value || value.trim() === '') {
+      this.discount = 0;
+      this.updateFinalPrice();
+    }
+  }
+
+ applyCoupon(): void {
+    // 1. [CHỐT CHẶN BẢO MẬT]: Kiểm tra trạng thái đăng nhập đầu tiên
+    if (!this.authService.isLoggedIn()) {
+      this.redirectToLogin(); // Gọi hàm thông báo và chuyển hướng đã tạo ở bước trước
+      return; // Cắt luồng thực thi ngay lập tức, tuyệt đối không gọi API
+    }
+
+    // 2. [XỬ LÝ DỮ LIỆU ĐẦU VÀO]: Chuẩn hóa và kiểm tra mã giảm giá
     const cleanCode = this.couponCode.trim();
     if (!cleanCode) {
       alert('Vui lòng nhập mã giảm giá trước khi bấm áp dụng!');
       return;
     }
 
+    // 3. [GỌI API]: Chuẩn bị tham số và gửi request
     const baseAmount = (this.room?.price || 0) * this.numberOfNights;
-
     const params = new HttpParams()
       .set('code', cleanCode)
       .set('amount', baseAmount.toString());
@@ -186,8 +197,8 @@ export class RoomDetailComponent implements OnInit {
         alert(`Áp dụng mã khuyến mãi thành công! Bạn được giảm ${this.formatPrice(this.discount)}`);
       },
       error: (err) => {
-        const errorMsg = err.error?.message || 'Mã giảm giá không hợp lệ hoặc đã bị vô hiệu hóa!';
-        alert(errorMsg);
+        // Bắt lỗi từ server (ví dụ: mã hết hạn, sai mã)
+        alert(err.error?.message || 'Mã giảm giá không hợp lệ!');
         this.discount = 0;
         this.updateFinalPrice();
       }
@@ -200,25 +211,28 @@ export class RoomDetailComponent implements OnInit {
     }
   }
 
-  // ==========================================
-  // XỬ LÝ ĐẶT PHÒNG & THANH TOÁN PAYOS
-  // ==========================================
   bookRoom(): void {
-    if (!this.checkInDate || !this.checkOutDate) {
-      alert('Vui lòng chọn ngày nhận và trả phòng!');
-      return;
+    // 1. [CHỐT CHẶN BẢO MẬT]: Bắt buộc phải đăng nhập mới được gọi API
+    if (!this.authService.isLoggedIn()) {
+      this.redirectToLogin();
+      return; // Cắt luồng ngay lập tức, ngăn chặn lỗi 403
     }
 
-    const start = new Date(this.checkInDate);
-    const end = new Date(this.checkOutDate);
-    if (end <= start) {
-      alert('Ngày trả phòng phải sau ngày nhận phòng!');
-      return;
+    // 2. [KIỂM TRA DỮ LIỆU ĐẦU VÀO]: Validate ngày tháng hợp lệ
+    if (!this.checkInDate || !this.checkOutDate) { 
+      alert('Vui lòng chọn ngày nhận và trả phòng!'); 
+      return; 
+    }
+    if (new Date(this.checkOutDate) <= new Date(this.checkInDate)) { 
+      alert('Ngày trả phòng phải sau ngày nhận!'); 
+      return; 
     }
 
+    // 3. [KHÓA GIAO DIỆN]: Bật cờ loading, chặn người dùng double-click
     this.isBooking = true; 
 
-    const payload: any = {
+    // 4. [CHUẨN BỊ DỮ LIỆU GỬI ĐI]: Đóng gói Payload
+    const payload = {
       roomId: this.room.roomId!, 
       checkIn: this.checkInDate,
       checkOut: this.checkOutDate,
@@ -226,27 +240,27 @@ export class RoomDetailComponent implements OnInit {
       couponCode: this.discount > 0 ? this.couponCode.trim().toUpperCase() : null 
     };
 
+    // 5. [GIAO TIẾP VỚI SERVER]: Gọi API tạo Booking
     this.bookingService.createBooking(payload).subscribe({
       next: (response) => {
+        // Phân luồng luân chuyển sau khi đặt phòng thành công
         if (response.checkoutUrl) {
+          // Luồng 1: Có URL cổng thanh toán -> Đẩy sang trang thanh toán của bên thứ 3
           window.location.href = response.checkoutUrl;
-        } else {
-          alert('Đặt phòng thành công!');
-          this.router.navigate(['/history']);
+        } else { 
+          // Luồng 2: Thanh toán sau / Trả tiền mặt -> Chuyển về lịch sử đặt phòng
+          alert('Đặt phòng thành công!'); 
+          this.router.navigate(['/history']); 
         }
       },
       error: (error) => {
-        this.isBooking = false;
-        const errorMsg = error.error?.message || error.error || 'Có lỗi xảy ra, vui lòng thử lại.';
-        alert('Lỗi đặt phòng: ' + errorMsg);
-        console.error('Lỗi khi gọi API Đặt phòng:', error);
+        // [QUAN TRỌNG]: Bắt buộc phải "nhả" khóa UI ra để người dùng có thể thử lại
+        this.isBooking = false; 
+        alert('Lỗi đặt phòng: ' + (error.error?.message || 'Có lỗi xảy ra.'));
       }
     });
   }
 
-  // ==========================================
-  // XỬ LÝ ĐÁNH GIÁ VÀ BÌNH LUẬN
-  // ==========================================
   getRatingText(rating: number): string {
     const texts = ['Tệ', 'Chưa tốt', 'Bình thường', 'Rất tốt', 'Tuyệt vời'];
     return texts[rating - 1] || '';
@@ -258,31 +272,54 @@ export class RoomDetailComponent implements OnInit {
     return words[words.length - 1].charAt(0).toUpperCase();
   }
 
-  submitReview(): void {
-    if (!this.userRating || !this.reviewContent.trim() || this.isSubmittingReview) return;
-    
+submitReview(): void {
+    // 1. [CHỐT CHẶN BẢO MẬT]: Bắt buộc đăng nhập mới được đánh giá
+    if (!this.authService.isLoggedIn()) {
+      this.redirectToLogin();
+      return; // Ngăn request bay xuống server gây lỗi 403
+    }
+
+    // 2. [KIỂM TRA DỮ LIỆU ĐẦU VÀO]: Báo lỗi rõ ràng thay vì return im lặng
+    if (!this.userRating) {
+      alert('Vui lòng chọn số sao để đánh giá trải nghiệm của bạn!');
+      return;
+    }
+    if (!this.reviewContent.trim()) {
+      alert('Vui lòng nhập nội dung đánh giá!');
+      return;
+    }
+
+    // Chặn người dùng spam click nhiều lần
+    if (this.isSubmittingReview) {
+      return; 
+    }
+
+    // 3. [KHÓA UI & ĐÓNG GÓI PAYLOAD]
     this.isSubmittingReview = true;
-    
-    const payload: ReviewRequestDTO = {
-      bookingId: this.currentBookingId,
-      rating: this.userRating,
-      comment: this.reviewContent,
-      mediaUrls: []
+    const payload: ReviewRequestDTO = { 
+      bookingId: this.currentBookingId, 
+      rating: this.userRating, 
+      comment: this.reviewContent, 
+      mediaUrls: [] 
     };
 
+    // 4. [GỌI API]
     this.reviewService.submitReview(payload).subscribe({
       next: (response: ReviewResponseDTO) => {
+        // Đẩy bình luận mới nhất lên đầu danh sách
         this.reviews.unshift(response);
         
-        this.userRating = 0;
-        this.reviewContent = '';
+        // Reset form và nhả khóa UI (Nên tách dòng để code dễ đọc, dễ bảo trì)
+        this.userRating = 0; 
+        this.reviewContent = ''; 
         this.isSubmittingReview = false;
         
         alert('Cảm ơn bạn đã gửi đánh giá!');
       },
       error: (err: any) => {
+        // [QUAN TRỌNG]: Phải nhả khóa UI ra nếu server báo lỗi
         this.isSubmittingReview = false;
-        alert(err.error?.message || 'Có lỗi xảy ra, vui lòng thử lại.');
+        alert(err.error?.message || 'Có lỗi xảy ra khi gửi đánh giá. Vui lòng thử lại.');
       }
     });
   }
@@ -292,5 +329,11 @@ export class RoomDetailComponent implements OnInit {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
+  }
+  redirectToLogin(): void {
+    alert('Vui lòng đăng nhập để thực hiện chức năng này!');
+    this.router.navigate(['/login'], { 
+      queryParams: { returnUrl: this.router.url } // Đăng nhập xong sẽ quay lại trang này
+    });
   }
 }

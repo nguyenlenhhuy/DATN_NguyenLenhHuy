@@ -76,17 +76,17 @@
 
           <div class="absolute bottom-6 right-6 z-20">
             <div class="bg-black/50 backdrop-blur-md text-white text-xs font-bold px-4 py-2 rounded-full tracking-wider">
-              {{ currentIndex + 1 }} / {{ $any(room).imageUrls?.length || 1 }}
+              {{ currentIndex + 1 }} / {{ $any(room).albumImages?.length || 1 }}
             </div>
           </div>
         </div>
 
         <div
-          *ngIf="$any(room).imageUrls && $any(room).imageUrls.length > 0"
+          *ngIf="$any(room).albumImages && $any(room).albumImages.length > 0"
           class="flex gap-4 overflow-x-auto pb-4 scrollbar-hide"
         >
           <button
-            *ngFor="let url of $any(room).imageUrls; let i = index"
+            *ngFor="let url of $any(room).albumImages; let i = index"
             (click)="changePreviewImage(url, i)"
             [ngClass]="
               currentIndex === i
@@ -364,23 +364,28 @@
             </div>
 
             <div class="border border-slate-200 rounded-2xl p-3 flex items-center justify-between focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition-all bg-white">
-              <input type="text" [(ngModel)]="couponCode" placeholder="Nhập mã giảm giá..." class="font-bold text-sm text-gray-800 bg-transparent border-0 p-0 focus:ring-0 w-full placeholder-gray-400 outline-none">
+              <input type="text" [(ngModel)]="couponCode" (ngModelChange)="onCouponChange($event)" name="couponInput" placeholder="Nhập mã giảm giá..." class="font-bold text-sm text-gray-800 bg-transparent border-0 p-0 focus:ring-0 w-full placeholder-gray-400 outline-none">
               <button (click)="applyCoupon()" class="text-[11px] font-black text-blue-700 uppercase tracking-widest ml-3 hover:text-blue-900 shrink-0 px-2 py-1 bg-blue-50 rounded-lg transition-colors">Áp dụng</button>
             </div>
 
             <div class="bg-slate-50 rounded-2xl p-5 border border-slate-200 mt-2">
               <div class="flex items-center justify-between text-sm mb-3">
-                <span class="text-gray-500 font-medium underline decoration-dashed decoration-gray-300 underline-offset-4">{{ formatPrice(room.price) }} × {{ numberOfNights }} đêm</span>
+                <span class="text-gray-500 font-medium underline decoration-dashed decoration-gray-300 underline-offset-4">
+                  {{ formatPrice(room.price) }} × {{ numberOfNights }} đêm
+                </span>
                 <span class="font-black text-gray-800">{{ formatPrice(room.price * numberOfNights) }}</span>
               </div>
+
               <div *ngIf="discount > 0" class="flex items-center justify-between text-sm mb-3 text-emerald-600">
-                <span class="font-semibold">Khuyến mãi</span>
+                <span class="font-semibold">Khuyến mãi ({{ couponCode }})</span>
                 <span class="font-black">-{{ formatPrice(discount) }}</span>
               </div>
+
               <div class="flex items-center justify-between text-sm mb-4">
                 <span class="text-gray-500 font-medium underline decoration-dashed decoration-gray-300 underline-offset-4">Phí dịch vụ & Thuế</span>
                 <span class="font-black text-gray-800">Miễn phí</span>
               </div>
+
               <div class="border-t border-slate-200 pt-4 flex items-center justify-between">
                 <span class="font-black text-base text-gray-900 uppercase">Tổng cộng</span>
                 <span class="text-2xl font-black text-rose-600">{{ formatPrice(totalPrice) }}</span>
@@ -388,7 +393,7 @@
             </div>
 
             <button
-              (click)="bookRoom()"
+              (click)="authService.isLoggedIn() ? bookRoom() : redirectToLogin()"
               [disabled]="room.status !== 'AVAILABLE' || isBooking"
               [ngClass]="
                 room.status === 'AVAILABLE' && !isBooking
@@ -401,7 +406,12 @@
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-              {{ isBooking ? 'ĐANG CHUYỂN HƯỚNG...' : (room.status === 'AVAILABLE' ? '🔒 Đặt phòng ngay' : 'Phòng hiện đã hết') }}
+              
+              {{ isBooking ? 'ĐANG CHUYỂN HƯỚNG...' : 
+                (room.status === 'AVAILABLE' ? 
+                  (authService.isLoggedIn() ? '🔒 Đặt phòng ngay' : '👤 Đăng nhập để đặt phòng') 
+                  : 'Phòng hiện đã hết') 
+              }}
             </button>
 
           </div>

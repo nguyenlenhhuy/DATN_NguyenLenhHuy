@@ -31,4 +31,7 @@ public class Promotion {
 
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
+    @ManyToMany(mappedBy = "promotions", fetch = FetchType.LAZY)
+    @com.fasterxml.jackson.annotation.JsonIgnore // Chống vòng lặp vô hạn khi parse JSON
+    private java.util.Set<Room> rooms = new java.util.HashSet<>();
 }

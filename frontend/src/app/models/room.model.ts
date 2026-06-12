@@ -1,17 +1,28 @@
+export interface PromotionDTO {
+  id: number;
+  code: string;
+  discountPercentage: number;
+  startDate: string;
+  endDate: string;
+}
+
 export interface RoomResponseDTO {
   roomId: number;
   roomNumber: string;
   typeName: string;
-  price: number;
+  price: any;
   hotelName: string;
   imageUrl?: string;
-  imageUrls?: string[]; // Thêm trường này để chứa danh sách ảnh từ Admin
+  imageUrls?: string[]; 
   isFavorite?: boolean;
   floor: number | null;
   status: string | null;
   maxGuests?: number;
+  rating?: number;
+  
+  // SỬA Ở ĐÂY: Dùng mảng appliedPromotions thay vì promotionCode
+  appliedPromotions?: PromotionDTO[]; 
 }
-
 export interface RoomSearchRequest {
   checkIn: string | null;
   checkOut: string | null;

@@ -1,11 +1,12 @@
 import { Component, OnInit, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms'; 
-import { RouterModule, Router } from '@angular/router'; 
+import { RouterModule, Router, ActivatedRoute } from '@angular/router'; 
 import { RoomService } from '../../services/room.service';
 import { FavoriteService } from '../../services/favorite.service';
 import { RoomResponseDTO, RoomSearchRequest } from '../../models/room.model';
 import { HeaderComponent } from '../../components/header/header.component';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-rooms',
@@ -17,8 +18,17 @@ import { HeaderComponent } from '../../components/header/header.component';
 export class RoomsComponent implements OnInit {
   rooms: any[] = []; 
   roomTypes: any[] = []; 
+  floors: string[] = []; 
+  selectedFloor: string = 'ALL'; 
   isLoading = false; 
-  isTypeDropdownOpen = false; 
+
+  // === BIẾN QUẢN LÝ KHOẢNG GIÁ (HỘP CHỌN + ĐIỀN TAY) ===
+  minPrice: number = 0;
+  maxPrice: number = 10000000;
+  maxSliderLimit: number = 10000000;
+  selectedPricePreset: string = '0-10000000'; // Quản lý giá trị của thẻ <select>
+
+  urlKeyword: string = '';
 
   searchRequest: RoomSearchRequest = {
     checkIn: null,
@@ -30,20 +40,71 @@ export class RoomsComponent implements OnInit {
   constructor(
     private roomService: RoomService,
     private favoriteService: FavoriteService,
-    private router: Router
+    private router: Router,
+    private route: ActivatedRoute,
+    public authService: AuthService
   ) {}
 
   ngOnInit(): void {
     this.loadAllRooms();
     this.loadRoomTypes();
+
+    // Hứng dữ liệu tìm kiếm truyền từ URL (ví dụ: Từ Header hoặc Trang chủ)
+    this.route.queryParams.subscribe(params => {
+      this.urlKeyword = params['q'] || '';
+      
+      if (params['typeName']) {
+        this.searchRequest.typeName = params['typeName'];
+      } else if (this.urlKeyword) {
+        this.searchRequest.typeName = this.urlKeyword;
+      }
+      
+      this.searchRequest.checkIn = params['checkIn'] || null;
+      this.searchRequest.checkOut = params['checkOut'] || null;
+      this.searchRequest.guestCount = params['guestCount'] || null;
+
+      this.minPrice = params['minPrice'] ? Number(params['minPrice']) : 0;
+      this.maxPrice = params['maxPrice'] ? Number(params['maxPrice']) : 10000000;
+
+      // Đồng bộ thẻ Select với URL
+      const presetStr = `${this.minPrice}-${this.maxPrice}`;
+      const validPresets = ['0-10000000', '0-1000000', '1000000-3000000', '3000000-5000000', '5000000-10000000'];
+      if (validPresets.includes(presetStr)) {
+        this.selectedPricePreset = presetStr;
+      } else {
+        this.selectedPricePreset = 'custom';
+      }
+    });
   }
 
-  // Tải danh sách phòng từ Backend (đã lọc isDeleted ở Backend)
+  // === LOGIC XỬ LÝ GIÁ KHI ĐỔI HỘP CHỌN ===
+  onPresetChange(): void {
+    if (this.selectedPricePreset === 'custom') return;
+    
+    const parts = this.selectedPricePreset.split('-');
+    if (parts.length === 2) {
+      this.minPrice = Number(parts[0]);
+      this.maxPrice = Number(parts[1]);
+    }
+  }
+
+  // === LOGIC XỬ LÝ KHI NGƯỜI DÙNG TỰ GÕ SỐ ===
+  onManualPriceChange(): void {
+    if (this.minPrice > this.maxPrice) {
+      const temp = this.minPrice;
+      this.minPrice = this.maxPrice;
+      this.maxPrice = temp;
+    }
+    this.selectedPricePreset = 'custom'; 
+  }
+
   loadAllRooms(): void {
     this.isLoading = true;
     this.roomService.getAllRooms().subscribe({
       next: (data: any[]) => {
-        this.syncFavorites(data);
+        const mappedData = this.mapIncomingPromotions(data);
+        this.syncFavorites(mappedData);
+        this.extractFloors(mappedData);
         this.isLoading = false;
       },
       error: (err: any) => { 
@@ -53,13 +114,38 @@ export class RoomsComponent implements OnInit {
     });
   }
 
-  // Tìm kiếm phòng từ Backend (đã lọc isDeleted ở Backend)
   searchRooms(): void {
+    // Nếu ngày trả nhỏ hơn ngày nhận -> Báo lỗi
+    if (this.searchRequest.checkIn && this.searchRequest.checkOut) {
+      if (new Date(this.searchRequest.checkOut) <= new Date(this.searchRequest.checkIn)) {
+        alert("Ngày trả phòng phải sau ngày nhận phòng. Vui lòng kiểm tra lại!");
+        return;
+      }
+    }
+
     this.isLoading = true;
     this.roomService.searchRooms(this.searchRequest).subscribe({
       next: (data: any[]) => {
-        this.syncFavorites(data);
+        const mappedData = this.mapIncomingPromotions(data);
+        this.syncFavorites(mappedData);
+        this.extractFloors(mappedData);
         this.isLoading = false;
+        
+        // Cập nhật lại URL để có thể chia sẻ link
+        const queryParams: any = {
+          typeName: this.searchRequest.typeName,
+          checkIn: this.searchRequest.checkIn,
+          checkOut: this.searchRequest.checkOut,
+          guestCount: this.searchRequest.guestCount
+        };
+        if (this.minPrice > 0) queryParams.minPrice = this.minPrice;
+        if (this.maxPrice < this.maxSliderLimit) queryParams.maxPrice = this.maxPrice;
+
+        Object.keys(queryParams).forEach(key => {
+          if (!queryParams[key]) delete queryParams[key];
+        });
+
+        this.router.navigate([], { queryParams: queryParams });
       },
       error: (err: any) => { 
         console.error('Lỗi khi tìm kiếm phòng:', err);
@@ -68,17 +154,98 @@ export class RoomsComponent implements OnInit {
     });
   }
 
-  // Đồng bộ trạng thái yêu thích
+  private extractFloors(data: any[]): void {
+    const floorSet = new Set<string>();
+    data.forEach(room => {
+      if (room.roomNumber) {
+        const numStr = room.roomNumber.toString().trim();
+        const floorStr = numStr.length >= 4 ? numStr.substring(0, numStr.length - 2) : numStr.charAt(0);
+        floorSet.add(floorStr);
+      }
+    });
+    this.floors = Array.from(floorSet).sort((a, b) => parseInt(a) - parseInt(b));
+  }
+
+  // Logic lọc kết hợp (Tầng + Loại phòng + Khoảng giá)
+  get filteredRooms(): any[] {
+    return this.rooms.filter(room => {
+      const numStr = room.roomNumber.toString().trim();
+      const floorStr = numStr.length >= 4 ? numStr.substring(0, numStr.length - 2) : numStr.charAt(0);
+      const matchFloor = this.selectedFloor === 'ALL' || floorStr === this.selectedFloor;
+
+      const keywordToSearch = this.searchRequest.typeName || this.urlKeyword;
+      const matchKeyword = !keywordToSearch || 
+        room.roomNumber.toString().toLowerCase().includes(keywordToSearch.toLowerCase()) ||
+        (room.typeName && room.typeName.toLowerCase().includes(keywordToSearch.toLowerCase()));
+
+      const currentPrice = room.appliedPromotion 
+        ? room.price * (1 - room.appliedPromotion.discountPercentage / 100) 
+        : room.price;
+        
+      const safeMin = this.minPrice || 0;
+      const safeMax = this.maxPrice || 999999999;
+      const matchPrice = currentPrice >= safeMin && currentPrice <= safeMax;
+
+      return matchFloor && matchKeyword && matchPrice;
+    });
+  }
+
+  get roomsGroupedByFloor(): { floor: string, roomList: any[] }[] {
+    const groups: { [key: string]: any[] } = {};
+    
+    this.filteredRooms.forEach(room => {
+      const numStr = room.roomNumber.toString().trim();
+      const floorStr = numStr.length >= 4 ? numStr.substring(0, numStr.length - 2) : numStr.charAt(0);
+      
+      if (!groups[floorStr]) {
+        groups[floorStr] = [];
+      }
+      groups[floorStr].push(room);
+    });
+
+    return Object.keys(groups)
+      .sort((a, b) => parseInt(a) - parseInt(b))
+      .map(floor => ({
+        floor: floor,
+        roomList: groups[floor]
+      }));
+  }
+
+  selectFloor(floor: string): void {
+    this.selectedFloor = floor;
+  }
+
   private syncFavorites(data: any[]): void {
+    // 🔥 CHỐT CHẶN BẢO MẬT: Khách vãng lai không được gọi API
+    if (!this.authService.isLoggedIn()) {
+      // Gán thẳng trạng thái 'chưa yêu thích' (false) cho tất cả các phòng
+      this.rooms = data.map(room => ({
+        ...room,
+        isFavorite: false
+      }));
+      return; // Cắt luồng ở đây
+    }
+
+    // Luồng cũ (Chỉ chạy khi đã đăng nhập)
     this.favoriteService.getMyFavorites().subscribe({
       next: (favorites: any[]) => {
-        const favoriteRoomIds = favorites.map(fav => fav.room ? fav.room.id : null);
-        this.rooms = data.map(room => ({
-          ...room,
-          isFavorite: favoriteRoomIds.includes(room.roomId)
-        }));
+        const favoriteRoomIds = favorites.map(fav => {
+          if (fav && fav.room) {
+            return fav.room.roomId || fav.room.id;
+          }
+          return fav ? (fav.roomId || fav.id) : null;
+        }).filter(id => id !== null);
+
+        this.rooms = data.map(room => {
+          const currentId = room.roomId || room.id;
+          return {
+            ...room,
+            isFavorite: favoriteRoomIds.includes(currentId)
+          };
+        });
       },
-      error: () => {
+      error: (err) => {
+        console.error('Lỗi đồng bộ danh sách phòng yêu thích:', err);
         this.rooms = data; 
       }
     });
@@ -91,13 +258,14 @@ export class RoomsComponent implements OnInit {
     });
   }
 
-  selectType(typeName: string): void {
-    this.searchRequest.typeName = typeName;
-    this.isTypeDropdownOpen = false; 
-  }
-
   resetSearch(): void {
     this.searchRequest = { checkIn: null, checkOut: null, guestCount: null, typeName: '' };
+    this.selectedFloor = 'ALL';
+    this.minPrice = 0;
+    this.maxPrice = 10000000;
+    this.selectedPricePreset = '0-10000000';
+    this.urlKeyword = '';
+    this.router.navigate(['/rooms']);
     this.loadAllRooms();
   }
 
@@ -107,40 +275,90 @@ export class RoomsComponent implements OnInit {
   }
 
   toggleFavorite(event: Event, room: any): void {
-    event.stopPropagation();
-    this.favoriteService.toggleFavorite(room.roomId).subscribe({
-      next: () => { room.isFavorite = !room.isFavorite; },
-      error: () => alert("Có lỗi xảy ra!")
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation(); 
+    }
+
+    // 🔥 KIỂM TRA TRẠNG THÁI ĐĂNG NHẬP
+    if (!this.authService.isLoggedIn()) {
+      alert('Vui lòng đăng nhập để lưu phòng vào danh sách yêu thích!');
+      // Tùy chọn: Đẩy về trang đăng nhập và lưu lại URL hiện tại
+      this.router.navigate(['/login'], { 
+        queryParams: { returnUrl: this.router.url }
+      });
+      return; // Dừng hàm ngay lập tức
+    }
+
+    if (!room || (!room.roomId && !room.id)) {
+      alert('Lỗi dữ liệu cấu trúc phòng!');
+      return;
+    }
+
+    const targetRoomId = room.roomId || room.id;
+
+    this.favoriteService.toggleFavorite(targetRoomId).subscribe({
+      next: (res) => {
+        room.isFavorite = !room.isFavorite; 
+      },
+      error: (err) => { 
+        alert("Có lỗi xảy ra khi thực hiện lưu trạng thái yêu thích!");
+      }
     });
   }
 
+// Cập nhật hàm này vào rooms.component.ts
+  // Cập nhật hàm này để xử lý đúng mảng albumImages (List<String>)
+  getRoomImages(room: any): string[] {
+    // 1. Nếu có album ảnh (mảng link), dùng nó
+    if (room.albumImages && Array.isArray(room.albumImages) && room.albumImages.length > 0) {
+      return room.albumImages;
+    }
+    // 2. Nếu không có album, tạo mảng chứa ảnh đại diện (để HTML vẫn chạy được)
+    return room.imageUrl ? [room.imageUrl] : ['https://images.unsplash.com/photo-1582719478250-c89404bb8a0e?q=80&w=1000'];
+  }
+
+  // Hàm này chỉ dùng cho trường hợp bạn cần lấy 1 ảnh duy nhất để làm bìa
   getRoomImage(room: any): string {
-    return (room.imageUrl && room.imageUrl.trim() !== '') 
-      ? room.imageUrl 
-      : 'https://images.unsplash.com/photo-1582719478250-c89404bb8a0e?q=80&w=1000';
-  }
-
-  getStatusLabel(status: string | null): string {
-    switch(status) {
-      case 'AVAILABLE': return 'Còn trống';
-      case 'OCCUPIED': return 'Đã đặt';
-      case 'CLEANING': return 'Đang dọn';
-      case 'DIRTY': return 'Chưa dọn';
-      case 'MAINTENANCE': return 'Bảo trì';
-      default: return 'Không xác định';
-    }
-  }
-
-  @HostListener('document:click', ['$event'])
-  onDocumentClick(event: MouseEvent): void {
-    const target = event.target as HTMLElement;
-    if (!target.closest('#customTypeSelect')) {
-      this.isTypeDropdownOpen = false;
-    }
-  }
+    const images = this.getRoomImages(room);
+    return images[0];
+  } 
 
   viewRoomDetail(roomId: number, event: Event): void {
     event.stopPropagation();
-    this.router.navigate(['/rooms', roomId]);
+    
+    const targetRoom = this.rooms.find(r => r.roomId === roomId);
+    
+    if (targetRoom && targetRoom.appliedPromotions && targetRoom.appliedPromotions.length > 0) {
+      this.router.navigate(['/rooms', roomId], { 
+        queryParams: { promoCode: targetRoom.appliedPromotions[0].code } 
+      });
+    } else {
+      this.router.navigate(['/rooms', roomId]);
+    }
   }
+
+  private mapIncomingPromotions(data: any[]): any[] {
+    if (!data) return [];
+    return data.map(room => {
+      let promo = room.appliedPromotion;
+
+      if (!promo && room.appliedPromotions && room.appliedPromotions.length > 0) {
+        const activePromo = room.appliedPromotions.find((p: any) => p.isActive !== false);
+        if (activePromo) {
+          promo = {
+            id: activePromo.id,
+            code: activePromo.code,
+            discountPercentage: activePromo.discountPercentage
+          };
+        }
+      }
+
+      return {
+        ...room,
+        appliedPromotion: promo 
+      };
+    });
+  }
+  
 }

@@ -16,12 +16,17 @@ export class RoomMatrixComponent implements OnInit {
   filteredRooms: RoomResponseDTO[] = [];
   roomTypes: RoomType[] = [];
   
+  promotions: any[] = []; 
+  selectedPromoIdForRoom: number | null = null; 
+  maxDiscountPercentage: number = 0;
+  calculatedFinalPrice: number = 0;
+  
   currentHotelId: number = 1; 
   userRole: string = 'ADMIN'; 
   
   isModalOpen: boolean = false;      
   isEditModalOpen: boolean = false;  
-  isTypeModalOpen: boolean = false; // Trạng thái Modal cấu hình Loại phòng
+  isTypeModalOpen: boolean = false; 
   activeTab: 'single' | 'floor' = 'single'; 
 
   selectedStatusFilter: string = 'ALL';
@@ -32,7 +37,6 @@ export class RoomMatrixComponent implements OnInit {
   imageItems: { source: 'local' | 'web', url: string, isPrimary: boolean }[] = [];
   currentImgIndex: number = 0; 
 
-  // Cấu trúc DTO đồng bộ hoàn chỉnh khớp với RoomTypeRequest của Java Backend
   newTypeData = {
     hotelId: this.currentHotelId,
     typeName: '',
@@ -75,18 +79,18 @@ export class RoomMatrixComponent implements OnInit {
     this.loadRoomMatrix();
     if (this.userRole === 'ADMIN') {
       this.loadRoomTypes();
+      this.loadAllPromotions();
     }
   }
 
-  // ĐÃ CẢI TIẾN: Giữ nguyên bộ lọc tầng hiện tại sau khi tải lại sơ đồ lưới phòng
   loadRoomMatrix(): void {
     this.roomService.getRoomsByHotel(this.currentHotelId).subscribe({
       next: (data) => {
         this.rooms = data;
         this.floors = Array.from(new Set(data.map(r => r.floor))).sort((a, b) => a - b);
-        this.applyFilters(); // Đảm bảo cố định tầng đang chọn
+        this.applyFilters();
       },
-      error: (err: any) => alert('Thông báo hệ thống: ' + (err.error?.message || err.message))
+      error: (err: any) => alert('Thông báo lỗi hệ thống: ' + (err.error?.message || err.message))
     });
   }
 
@@ -103,29 +107,91 @@ export class RoomMatrixComponent implements OnInit {
     });
   }
 
+  loadAllPromotions(): void {
+    this.roomService.getActivePromotions().subscribe({
+      next: (res: any[]) => {
+        this.promotions = res;
+      },
+      error: (err: any) => console.error('Hệ thống: Không thể nạp danh sách khuyến mãi:', err)
+    });
+  }
+
+  // 🔥 SỬA LỖI LOGIC ÁP MÃ KHUYẾN MÃI VÀ ĐỒNG BỘ UI
+  onApplyPromotion(): void {
+    if (!this.selectedRoomId) {
+      alert('Vui lòng chọn phòng trước khi thực hiện thao tác!');
+      return;
+    }
+
+    // Nếu chọn null (bỏ áp dụng mã) thì gửi null, ngược lại ép kiểu số rõ ràng
+    const promoIdToSend = this.selectedPromoIdForRoom ? Number(this.selectedPromoIdForRoom) : null;
+
+    this.roomService.applyPromotionToRoom(this.selectedRoomId, promoIdToSend!).subscribe({
+      next: (res: any) => {
+        alert(res.message || 'Gán mã giảm giá vào phòng thành công!');
+        
+        // Gọi lại danh sách phòng mới nhất từ Database sau khi dữ liệu DB đã đổi thay
+        this.roomService.getRoomsByHotel(this.currentHotelId).subscribe({
+          next: (data) => {
+            this.rooms = data;
+            
+            // Ép bộ lọc chạy lại để render lập tức giá tiền mới ra thẻ phòng nền bên ngoài
+            this.applyFilters();
+
+            // Tìm kiếm thông tin phòng hiện tại vừa được gán mã thành công
+            const updatedRoom = this.rooms.find(r => r.roomId === this.selectedRoomId);
+            
+            if (updatedRoom) {
+              this.editRoom.customPrice = updatedRoom.price;
+
+              if (updatedRoom.appliedPromotions && updatedRoom.appliedPromotions.length > 0) {
+                // Bốc chương trình ưu đãi lớn nhất áp dụng lên phòng
+                const bestPromo = updatedRoom.appliedPromotions.reduce((max, p) => 
+                  p.discountPercentage > max.discountPercentage ? p : max, updatedRoom.appliedPromotions[0]
+                );
+                
+                // Đồng bộ biến hiển thị khung giảm giá màu hồng trên Modal ngay lập tức
+                this.maxDiscountPercentage = bestPromo.discountPercentage;
+                this.calculatedFinalPrice = updatedRoom.price * (1 - this.maxDiscountPercentage / 100);
+                this.selectedPromoIdForRoom = Number(bestPromo.id);
+              } else {
+                // Reset trạng thái nếu phòng không có chương trình ưu đãi nào
+                this.maxDiscountPercentage = 0;
+                this.calculatedFinalPrice = updatedRoom.price;
+                this.selectedPromoIdForRoom = null;
+              }
+            }
+          },
+          error: (refreshErr) => console.error('Lỗi đồng bộ danh sách phòng:', refreshErr)
+        });
+      },
+      error: (err: any) => {
+        console.error(err);
+        alert('Có lỗi xảy ra khi áp dụng khuyến mãi: ' + (err.error?.message || err.message));
+      }
+    });
+  }
+
   openTypeModal(): void {
     this.isTypeModalOpen = true;
-    this.newTypeData = { hotelId: this.currentHotelId, typeName: '', basePrice: undefined, maxOccupancy: 2, isFeatured: false }; 
+    this.newTypeData = { hotelId: this.currentHotelId, typeName: '', basePrice: undefined, maxOccupancy: 2, isFeatured: false };
   }
 
   closeTypeModal(): void {
     this.isTypeModalOpen = false;
   }
 
-  // ĐÃ SỬA: Đọc thông điệp Object JSON (res.message) trả về từ Backend
   onSaveRoomType(): void {
     if (!this.newTypeData.typeName.trim() || !this.newTypeData.basePrice) {
       alert('Vui lòng điền tên loại phòng và giá tiền gốc niêm yết!');
       return;
     }
-
     this.newTypeData.hotelId = this.currentHotelId;
-
     this.roomService.createRoomType(this.newTypeData).subscribe({
       next: (savedType: any) => {
         alert(`Khởi tạo phân loại phòng "${savedType.typeName}" thành công!`);
-        this.loadRoomTypes(); 
-        this.newTypeData = { hotelId: this.currentHotelId, typeName: '', basePrice: undefined, maxOccupancy: 2, isFeatured: false }; 
+        this.loadRoomTypes();
+        this.newTypeData = { hotelId: this.currentHotelId, typeName: '', basePrice: undefined, maxOccupancy: 2, isFeatured: false };
       },
       error: (err: any) => alert('Thêm phân loại thất bại: ' + (err.error?.message || err.message))
     });
@@ -136,8 +202,8 @@ export class RoomMatrixComponent implements OnInit {
       this.roomService.deleteRoomType(typeId).subscribe({
         next: (res: any) => {
           alert(res.message || 'Xóa loại phòng khỏi hệ thống thành công!');
-          this.loadRoomTypes(); 
-          this.loadRoomMatrix(); 
+          this.loadRoomTypes();
+          this.loadRoomMatrix();
         },
         error: (err: any) => alert('Không thể xóa loại phòng: ' + (err.error?.message || err.message))
       });
@@ -159,7 +225,7 @@ export class RoomMatrixComponent implements OnInit {
   }
 
   nextImage(event: MouseEvent): void {
-    event.stopPropagation(); 
+    event.stopPropagation();
     if (this.imageItems.length > 0) {
       this.currentImgIndex = (this.currentImgIndex + 1) % this.imageItems.length;
     }
@@ -186,7 +252,7 @@ export class RoomMatrixComponent implements OnInit {
     this.imageItems.forEach((img, idx) => {
       img.isPrimary = idx === selectedIndex;
     });
-    this.currentImgIndex = selectedIndex; 
+    this.currentImgIndex = selectedIndex;
   }
 
   addImageRow(type: 'local' | 'web'): void {
@@ -209,20 +275,27 @@ export class RoomMatrixComponent implements OnInit {
 
   removeImageRow(index: number): void {
     this.imageItems.splice(index, 1);
-    this.currentImgIndex = 0; 
+    this.currentImgIndex = 0;
     if (this.imageItems.length > 0 && !this.imageItems.some(img => img.isPrimary)) {
       this.imageItems[0].isPrimary = true;
     }
   }
 
-  openAddRoomModal(): void {
+openAddRoomModal(): void {
     this.isModalOpen = true;
     this.newRoom.floor = 1;
     this.newRoom.roomNumber = '101';
     this.newRoom.customPrice = undefined;
+    
+    // 🔥 ĐÃ BỔ SUNG: Gán ID loại phòng mặc định dựa trên danh sách roomTypes có sẵn
+    if (this.roomTypes && this.roomTypes.length > 0) {
+      this.newRoom.roomTypeId = this.roomTypes[0].id;
+      this.floorBatchConfig.roomTypeId = this.roomTypes[0].id;
+    }
+
     this.imageItems = [];
     this.currentImgIndex = 0;
-    this.addImageRow('local'); 
+    this.addImageRow('local');
   }
 
   closeAddRoomModal(): void {
@@ -240,62 +313,17 @@ export class RoomMatrixComponent implements OnInit {
     }
   }
 
-  onCardClick(room: RoomResponseDTO, event: MouseEvent): void {
-    const target = event.target as HTMLElement;
-    if (target.tagName === 'SELECT' || target.tagName === 'OPTION' || target.classList.contains('btn-delete')) {
-      return;
-    }
-
-    if (this.userRole !== 'ADMIN') {
-      alert('Chỉ tài khoản Quản trị viên mới có quyền chỉnh sửa thông tin phòng!');
-      return;
-    }
-
-    this.selectedRoomId = room.roomId;
-    const matchedType = this.roomTypes.find(t => t.typeName === room.typeName);
-
-    this.editRoom = {
-      hotelId: this.currentHotelId,
-      roomTypeId: matchedType ? matchedType.id : 1,
-      roomNumber: room.roomNumber,
-      floor: room.floor,
-      customPrice: room.price,
-      images: []
-    };
-
-    this.imageItems = [];
-    this.currentImgIndex = 0; 
-
-    if (room.albumImages && room.albumImages.length > 0) {
-      room.albumImages.forEach((imgUrl: string) => {
-        const isLocalFile = imgUrl.startsWith('data:image');
-        this.imageItems.push({
-          source: isLocalFile ? 'local' : 'web', 
-          url: imgUrl,
-          isPrimary: imgUrl === room.imageUrl 
-        });
-      });
-      
-      const primaryIdx = this.imageItems.findIndex(img => img.isPrimary);
-      if (primaryIdx !== -1) {
-        this.currentImgIndex = primaryIdx;
-      }
-    } else if (room.imageUrl) {
-      const isLocalFile = room.imageUrl.startsWith('data:image');
-      this.imageItems.push({ source: isLocalFile ? 'local' : 'web', url: room.imageUrl, isPrimary: true });
-    }
-
-    this.isEditModalOpen = true;
-  }
-
-  // ĐÃ SỬA: Đọc sạch cấu trúc res.message từ Object JSON phản hồi
   onUpdateRoom(): void {
     if (!this.editRoom.roomNumber.trim() || !this.editRoom.floor) {
       alert('Vui lòng nhập đầy đủ Số phòng và Tầng!');
       return;
     }
 
-    const validImages = this.imageItems.filter(img => img.url.trim() !== '');
+    const validImages = this.imageItems.filter(img => img.url && img.url.trim() !== '');
+    if (validImages.length > 0 && !validImages.some(img => img.isPrimary)) {
+      validImages[0].isPrimary = true;
+    }
+
     this.editRoom.images = validImages.map(img => ({
       imageUrl: img.url,
       isPrimary: img.isPrimary
@@ -303,9 +331,9 @@ export class RoomMatrixComponent implements OnInit {
 
     this.roomService.updateRoom(this.selectedRoomId, this.editRoom).subscribe({
       next: (res: any) => {
-        alert(res.message || 'Cập nhật thông tin phòng và ảnh đại diện thành công!');
+        alert(res.message || 'Cập nhật thông tin phòng và danh sách album ảnh thành công!');
         this.closeEditModal();
-        this.loadRoomMatrix(); 
+        this.loadRoomMatrix();
       },
       error: (err: any) => {
         const errMsg = err.error?.message || err.message || 'Cập nhật thất bại';
@@ -318,7 +346,6 @@ export class RoomMatrixComponent implements OnInit {
     this.isEditModalOpen = false;
   }
 
-  // ĐÃ BỔ SUNG: Khối bẫy lỗi gõ trùng số phòng đang hoạt động hoặc nằm trong kho ẩn lịch sử gửi từ Custom Exception Backend
   onSaveRoom(): void {
     if (!this.newRoom.roomNumber.trim() || !this.newRoom.floor) {
       alert('Vui lòng nhập đầy đủ Số phòng và Tầng!');
@@ -330,7 +357,6 @@ export class RoomMatrixComponent implements OnInit {
       imageUrl: img.url,
       isPrimary: img.isPrimary
     }));
-
     this.newRoom.hotelId = this.currentHotelId;
 
     this.roomService.createRoom(this.newRoom).subscribe({
@@ -365,7 +391,7 @@ export class RoomMatrixComponent implements OnInit {
       startRoomNumber: this.floorBatchConfig.startRoomNumber,
       totalRooms: this.floorBatchConfig.totalRooms,
       customPrice: this.floorBatchConfig.applyCustomPrice,
-      images: batchImagesPayload 
+      images: batchImagesPayload
     };
 
     if (confirm(`Hệ thống sẽ tự động khởi tạo ${this.floorBatchConfig.totalRooms} phòng tại Tầng ${this.floorBatchConfig.floor}. Xác nhận?`)) {
@@ -392,11 +418,11 @@ export class RoomMatrixComponent implements OnInit {
     this.roomService.updateRoomStatus(roomId, newStatus).subscribe({
       next: (res: any) => {
         alert(res.message || 'Cập nhật trạng thái phòng thành công!');
-        this.loadRoomMatrix(); 
+        this.loadRoomMatrix();
       },
       error: (err: any) => {
         alert('Cập nhật trạng thái thất bại: ' + (err.error?.message || err.message));
-        this.loadRoomMatrix(); 
+        this.loadRoomMatrix();
       }
     });
   }
@@ -412,5 +438,67 @@ export class RoomMatrixComponent implements OnInit {
         error: (err: any) => alert('Không thể xóa phòng: ' + (err.error?.message || err.message))
       });
     }
+  }
+
+  onCardClick(room: RoomResponseDTO, event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    if (target.tagName === 'SELECT' || target.tagName === 'OPTION' || target.classList.contains('btn-delete')) {
+      return;
+    }
+
+    if (this.userRole !== 'ADMIN') {
+      alert('Chỉ tài khoản Quản trị viên mới có quyền chỉnh sửa thông tin phòng!');
+      return;
+    }
+
+    this.selectedRoomId = room.roomId;
+    const matchedType = this.roomTypes.find(t => t.typeName === room.typeName);
+
+    this.editRoom = {
+      hotelId: this.currentHotelId,
+      roomTypeId: matchedType ? matchedType.id : 1,
+      roomNumber: room.roomNumber,
+      floor: room.floor,
+      customPrice: room.price,
+      images: []
+    };
+
+    this.maxDiscountPercentage = 0;
+    this.calculatedFinalPrice = room.price;
+    this.selectedPromoIdForRoom = null;
+
+    if (room.appliedPromotions && room.appliedPromotions.length > 0) {
+      const bestPromo = room.appliedPromotions.reduce((max, p) => 
+        p.discountPercentage > max.discountPercentage ? p : max, room.appliedPromotions[0]
+      );
+      
+      this.maxDiscountPercentage = bestPromo.discountPercentage;
+      this.calculatedFinalPrice = room.price * (1 - this.maxDiscountPercentage / 100);
+      this.selectedPromoIdForRoom = Number(bestPromo.id); // Ép sang kiểu số nguyên để so khớp ngValue
+    }
+
+    this.imageItems = [];
+    this.currentImgIndex = 0;
+
+    if (room.albumImages && room.albumImages.length > 0) {
+      room.albumImages.forEach((imgUrl: string) => {
+        const isLocalFile = imgUrl.startsWith('data:image');
+        this.imageItems.push({
+          source: isLocalFile ? 'local' : 'web',
+          url: imgUrl,
+          isPrimary: imgUrl === room.imageUrl
+        });
+      });
+      
+      const primaryIdx = this.imageItems.findIndex(img => img.isPrimary);
+      if (primaryIdx !== -1) {
+        this.currentImgIndex = primaryIdx;
+      }
+    } else if (room.imageUrl) {
+      const isLocalFile = room.imageUrl.startsWith('data:image');
+      this.imageItems.push({ source: isLocalFile ? 'local' : 'web', url: room.imageUrl, isPrimary: true });
+    }
+
+    this.isEditModalOpen = true;
   }
 }

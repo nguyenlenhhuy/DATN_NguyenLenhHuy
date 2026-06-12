@@ -1,7 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router'; 
+import { Router, RouterLink, ActivatedRoute } from '@angular/router'; 
 import { AuthService } from '../../services/auth.service';
 import { LoginRequest } from '../../models/auth.model';
 
@@ -11,7 +11,7 @@ import { LoginRequest } from '../../models/auth.model';
   imports: [CommonModule, FormsModule, RouterLink], 
   templateUrl: './login.component.html'
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit {
   loginData: LoginRequest = { 
     username: '', 
     password: '' 
@@ -19,11 +19,18 @@ export class LoginComponent {
 
   errorMessage: string = '';
   isLoading: boolean = false; 
+  returnUrl: string = ''; // 1. Khai báo biến lưu trữ URL trả về
 
   constructor(
     private authService: AuthService, 
-    private router: Router
+    private router: Router,
+    private route: ActivatedRoute // 2. Inject ActivatedRoute để đọc URL
   ) {}
+
+  ngOnInit(): void {
+    // 3. Bắt tham số 'returnUrl' trên thanh địa chỉ. Nếu không có thì để chuỗi rỗng
+    this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '';
+  }
 
   onLogin(): void {
     this.errorMessage = '';
@@ -35,29 +42,39 @@ export class LoginComponent {
         const role = (res.role || '').toUpperCase(); 
 
         if (token) {
-          // 1. Lưu các trường đơn lẻ phục vụ luồng bảo mật cũ của bạn
+          // Lưu các trường đơn lẻ
           localStorage.setItem('token', token);
           localStorage.setItem('role', role);
           localStorage.setItem('username', res.username);
           
-          // 2. ĐỒNG BỘ CHÍNH YẾU: Đóng gói thông tin tài khoản thành chuỗi JSON
-          // Ép kiểu Object chứa ID thực tế trả về từ backend (res.id hoặc res.userId)
+          // Đóng gói thông tin tài khoản thành chuỗi JSON
           const userSession = {
-            id: res.id, // Đảm bảo Backend DTO Login của bạn có trả về trường id này nhé!
+            id: res.id,
             username: res.username,
             role: role
           };
           localStorage.setItem('currentUser', JSON.stringify(userSession));
 
-          // 3. Cập nhật trạng thái đăng nhập toàn cục
+          // Cập nhật trạng thái đăng nhập toàn cục
           this.authService.setLoginStatus(true);
 
-          // 4. Điều hướng phân quyền (Role-based Routing)
-          if (role === 'ADMIN' || role === 'STAFF') {
-            this.router.navigate(['/admin/dashboard']);
-          } else {
-            this.router.navigate(['/home']);
+          // 4. XỬ LÝ CHUYỂN HƯỚNG THÔNG MINH
+          let targetUrl = this.returnUrl;
+
+          // Nếu không có returnUrl (người dùng tự bấm nút Đăng nhập trên Header) -> Điều hướng theo Role
+          if (!targetUrl) {
+            if (role === 'ADMIN' || role === 'STAFF') {
+              targetUrl = '/admin/overview'; // Đã sửa lại khớp với app.routes.ts
+            } else {
+              targetUrl = '/home';
+            }
           }
+
+          // Dùng navigateByUrl để xử lý mượt mà các URL chứa tham số (ví dụ: /rooms/19)
+          this.router.navigateByUrl(targetUrl).then(() => {
+            // Tự động tải lại trang để Header và các Component khác cập nhật dữ liệu User mới
+            window.location.reload();
+          });
         }
         this.isLoading = false;
       },

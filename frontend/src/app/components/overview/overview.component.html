@@ -1,21 +1,22 @@
 <div class="p-6 bg-slate-50 min-h-screen">
   
-  <div class="mb-6 flex justify-between items-center">
+  <div class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
     <div>
       <h2 class="text-2xl font-bold text-slate-800">Hệ thống quản trị vận hành</h2>
       <p class="text-slate-500 text-sm mt-1">Phân tích hiệu suất doanh thu và công suất phòng thời gian thực</p>
     </div>
-    <div class="text-xs text-slate-400 font-medium bg-white px-3 py-1.5 rounded-lg border border-slate-200">
+    <div class="text-xs text-slate-400 font-medium bg-white px-3 py-1.5 rounded-lg border border-slate-200 self-start sm:self-auto">
       Múi giờ hệ thống: <span class="text-blue-600 font-bold">GMT+7 (Asia/Ho_Chi_Minh)</span>
     </div>
   </div>
 
-  <div class="grid grid-cols-1 md:grid-cols-4 gap-5 mb-6">
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
+    
     <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex justify-between items-center">
       <div>
-        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Doanh thu ngày</span>
+        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Doanh thu thời kỳ</span>
         <h3 class="text-xl font-black text-slate-800 mt-1">
-          {{ statsData.totalRevenueToday | currency:'VND':'symbol':'1.0-0' }}
+          {{ (statsData.totalRevenueToday || 0) | number:'1.0-0' }} ₫
         </h3>
       </div>
       <div class="p-3 rounded-xl bg-emerald-50 text-emerald-600 text-xl">💵</div>
@@ -23,8 +24,8 @@
 
     <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex justify-between items-center">
       <div>
-        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Lượt tiếp nhận ngày</span>
-        <h3 class="text-xl font-black text-slate-800 mt-1">{{ statsData.totalBookingsToday }} lượt đặt</h3>
+        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Tổng số đơn phòng</span>
+        <h3 class="text-xl font-black text-slate-800 mt-1">{{ statsData.totalBookingsToday || 0 }} lượt đặt</h3>
       </div>
       <div class="p-3 rounded-xl bg-blue-50 text-blue-600 text-xl">📝</div>
     </div>
@@ -33,7 +34,7 @@
       <div>
         <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Tỷ lệ lấp đầy phòng</span>
         <h3 class="text-xl font-black text-slate-800 mt-1">
-          {{ occupancyRate | number:'1.0-1' }}%
+          {{ (occupancyRate || 0) | number:'1.0-1' }}%
         </h3>
       </div>
       <div class="p-3 rounded-xl bg-purple-50 text-purple-600 text-xl">📊</div>
@@ -43,7 +44,7 @@
       <div>
         <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Doanh thu TB / Phòng (ADR)</span>
         <h3 class="text-xl font-black text-slate-800 mt-1">
-          {{ averageDailyRate | currency:'VND':'symbol':'1.0-0' }}
+          {{ (averageDailyRate || 0) | number:'1.0-0' }} ₫
         </h3>
       </div>
       <div class="p-3 rounded-xl bg-amber-50 text-amber-600 text-xl">🏨</div>
@@ -62,10 +63,10 @@
         </div>
         
         <div class="inline-flex rounded-xl border border-slate-200 bg-slate-50 p-1 self-start sm:self-auto">
-          <button (click)="onFilterChange('DATE')" [ngClass]="currentFilter === 'DATE' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600'" class="px-3 py-1.5 text-xs font-bold rounded-lg transition outline-none">Ngày</button>
-          <button (click)="onFilterChange('WEEK')" [ngClass]="currentFilter === 'WEEK' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600'" class="px-3 py-1.5 text-xs font-bold rounded-lg transition outline-none">Tuần</button>
-          <button (click)="clickMonthTab()" [ngClass]="currentFilter === 'MONTH' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600'" class="px-3 py-1.5 text-xs font-bold rounded-lg transition outline-none">Tháng</button>
-          <button (click)="onFilterChange('YEAR')" [ngClass]="currentFilter === 'YEAR' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600'" class="px-3 py-1.5 text-xs font-bold rounded-lg transition outline-none">Năm</button>
+          <button (click)="onFilterChange('DATE')" [ngClass]="currentFilter === 'DATE' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600'" class="px-3 py-1.5 text-xs font-bold rounded-lg transition outline-none">Hôm nay</button>
+          <button (click)="onFilterChange('WEEK')" [ngClass]="currentFilter === 'WEEK' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600'" class="px-3 py-1.5 text-xs font-bold rounded-lg transition outline-none">Tuần này</button>
+          <button (click)="onFilterChange('MONTH')" [ngClass]="currentFilter === 'MONTH' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600'" class="px-3 py-1.5 text-xs font-bold rounded-lg transition outline-none">Tháng này</button>
+          <button (click)="onFilterChange('YEAR')" [ngClass]="currentFilter === 'YEAR' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600'" class="px-3 py-1.5 text-xs font-bold rounded-lg transition outline-none">Năm nay</button>
         </div>
       </div>
 
@@ -88,26 +89,26 @@
 
       <div class="flex justify-around items-center text-xs pt-2 border-t border-slate-100">
         <div class="flex items-center gap-1.5">
-          <div class="w-3 h-3 rounded-full bg-blue-600"></div>
-          <span class="text-slate-500 font-medium">Đang ở: <strong class="text-slate-700">{{ statsData.totalRooms - statsData.availableRooms }}</strong></span>
+          <div class="w-3 h-3 rounded-full bg-emerald-500"></div>
+          <span class="text-slate-500 font-medium">Đang ở: <strong class="text-slate-700">{{ (statsData.totalRooms || 0) - (statsData.availableRooms || 0) }}</strong></span>
         </div>
         <div class="flex items-center gap-1.5">
           <div class="w-3 h-3 rounded-full bg-slate-200"></div>
-          <span class="text-slate-500 font-medium">Sẵn sàng: <strong class="text-slate-700">{{ statsData.availableRooms }}</strong></span>
+          <span class="text-slate-500 font-medium">Sẵn sàng: <strong class="text-slate-700">{{ statsData.availableRooms || 0 }}</strong></span>
         </div>
       </div>
     </div>
 
   </div>
 
-  <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 animate-fade-in">
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
     <div class="flex justify-between items-center mb-4">
       <div>
         <h4 class="text-base font-bold text-slate-800 flex items-center gap-2">
           <span>📋</span> Danh sách đặt phòng hiển thị theo bộ lọc
         </h4>
         <p class="text-xs text-slate-400 mt-0.5" *ngIf="selectedDateLabel">
-          Đang hiển thị các đơn phát sinh hoặc thuộc nhóm: <span class="text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded border border-blue-100">{{ selectedDateLabel }}</span>
+          Đang hiển thị các đơn phát sinh thuộc nhóm: <span class="text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded border border-blue-100">{{ selectedDateLabel }}</span>
         </p>
       </div>
       <button *ngIf="selectedDateLabel" (click)="clearDateFilter()" 
@@ -116,7 +117,7 @@
       </button>
     </div>
 
-    <div class="overflow-x-auto" *ngIf="filteredBookings.length > 0">
+    <div class="overflow-x-auto" *ngIf="filteredBookings && filteredBookings.length > 0">
       <table class="w-full text-sm text-left">
         <thead class="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
           <tr>
@@ -131,34 +132,65 @@
         </thead>
         <tbody class="divide-y divide-slate-100 font-medium text-slate-700">
           <tr *ngFor="let b of filteredBookings" class="hover:bg-slate-50/50 transition duration-150">
-            <td class="p-3.5 font-bold text-blue-600">#{{ b.bookingId }}</td>
+            
+            <td class="p-3.5 font-bold text-blue-600">
+              #{{ b?.id || b?.bookingCode || b?.bookingId || 'N/A' }}
+            </td>
+            
             <td class="p-3.5">
               <span class="bg-blue-50 text-blue-700 font-bold px-2.5 py-0.5 rounded border border-blue-100 text-xs">
-                Phòng {{ b.roomNumber }}
+                Phòng {{ b?.roomNumber || b?.roomId || 'N/A' }}
               </span>
             </td>
-            <td class="p-3.5 font-semibold text-slate-800">{{ b.customerName }}</td>
-            <td class="p-3.5 text-slate-500 text-xs">📞 {{ b.customerPhone }}</td>
-            <td class="p-3.5 text-slate-500 text-xs">{{ b.checkInDate | date:'dd/MM/yyyy' }} ➜ {{ b.checkOutDate | date:'dd/MM/yyyy' }}</td>
-            <td class="p-3.5 text-right font-bold text-emerald-600 text-base">{{ b.finalAmount | currency:'VND':'symbol':'1.0-0' }}</td>
+            
+            <td class="p-3.5 font-semibold text-slate-800">
+              {{ b?.customerName || 'Khách lẻ tại quầy' }}
+            </td>
+            
+            <td class="p-3.5 text-slate-500 text-xs">
+              📞 {{ b?.customerPhone || b?.phone || 'Không có' }}
+            </td>
+            
+            <td class="p-3.5 text-slate-500 text-xs">
+              {{ b?.checkInDate | date:'dd/MM/yyyy' }} ➜ {{ b?.checkOutDate | date:'dd/MM/yyyy' }}
+            </td>
+            
+            <td class="p-3.5 text-right font-bold text-slate-800 text-base">
+              {{ (b?.totalPrice !== undefined && b?.totalPrice !== null ? b?.totalPrice : (b?.finalAmount || 0)) | number:'1.0-0' }} ₫
+            </td>
+            
             <td class="p-3.5 text-center">
-              <span class="inline-block text-[11px] font-bold px-2 py-0.5 rounded" 
+              <span class="inline-block text-[11px] font-bold px-2.5 py-1 rounded-full border" 
                 [ngClass]="{
-                  'bg-amber-50 text-amber-600 border border-amber-200/60': b.bookingStatus === 'PENDING' || b.bookingStatus === 'CONFIRMED',
-                  'bg-blue-50 text-blue-600 border border-blue-200/60': b.bookingStatus === 'CHECK_IN',
-                  'bg-slate-100 text-slate-500': b.bookingStatus === 'CHECK_OUT'
+                  'bg-emerald-50 text-emerald-700 border-emerald-200': b?.status === 'CONFIRMED' || b?.status === 'COMPLETED' || b?.status === 'SUCCESS',
+                  'bg-blue-50 text-blue-600 border-blue-200/60': b?.status === 'CHECK_IN',
+                  'bg-slate-100 text-slate-500 border-slate-200 bg-slate-50': b?.status === 'CHECK_OUT' || b?.bookingStatus === 'CHECK_OUT',
+                  'bg-amber-50 text-amber-700 border-amber-200/60': b?.status === 'PENDING',
+                  'bg-rose-50 text-rose-700 border-rose-200': b?.status === 'CANCELLED' || b?.status === 'CANCELED'
                 }">
-                {{ b.bookingStatus === 'PENDING' || b.bookingStatus === 'CONFIRMED' ? '⏳ Chờ nhận' : b.bookingStatus === 'CHECK_IN' ? '🔑 Đang ở' : '🚪 Đã trả' }}
+                
+                <ng-container [ngSwitch]="b?.status || b?.bookingStatus">
+                  <span *ngSwitchCase="'PENDING'">⏳ Chờ duyệt</span>
+                  <span *ngSwitchCase="'CONFIRMED'">🚪 Đã xác nhận</span>
+                  <span *ngSwitchCase="'CHECK_IN'">🔑 Đang ở</span>
+                  <span *ngSwitchCase="'CHECK_OUT'">🚪 Đã trả phòng</span>
+                  <span *ngSwitchCase="'COMPLETED'">✅ Hoàn thành</span>
+                  <span *ngSwitchCase="'SUCCESS'">✅ Hoàn thành</span>
+                  <span *ngSwitchCase="'CANCELLED'">❌ Đã hủy</span>
+                  <span *ngSwitchCase="'CANCELED'">❌ Đã hủy</span>
+                  <span *ngSwitchDefault>⏳ Đang chờ ({{ b?.status || b?.bookingStatus || 'PENDING' }})</span>
+                </ng-container>
               </span>
             </td>
+
           </tr>
         </tbody>
       </table>
     </div>
 
-    <div *ngIf="filteredBookings.length === 0" class="text-center py-12 bg-slate-50/40 rounded-xl border border-dashed border-slate-200">
+    <div *ngIf="!filteredBookings || filteredBookings.length === 0" class="text-center py-12 bg-slate-50/40 rounded-xl border border-dashed border-slate-200">
       <span class="text-3xl block mb-2">📭</span>
-      <p class="text-slate-400 text-sm font-medium">Không tìm thấy dữ liệu đơn đặt phòng nào trùng khớp với ngày được chọn.</p>
+      <p class="text-slate-400 text-sm font-medium">Không tìm thấy dữ liệu đơn đặt phòng nào trùng khớp với mốc lọc đã chọn.</p>
     </div>
   </div>
 

@@ -36,14 +36,48 @@ public class SecurityConfig {
                         // 1. CHO PHÉP PREFLIGHT: Cho phép mọi yêu cầu OPTIONS đi qua không cần Token
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                        .requestMatchers("/api/auth/**", "/api/rooms/**", "/api/hotels/**").permitAll()
+                        // ====================================================================
+                        // 2. NHÓM PUBLIC (Khách vãng lai xem thoải mái - Không cần Token)
+                        // ====================================================================
+                        .requestMatchers("/api/auth/**").permitAll()
 
-                        // Ưu tiên quyền ADMIN cho các API quản trị
-                        .requestMatchers("/api/admin/**").hasAnyAuthority("ADMIN", "ROLE_ADMIN")
+                        // Khách được xem danh sách và chi tiết phòng, khách sạn
+                        .requestMatchers(HttpMethod.GET, "/api/rooms/**", "/api/hotels/**").permitAll()
 
-                        // Quyền cho người dùng bình thường hoặc cá nhân
-                        .requestMatchers("/api/users/**").hasAnyAuthority("CUSTOMER", "ADMIN", "ROLE_CUSTOMER", "ROLE_ADMIN")
+                        // FIX: Mở khóa cho phép khách vãng lai tải danh sách loại phòng ở trang chủ
+                        .requestMatchers(HttpMethod.GET, "/api/v1/management/room-types").permitAll()
 
+                        // FIX: Mở khóa cho phép khách tải danh sách bình luận của một phòng
+                        .requestMatchers(HttpMethod.GET, "/api/reviews/room/**").permitAll()
+
+                        // FIX: Mở khóa tính năng Chat AI cho mọi người trải nghiệm
+                        .requestMatchers("/api/ai-chat/**", "/api/chat/**").permitAll()
+
+
+                        // ====================================================================
+                        // 3. NHÓM GIAO DỊCH & CÁ NHÂN (Yêu cầu đăng nhập, bất kể là Role gì)
+                        // ====================================================================
+                        // Nhóm này bắt buộc phải có tài khoản (Customer, Staff hoặc Admin đều được)
+                        // Lưu ý: Liệt kê cả có tiền tố ROLE_ và không có tiền tố để tránh lỗi map dữ liệu
+                        .requestMatchers("/api/users/**", "/api/bookings/**", "/api/favorites/**", "/api/reviews/**")
+                        .hasAnyAuthority("CUSTOMER", "ROLE_CUSTOMER", "STAFF", "ROLE_STAFF", "ADMIN", "ROLE_ADMIN")
+
+
+                        // ====================================================================
+                        // 4. NHÓM QUẢN TRỊ NỘI BỘ (Chỉ dành cho Nhân viên và Quản lý)
+                        // ====================================================================
+                        // Bao gồm các endpoint quản lý đặt phòng, duyệt phòng, thêm sửa xóa phòng...
+                        .requestMatchers("/api/v1/management/**")
+                        .hasAnyAuthority("STAFF", "ROLE_STAFF", "ADMIN", "ROLE_ADMIN")
+
+
+                        // ====================================================================
+                        // 5. NHÓM ADMIN (Quyền lực cao nhất hệ thống)
+                        // ====================================================================
+                        .requestMatchers("/api/admin/**")
+                        .hasAnyAuthority("ADMIN", "ROLE_ADMIN")
+
+                        // Mọi yêu cầu khác không nằm trong danh sách trên đều phải có Token
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
@@ -54,7 +88,6 @@ public class SecurityConfig {
 
         return http.build();
     }
-
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();

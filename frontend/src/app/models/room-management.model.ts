@@ -43,6 +43,12 @@ export interface RoomResponseDTO {
   typeName: string;
   price: number;
   hotelName: string;
+  appliedPromotions?: Array<{
+    id: number;
+    code: string;
+    discountPercentage: number;
+    endDate: string;
+  }>;
 }
 
 // Cấu trúc thực thể Loại phòng (Trả về khi tạo mới thành công)

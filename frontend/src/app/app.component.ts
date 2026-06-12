@@ -2,6 +2,8 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common'; // Thêm CommonModule để bổ sung các directive cơ bản
 import { RouterOutlet } from '@angular/router';
 import { HeaderComponent } from './components/header/header.component'; // Import HeaderComponent vào cấu trúc tổng
+// MỚI THÊM 1: Import đường dẫn tới file chat-widget của bạn
+import { ChatWidgetComponent } from './components/chat-widget/chat-widget.component'; 
 
 @Component({
   selector: 'app-root',
@@ -9,7 +11,8 @@ import { HeaderComponent } from './components/header/header.component'; // Impor
   imports: [
     CommonModule,   // Khai báo CommonModule
     RouterOutlet,   // Khai báo vùng hiển thị Route động
-    HeaderComponent // Khai báo HeaderComponent để Angular nhận diện được thẻ <app-header>
+    HeaderComponent, // Khai báo HeaderComponent để Angular nhận diện được thẻ <app-header>
+    ChatWidgetComponent // MỚI THÊM 2: Khai báo ChatWidgetComponent
   ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss'

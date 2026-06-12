@@ -14,10 +14,10 @@ export class RegisterComponent implements OnInit {
   // --- Biến trạng thái (UI State) ---
   registerForm!: FormGroup;
   isWaitingOtp = false;     // Chuyển đổi giữa Form đăng ký và màn hình OTP
-  isLoading = false;        // Trạng thái loading cho các nút bấm
+  isLoading = false;        // Trạng thái loading ngăn chặn spam request
   errorMsg = '';            // Hiển thị thông báo lỗi lên UI
   userEmail = '';           // Lưu trữ email hiện tại để xác thực OTP
-  otpValue = '';            // Ràng buộc với ô nhập mã xác thực
+  otpValue = '';            // Luôn gán giá trị mặc định tránh lỗi undefined .length
   isEditingEmail = false;   // Ẩn/hiện input đổi email tại màn hình OTP
   newEmailInput = '';       // Ràng buộc với ô nhập email mới
 
@@ -29,38 +29,41 @@ export class RegisterComponent implements OnInit {
 
   ngOnInit(): void {
     this.registerForm = this.fb.group({
-      fullName: ['', Validators.required],
+      fullName: ['', [Validators.required, Validators.minLength(2)]],
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(6)]],
       phone: ['', [Validators.required, Validators.pattern('^[0-9]{10}$')]],
-      terms: [false, Validators.requiredTrue] // Fix lỗi nút bị khóa
+      terms: [false, Validators.requiredTrue] 
     });
   }
 
   /**
-   * BƯỚC 1: Xử lý Đăng ký tài khoản
+   * BƯỚC 1: Xử lý Đăng ký tài khoản (Gửi thông tin lên Backend sinh OTP)
    */
   onRegister(): void {
-    if (this.registerForm.invalid) return;
+    if (this.registerForm.invalid || this.isLoading) {
+      return;
+    }
 
     this.isLoading = true;
     this.errorMsg = ''; 
 
     this.authService.register(this.registerForm.value).subscribe({
-      next: () => {
+      next: (response: any) => {
         this.userEmail = this.registerForm.value.email;
         this.isWaitingOtp = true;
         this.isLoading = false;
+        this.otpValue = ''; // Làm sạch ô nhập mã OTP cho lượt mới
       },
       error: (err: any) => {
-        this.isLoading = false;
-        this.handleError(err); // Bóc tách lỗi từ Spring Boot
+        this.isLoading = false; // Đảm bảo mở khóa nút bấm nếu lỗi xảy ra
+        this.handleError(err);
       }
     });
   }
 
   /**
-   * BƯỚC 2: Xác thực mã OTP để kích hoạt tài khoản
+   * BƯỚC 2: Xác thực mã OTP kích hoạt tài khoản
    */
   onVerify(): void {
     if (!this.otpValue || this.otpValue.length < 6) {
@@ -72,7 +75,7 @@ export class RegisterComponent implements OnInit {
     this.errorMsg = '';
 
     this.authService.verifyOtp({ email: this.userEmail, otpCode: this.otpValue }).subscribe({
-      next: () => {
+      next: (response: any) => {
         this.isLoading = false;
         alert('Tài khoản LuxeHotel của bạn đã được kích hoạt thành công!');
         this.router.navigate(['/login']);
@@ -85,11 +88,12 @@ export class RegisterComponent implements OnInit {
   }
 
   /**
-   * BƯỚC PHỤ: Cập nhật lại Email và gửi lại OTP mới
+   * BƯỚC PHỤ: Thay đổi Email nhận mã nếu nhập sai ban đầu
    */
   updateEmail(): void {
-    if (!this.newEmailInput || !this.newEmailInput.includes('@')) {
-      this.errorMsg = 'Địa chỉ email mới không hợp lệ.';
+    const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!this.newEmailInput || !emailPattern.test(this.newEmailInput)) {
+      this.errorMsg = 'Địa chỉ email mới không đúng định dạng.';
       return;
     }
 
@@ -103,12 +107,13 @@ export class RegisterComponent implements OnInit {
     };
 
     this.authService.updateEmail(payload).subscribe({
-      next: () => {
+      next: (response: any) => {
         this.userEmail = this.newEmailInput;
         this.isEditingEmail = false;
         this.isLoading = false;
         this.newEmailInput = '';
-        alert('LuxeHotel đã cập nhật Email và gửi mã OTP mới!');
+        this.otpValue = ''; 
+        alert('LuxeHotel đã cập nhật Email và gửi mã OTP mới thành công!');
       },
       error: (err: any) => {
         this.isLoading = false;
@@ -118,37 +123,29 @@ export class RegisterComponent implements OnInit {
   }
 
   /**
-   * Xử lý lỗi từ Backend một cách chuyên nghiệp
+   * Phân tích và hiển thị lỗi từ REST API
    */
   private handleError(err: any): void {
-    console.log('Backend Error Response:', err);
-
+    console.error('Backend Error Response:', err);
     let finalMessage = 'Hệ thống LuxeHotel đang gặp sự cố. Vui lòng thử lại sau.';
 
-    // Trường hợp 1: Angular tự parse được thành Object JSON
-    if (err.error && typeof err.error === 'object') {
-      finalMessage = err.error.message || err.error.error || finalMessage;
-    } 
-    // Trường hợp 2: Backend trả về JSON nhưng dưới dạng String (Đúng như ảnh chụp của bạn)
-    else if (err.error && typeof err.error === 'string') {
-      try {
-        // Thử ép kiểu chuỗi đó về lại JSON Object để lấy trường message
-        const parsedError = JSON.parse(err.error);
-        finalMessage = parsedError.message || err.error;
-      } catch (e) {
-        // Nếu không parse được (VD chỉ là text bình thường), lấy luôn chuỗi đó
-        finalMessage = err.error;
+    if (err.error) {
+      if (typeof err.error === 'object') {
+        finalMessage = err.error.message || err.error.error || finalMessage;
+      } else if (typeof err.error === 'string') {
+        try {
+          const parsedError = JSON.parse(err.error);
+          finalMessage = parsedError.message || err.error;
+        } catch (e) {
+          finalMessage = err.error;
+        }
       }
-    } 
-    // Trường hợp 3: Các lỗi mạng cơ bản (Network Error)
-    else if (err.message) {
+    } else if (err.message) {
       finalMessage = err.message;
     }
 
-    // Hiển thị thông báo sạch sẽ lên UI
     this.errorMsg = finalMessage;
-
-    // Tự động ẩn thông báo lỗi sau 7 giây
-    setTimeout(() => this.errorMsg = '', 7000);
+    // Tăng thời gian hiển thị lên 8 giây để người dùng kịp đọc các thông báo dài
+    setTimeout(() => this.errorMsg = '', 8000);
   }
 }

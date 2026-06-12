@@ -3,11 +3,14 @@ package org.example.backend.controller;
 import lombok.RequiredArgsConstructor;
 import org.example.backend.dto.request.PromotionRequestDTO;
 import org.example.backend.dto.response.PromotionResponseDTO;
+import org.example.backend.entity.Promotion; // 🔥 Huy nhớ import thực thể này vào nếu chưa có
 import org.example.backend.service.PromotionService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -26,6 +29,17 @@ public class PromotionController {
     @GetMapping
     public ResponseEntity<List<PromotionResponseDTO>> getPromotions() {
         return ResponseEntity.ok(promotionService.getAllPromotions());
+    }
+
+    // 🔥 THÊM MỚI ENDPOINT NÀY: Trả về danh sách Khuyến mãi đang kích hoạt và còn hạn sử dụng
+    @GetMapping("/active")
+    public ResponseEntity<List<PromotionResponseDTO>> getActivePromotions() {
+        // Lọc nhanh từ danh sách tổng qua Service của bạn
+        List<PromotionResponseDTO> activePromos = promotionService.getAllPromotions().stream()
+                .filter(p -> p.getIsActive() != null && p.getIsActive())
+                .filter(p -> p.getEndDate() == null || !p.getEndDate().isBefore(LocalDate.now()))
+                .toList();
+        return ResponseEntity.ok(activePromos);
     }
 
     @PostMapping
@@ -63,5 +77,14 @@ public class PromotionController {
                 "discountAmount", discountAmount,
                 "finalAmount", finalAmount
         ));
+    }
+
+    @PutMapping("/apply-to-room")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<String> applyPromotionToRoom(
+            @RequestParam Long roomId,
+            @RequestParam Long promotionId) {
+        promotionService.applyPromotionToRoom(roomId, promotionId);
+        return ResponseEntity.ok("{\"message\": \"Gán mã giảm giá vào phòng thành công!\"}");
     }
 }

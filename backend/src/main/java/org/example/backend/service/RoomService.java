@@ -85,13 +85,22 @@ public class RoomService {
     }
 
     public List<RoomResponseDTO> getFeaturedRooms() {
-        return roomRepository.findFeaturedRooms().stream()
-                .filter(room -> !room.isDeleted())
-                .limit(6)
-                .map(this::mapToDTO)
+        // 1. Lấy danh sách phòng cấu hình nổi bật từ Repository
+        List<Room> featuredRooms = roomRepository.findFeaturedRooms();
+
+        // 2. CRITICAL FALLBACK: Nếu DB chưa có phòng nổi bật, tự động bốc phòng trống (AVAILABLE) để cứu giao diện
+        if (featuredRooms.isEmpty()) {
+            featuredRooms = roomRepository.findFeaturedRoomsFallback();
+        }
+
+        // 3. Xử lý Stream chuẩn: LỌC những phòng chưa xóa TRƯỚC, rồi mới GIỚI HẠN số lượng hiển thị
+        return featuredRooms.stream()
+                .filter(room -> room != null && !room.isDeleted()) // Lọc an toàn
+                .filter(room -> room.getStatus() == org.example.backend.entity.enums.RoomStatus.AVAILABLE) // Chỉ lấy phòng đang trống
+                .map(this::mapToDTO) // Chuyển đổi sang DTO
+                .limit(4) // Giới hạn 4 phòng để hiển thị vừa vặn với Grid 4 cột của Tailwind CSS bạn đã thiết kế
                 .collect(Collectors.toList());
     }
-
     public List<RoomResponseDTO> getAllRooms() {
         return roomRepository.findAll().stream()
                 .filter(room -> !room.isDeleted())
@@ -104,20 +113,28 @@ public class RoomService {
         List<String> allImages = new ArrayList<>();
 
         if (room.getImages() != null && !room.getImages().isEmpty()) {
-            // Lấy danh sách tất cả URL để làm album ảnh
             allImages = room.getImages().stream()
                     .map(RoomImage::getImageUrl)
                     .collect(Collectors.toList());
 
-            // Ưu tiên lấy ảnh có isPrimary = true làm ảnh đại diện (thumbnail)
             thumbnail = room.getImages().stream()
                     .filter(img -> img.getIsPrimary() != null && img.getIsPrimary())
                     .map(RoomImage::getImageUrl)
                     .findFirst()
-                    .orElse(allImages.get(0)); // Fallback: Nếu không có ảnh primary, lấy ảnh đầu tiên
+                    .orElse(allImages.get(0));
         }
 
         String currentStatus = room.getStatus() != null ? room.getStatus().name() : "AVAILABLE";
+
+        // 🔥 THÊM MỚI LOGIC: Tự động lọc ra các mã giảm giá đang kích hoạt và còn hạn dùng
+        List<org.example.backend.dto.response.PromotionResponseDTO> appliedPromotions = new ArrayList<>();
+        if (room.getPromotions() != null && !room.getPromotions().isEmpty()) {
+            appliedPromotions = room.getPromotions().stream()
+                    .filter(p -> p.getIsActive() != null && p.getIsActive()) // Mã phải đang bật
+                    .filter(p -> p.getEndDate() == null || !p.getEndDate().isBefore(java.time.LocalDate.now())) // Mã còn hạn dùng
+                    .map(this::mapPromotionToDTO) // Chuyển đổi sang DTO
+                    .collect(Collectors.toList());
+        }
 
         return RoomResponseDTO.builder()
                 .roomId(room.getId())
@@ -134,6 +151,8 @@ public class RoomService {
                 .hotelName(room.getHotel() != null ? room.getHotel().getName() : "N/A")
                 .imageUrl(thumbnail)
                 .albumImages(allImages)
+                // 🔥 ĐÍNH KÈM: Gài mảng ưu đãi thật vào DTO để Angular bóc tách giao diện tự động áp mã
+                .appliedPromotions(appliedPromotions)
                 .build();
     }
 
@@ -154,4 +173,16 @@ public class RoomService {
                 .imageUrls(roomType.getImageUrls() != null ? roomType.getImageUrls() : Collections.emptyList())
                 .build();
     }
+    private org.example.backend.dto.response.PromotionResponseDTO mapPromotionToDTO(org.example.backend.entity.Promotion promotion) {
+        if (promotion == null) return null;
+        return org.example.backend.dto.response.PromotionResponseDTO.builder()
+                .id(promotion.getId())
+                .code(promotion.getCode())
+                .discountPercentage(promotion.getDiscountPercentage())
+                .startDate(promotion.getStartDate())
+                .endDate(promotion.getEndDate())
+                .isActive(promotion.getIsActive())
+                .build();
+    }
+
 }

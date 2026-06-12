@@ -1,81 +1,474 @@
 <app-header></app-header>
 
-<main class="pt-[72px]">
-  <section class="relative h-[600px] flex items-center justify-center">
-    <img src="assets/images/hero-banner.jpg" alt="Hero Banner" class="absolute inset-0 w-full h-full object-cover" />
-    <div class="absolute inset-0 bg-black/40"></div>
+<main class="pt-[72px] bg-slate-50/50 min-h-screen font-sans selection:bg-blue-500 selection:text-white overflow-hidden">
+  
+  <section class="relative min-h-[600px] py-12 flex items-center justify-center overflow-hidden">
+    <img src="assets/images/hero-banner.jpg" alt="Hero Banner" class="absolute inset-0 w-full h-full object-cover scale-105 animate-[subtle-zoom_20s_ease-out_infinite]" />
+    <div class="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-slate-900/70"></div>
     
-    <div class="relative z-10 text-center w-full max-w-5xl px-4 mt-16">
-      <h1 class="text-4xl md:text-6xl font-bold text-white mb-6">Khám phá kỳ nghỉ trong mơ</h1>
-      <p class="text-xl text-white/90 mb-10">Trải nghiệm dịch vụ đẳng cấp và không gian sang trọng</p>
+    <div class="relative z-10 text-center w-full max-w-7xl px-4 mt-2 animate-fade-in">
+      <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-white/10 text-blue-300 backdrop-blur-md mb-3 border border-white/10">
+        ✨ Xu hướng du lịch năm 2026
+      </span>
+      <h1 class="text-4xl md:text-5xl font-black text-white mb-3 tracking-tight drop-shadow-md">
+        Khám Phá Kỳ Nghỉ <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-teal-300">Trong Mơ</span>
+      </h1>
+      <p class="text-base md:text-lg text-slate-200 max-w-2xl mx-auto mb-10 font-light drop-shadow">
+        Trải nghiệm dịch vụ đẳng cấp quốc tế và không gian nghỉ dưỡng sang trọng bậc nhất.
+      </p>
       
-      <form [formGroup]="searchForm" (ngSubmit)="onSearch()" class="bg-white p-4 rounded-xl shadow-2xl flex flex-col md:flex-row gap-4 items-end">
-        <div class="flex-1 w-full text-left">
-          <label class="block text-sm font-medium text-gray-700 mb-1 ml-1">Loại phòng</label>
-          <select formControlName="roomType" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
-            <option value="">Chọn loại phòng</option>
-            <option *ngFor="let type of roomTypes" [value]="type.typeName">{{ type.typeName }}</option>
-          </select>
-        </div>
-        
-        <div class="flex-1 w-full text-left">
-          <label class="block text-sm font-medium text-gray-700 mb-1 ml-1">Nhận phòng</label>
-          <input formControlName="checkIn" type="date" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
-        </div>
-        
-        <div class="flex-1 w-full text-left">
-          <label class="block text-sm font-medium text-gray-700 mb-1 ml-1">Trả phòng</label>
-          <input formControlName="checkOut" type="date" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
-        </div>
-
-        <button type="submit" class="w-full md:w-auto px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition duration-300">
-          Tìm kiếm
-        </button>
-      </form>
-
-      <div *ngIf="searchForm.hasError('dateInvalid') && searchForm.touched" class="mt-4 text-white bg-red-600/80 p-2 rounded inline-block font-bold">
-        * Ngày trả phòng phải sau ngày nhận phòng!
-      </div>
-    </div>
-  </section>
-
-  <section class="py-12 bg-gray-50">
-    <div class="container mx-auto px-4">
-      <h2 class="text-2xl font-bold mb-6 text-gray-800 border-l-4 border-blue-600 pl-3">Khuyến mãi cực hot</h2>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div *ngFor="let promo of promotions" class="relative overflow-hidden bg-gradient-to-r from-blue-600 to-indigo-700 rounded-xl p-6 text-white shadow-md hover:shadow-xl transition-shadow cursor-pointer">
-          <div class="relative z-10">
-            <h3 class="text-xl font-bold mb-2">{{ promo.title }}</h3>
-            <p class="text-white/80">Nhập mã ngay: <span class="bg-white/20 px-2 py-1 rounded font-mono font-bold">{{ promo.code }}</span></p>
+      <div class="max-w-[1100px] mx-auto p-2 bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 shadow-2xl relative z-50">
+        <form [formGroup]="searchForm" (ngSubmit)="onSearch()" class="bg-white p-5 rounded-xl shadow-inner flex flex-col gap-4 w-full">
+          
+          <div class="flex flex-col lg:flex-row gap-3 lg:gap-4 items-center w-full">
+            <div class="w-full lg:flex-[1.5] text-left group">
+              <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5 ml-1 group-focus-within:text-blue-600 whitespace-nowrap">Loại phòng</label>
+              <div class="relative">
+                <select formControlName="roomType" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none appearance-none transition-all text-slate-700 font-medium cursor-pointer">
+                  <option value="">Tất cả loại phòng</option>
+                  @for (type of roomTypes; track type.typeName) {
+                    <option [value]="type.typeName">{{ type.typeName }}</option>
+                  }
+                </select>
+                <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                </div>
+              </div>
+            </div>
+            
+            <div class="hidden lg:block h-10 w-px bg-slate-200 self-end mb-2.5"></div>
+  
+            <div class="w-full lg:flex-1 text-left group">
+              <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5 ml-1 group-focus-within:text-blue-600 whitespace-nowrap">Nhận phòng</label>
+              <input formControlName="checkIn" type="date" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all text-slate-700 font-medium cursor-pointer">
+            </div>
+            
+            <div class="hidden lg:block h-10 w-px bg-slate-200 self-end mb-2.5"></div>
+  
+            <div class="w-full lg:flex-1 text-left group">
+              <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5 ml-1 group-focus-within:text-blue-600 whitespace-nowrap">Trả phòng</label>
+              <input formControlName="checkOut" type="date" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all text-slate-700 font-medium cursor-pointer">
+            </div>
+  
+            <div class="hidden lg:block h-10 w-px bg-slate-200 self-end mb-2.5"></div>
+  
+            <div class="w-full lg:w-[110px] text-left group shrink-0">
+              <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5 ml-1 group-focus-within:text-blue-600 whitespace-nowrap">Khách</label>
+              <div class="relative">
+                <select formControlName="guests" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none appearance-none transition-all text-slate-700 font-medium cursor-pointer">
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4">4+</option>
+                </select>
+                <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                </div>
+              </div>
+            </div>
+  
+            <button type="submit" class="w-full lg:w-[150px] shrink-0 whitespace-nowrap lg:self-end px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 transform hover:-translate-y-0.5 transition-all duration-200 active:translate-y-0 flex items-center justify-center gap-2">
+              Tìm kiếm
+            </button>
           </div>
+
+          <div class="w-full pt-4 border-t border-slate-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            
+            <div class="flex items-center gap-2">
+              <span class="text-xl">💰</span>
+              <span class="text-sm font-bold text-slate-700 whitespace-nowrap">Khoảng giá mong muốn:</span>
+            </div>
+            
+            <div class="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto flex-1 md:justify-end">
+              
+              <div class="w-full md:w-[220px] relative">
+                <select [(ngModel)]="selectedPricePreset" [ngModelOptions]="{standalone: true}" (change)="onPresetChange()" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-bold text-slate-700 outline-none appearance-none cursor-pointer transition-all">
+                  <option value="0-10000000">Tất cả mức giá</option>
+                  <option value="0-1000000">Dưới 1.000.000 ₫</option>
+                  <option value="1000000-3000000">1.000.000 ₫ - 3.000.000 ₫</option>
+                  <option value="3000000-5000000">3.000.000 ₫ - 5.000.000 ₫</option>
+                  <option value="5000000-10000000">Trên 5.000.000 ₫</option>
+                  <option value="custom" hidden>Tùy chỉnh khoảng giá...</option>
+                </select>
+                <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                </div>
+              </div>
+
+              <span class="hidden md:block text-slate-300">|</span>
+
+              <div class="flex items-center gap-2 w-full md:w-auto">
+                <div class="relative w-full md:w-[150px] group">
+                  <input type="number" [(ngModel)]="minPrice" [ngModelOptions]="{standalone: true}" (change)="onManualPriceChange()" class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-sm font-bold text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none appearance-none text-right transition-all" placeholder="0">
+                  <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Từ</span>
+                </div>
+
+                <div class="w-3 h-0.5 bg-slate-300 shrink-0"></div>
+
+                <div class="relative w-full md:w-[150px] group">
+                  <input type="number" [(ngModel)]="maxPrice" [ngModelOptions]="{standalone: true}" (change)="onManualPriceChange()" class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-3 py-2.5 text-sm font-bold text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none appearance-none text-right transition-all" placeholder="Max">
+                  <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Đến</span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="grid grid-cols-3 gap-6 max-w-3xl mx-auto mt-10 pt-6 border-t border-white/10 relative z-10">
+        <div class="bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10 transition-all duration-300 hover:bg-white/10">
+          <h3 class="text-2xl md:text-3xl font-black text-white tracking-tight">500+</h3>
+          <p class="text-slate-300 text-[11px] md:text-xs font-medium mt-1">Khách hàng hài lòng</p>
+        </div>
+        <div class="bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10 transition-all duration-300 hover:bg-white/10">
+          <h3 class="text-2xl md:text-3xl font-black text-white tracking-tight">120+</h3>
+          <p class="text-slate-300 text-[11px] md:text-xs font-medium mt-1">Phòng nghỉ cao cấp</p>
+        </div>
+        <div class="bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10 transition-all duration-300 hover:bg-white/10">
+          <h3 class="text-2xl md:text-3xl font-black text-amber-400 tracking-tight">4.9★</h3>
+          <p class="text-slate-300 text-[11px] md:text-xs font-medium mt-1">Đánh giá trung bình</p>
+        </div>
+      </div>
+
+      <div *ngIf="searchForm.hasError('dateInvalid') && searchForm.touched" class="mt-4 inline-flex items-center gap-2 text-sm text-red-400 bg-red-950/40 backdrop-blur-md px-4 py-2 rounded-xl border border-red-500/30 font-medium animate-bounce">
+        Ngày trả phòng phải sau ngày nhận phòng. Vui lòng kiểm tra lại!
+      </div>
+    </div>
+  </section>
+
+  <section class="py-16 bg-white">
+    <div class="container mx-auto px-4 max-w-7xl">
+      <div class="text-center max-w-2xl mx-auto mb-12">
+        <span class="text-blue-600 font-bold text-xs uppercase tracking-widest">Dịch vụ thượng lưu</span>
+        <h2 class="text-3xl font-black text-slate-900 mt-1">Tiện Ích Đặc Quyền Đi Kèm</h2>
+      </div>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100 text-center hover:bg-blue-50/50 hover:border-blue-200 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 group">
+          <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center text-xl font-bold mx-auto mb-4 group-hover:bg-blue-600 group-hover:text-white group-hover:rotate-6 transition-all duration-300">📶</div>
+          <h4 class="font-bold text-slate-800 text-base">Wifi Tốc Độ Cao</h4>
+          <p class="text-slate-400 text-xs mt-1">Miễn phí toàn bộ khuôn viên</p>
+        </div>
+        <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100 text-center hover:bg-blue-50/50 hover:border-blue-200 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 group">
+          <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center text-xl font-bold mx-auto mb-4 group-hover:bg-blue-600 group-hover:text-white group-hover:rotate-6 transition-all duration-300">🏊</div>
+          <h4 class="font-bold text-slate-800 text-base">Hồ Bơi Vô Cực</h4>
+          <p class="text-slate-400 text-xs mt-1">Tầm nhìn tuyệt tác toàn cảnh</p>
+        </div>
+        <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100 text-center hover:bg-blue-50/50 hover:border-blue-200 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 group">
+          <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center text-xl font-bold mx-auto mb-4 group-hover:bg-blue-600 group-hover:text-white group-hover:rotate-6 transition-all duration-300">🍽</div>
+          <h4 class="font-bold text-slate-800 text-base">Nhà Hàng 5 Sao</h4>
+          <p class="text-slate-400 text-xs mt-1">Tinh hoa ẩm thực Á - Âu</p>
+        </div>
+        <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100 text-center hover:bg-blue-50/50 hover:border-blue-200 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 group">
+          <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center text-xl font-bold mx-auto mb-4 group-hover:bg-blue-600 group-hover:text-white group-hover:rotate-6 transition-all duration-300">🚗</div>
+          <h4 class="font-bold text-slate-800 text-base">Bãi Đỗ Xe An Toàn</h4>
+          <p class="text-slate-400 text-xs mt-1">Hệ thống bảo vệ 24/7</p>
         </div>
       </div>
     </div>
   </section>
 
-  <section class="py-16">
-    <div class="container mx-auto px-4">
-      <div class="flex justify-between items-end mb-8">
+  <section class="py-16 bg-slate-900 text-white relative overflow-hidden">
+    <div class="container mx-auto px-4 max-w-7xl relative z-10">
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
-          <h2 class="text-3xl font-bold text-gray-900">Phòng nổi bật</h2>
-          <p class="text-gray-500 mt-2">Lựa chọn hàng đầu dựa trên đánh giá của khách hàng</p>
+          <div class="flex items-center gap-2 mb-1">
+            <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+            <span class="text-xs text-red-400 font-bold uppercase tracking-wider">Ưu đãi giới hạn số lượng</span>
+          </div>
+          <h2 class="text-2xl font-bold tracking-tight">Khuyến Mãi Cực Hot Đang Diễn Ra</h2>
+        </div>
+        <div class="flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-2 rounded-xl backdrop-blur">
+          <span class="text-xs text-slate-400 font-medium">Kết thúc sau:</span>
+          <span class="font-mono text-amber-400 font-bold tracking-wider text-sm">02:15:35</span>
         </div>
       </div>
-      <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-8">
-        <div *ngFor="let room of featuredRooms" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-2xl transition duration-500 group">
-          <div class="relative h-56 overflow-hidden">
-            <img [src]="room.imageUrl" [alt]="room.typeName" class="w-full h-full object-cover group-hover:scale-110 transition duration-700">
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 relative">
+        @for (promo of promotions; track promo.code) {
+          <div class="relative group overflow-hidden bg-slate-950 rounded-2xl p-6 shadow-md border border-slate-800/80 transition-all duration-300 hover:border-blue-500/30">
+            
+            <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-red-500/10 blur-3xl pointer-events-none group-hover:bg-blue-500/10 transition-all duration-500"></div>
+            
+            <div class="relative z-10 flex justify-between items-center">
+              <div>
+                <span class="text-[10px] font-black uppercase tracking-widest text-red-400 bg-red-500/20 px-2.5 py-1 rounded-lg border border-red-500/20 mb-3 inline-block animate-pulse">
+                  🔥 Chỉ còn 8 suất
+                </span>
+                <h3 class="text-xl font-bold mb-1 group-hover:text-blue-300 transition-colors">{{ promo.title }}</h3>
+                <p class="text-slate-400 text-xs">Áp dụng khi hoàn tất thanh toán đặt cọc trực tuyến</p>
+              </div>
+              <div class="text-right shrink-0">
+                <p class="text-[10px] text-slate-500 mb-1 font-bold uppercase">Mã của bạn</p>
+                <span class="inline-block bg-white text-slate-900 px-3 py-1.5 rounded-lg font-mono font-black text-sm shadow-sm group-hover:scale-105 transition-all">
+                  {{ promo.code }}
+                </span>
+              </div>
+            </div>
           </div>
-          <div class="p-6">
-            <h3 class="text-lg font-bold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors">{{ room.typeName }}</h3>
-            <div class="flex justify-between items-center mt-6 border-t border-gray-50 pt-4">
-              <span class="text-2xl font-bold text-blue-600">{{ room.price | number }}đ</span>
-              <button class="bg-blue-50 text-blue-600 px-4 py-2 rounded-xl font-bold hover:bg-blue-600 hover:text-white transition-all duration-300">Chi tiết</button>
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="relative py-24 overflow-hidden bg-slate-50/30">
+    <div class="absolute top-0 left-0 w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none"></div>
+    <div class="absolute bottom-0 right-0 w-[600px] h-[600px] bg-indigo-500/5 rounded-full blur-[140px] pointer-events-none"></div>
+
+    <div class="container mx-auto px-4 max-w-7xl relative z-10">
+      
+      <div class="flex flex-col md:flex-row md:justify-between md:items-end mb-12 gap-6">
+        <div class="space-y-3 text-left">
+          <span class="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-blue-600 font-bold text-xs uppercase tracking-widest shadow-sm">
+            ⭐ Lựa chọn tốt nhất
+          </span>
+          <h2 class="text-3xl md:text-4xl font-black text-slate-900 tracking-tight drop-shadow-sm">
+            Không Gian Nghỉ Dưỡng Được Yêu Thích Nhất
+          </h2>
+          <p class="text-slate-500 font-light text-sm max-w-xl">
+            Vuốt ngang để khám phá những không gian được kiến tạo hoàn mỹ, nhận đánh giá 5 sao tuyệt đối từ khách hàng thượng lưu.
+          </p>
+        </div>
+        
+        <div class="flex items-center gap-2 self-start md:self-end">
+          <button id="featured-prev" class="w-11 h-11 rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-blue-600 shadow-sm flex items-center justify-center transition-all duration-300 active:scale-90 focus:outline-none">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
+          </button>
+          <button id="featured-next" class="w-11 h-11 rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-blue-600 shadow-sm flex items-center justify-center transition-all duration-300 active:scale-90 focus:outline-none">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+          </button>
+        </div>
+      </div>
+      
+      @if (featuredRooms && featuredRooms.length > 0) {
+        <div class="relative px-1">
+          
+          <swiper-container 
+            slides-per-view="1"
+            space-between="24"
+            grab-cursor="true"
+            navigation-prev-el="#featured-prev"
+            navigation-next-el="#featured-next"
+            breakpoints='{"640": {"slidesPerView": 1.5}, "768": {"slidesPerView": 2}, "1024": {"slidesPerView": 3}}'
+            class="w-full"
+          >
+            @for (room of featuredRooms; track room.roomId) {
+              <swiper-slide class="pb-6 h-auto">
+                
+                <div (click)="viewRoomDetail(room.roomId, $event)" 
+                     class="bg-white rounded-3xl overflow-hidden border border-slate-200/60 shadow-lg shadow-slate-200/50 hover:shadow-2xl hover:shadow-blue-500/10 hover:-translate-y-2 transition-all duration-500 group cursor-pointer flex flex-col h-full relative">
+                  
+                  <div class="relative pt-[68%] overflow-hidden bg-slate-100 shrink-0">
+                    
+                    <img [src]="getRoomImage(room)" [alt]="room.roomNumber" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110" />
+                    
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+                    
+                    <div class="absolute inset-0 overflow-hidden pointer-events-none">
+                      <div class="absolute top-0 -left-full w-1/2 h-full bg-white/25 skew-x-12 opacity-40 group-hover:left-[150%] transition-all duration-1000 ease-out"></div>
+                    </div>
+                    
+                    <button (click)="toggleFavorite($event, room)" class="absolute top-4 right-4 w-9 h-9 bg-black/30 hover:bg-black/50 border border-white/20 backdrop-blur-md rounded-xl flex items-center justify-center z-20 transform hover:scale-125 active:scale-95 transition-all duration-300">
+                      <svg class="w-5 h-5 transition-all duration-300" [ngClass]="room.isFavorite ? 'text-rose-500 fill-rose-500 scale-110 animate-[bounce_0.3s_ease-in-out]' : 'text-white fill-transparent'" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                      </svg>
+                    </button>
+
+                    <span class="absolute bottom-4 left-4 text-[10px] font-black uppercase tracking-wider px-2.5 py-1.5 rounded-lg z-10 shadow-sm border backdrop-blur-md"
+                          [ngClass]="room.status === 'AVAILABLE' || !room.status ? 'bg-emerald-500/90 border-emerald-400/30 text-white' : 'bg-rose-500/90 border-rose-400/30 text-white'">
+                      {{ (room.status === 'AVAILABLE' || !room.status) ? 'Còn trống' : 'Đã đặt' }}
+                    </span>
+                  </div>
+                  
+                  <div class="p-6 flex flex-col flex-1">
+                    <div class="flex items-start justify-between gap-2 mb-1">
+                      <h3 class="text-xl font-black text-slate-800 group-hover:text-blue-600 transition-colors duration-300">Phòng {{ room.roomNumber }}</h3>
+                      <span class="px-2.5 py-1 bg-slate-100 text-slate-600 text-[10px] font-extrabold rounded-md uppercase shrink-0 border border-slate-200/60">
+                        {{ room.typeName || 'Standard' }}
+                      </span>
+                    </div>
+
+                    <div class="flex items-center gap-1 text-xs font-bold text-amber-500 my-1">
+                      <span>⭐ {{ room.rating | number:'1.1-1' }}</span>
+                      <span class="text-slate-400 font-normal text-[11px] ml-1">(125 Đánh giá công khai)</span>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-y-2 gap-x-1 text-slate-500 text-xs font-semibold my-4 py-3 border-y border-slate-100/80">
+                      <div class="flex items-center gap-1.5">👤 Max: 2 người lớn</div>
+                      <div class="flex items-center gap-1.5">📐 Diện tích: 35m²</div>
+                      <div class="flex items-center gap-1.5">📶 Wifi tốc độ cao</div>
+                      <div class="flex items-center gap-1.5">❄ Điều hòa 2 chiều</div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between mt-auto pt-4 border-t border-slate-100">
+                      <div>
+                        <span class="text-[10px] text-slate-400 block font-bold uppercase tracking-wider mb-0.5">Giá phòng/Đêm</span>
+                        <span class="text-3xl font-black text-blue-600 tracking-tight">
+                          {{ room.price | number }} đ
+                        </span>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <button (click)="viewRoomDetail(room.roomId, $event)" class="px-4 py-3 border border-slate-200 text-slate-600 rounded-xl font-bold text-xs hover:bg-slate-50 hover:border-slate-300 transition-all duration-200">
+                          Chi tiết
+                        </button>
+                        
+                        <button [disabled]="room.status && room.status !== 'AVAILABLE'" 
+                                class="px-5 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl text-xs shadow-md shadow-blue-500/10 hover:shadow-lg hover:shadow-blue-500/30 disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 disabled:shadow-none disabled:cursor-not-allowed transition-all duration-300">
+                          Đặt ngay
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </swiper-slide>
+            }
+          </swiper-container>
+          
+          <div class="text-center mt-12">
+            <button [routerLink]="['/rooms']" class="inline-flex items-center gap-2 px-8 py-4 bg-white hover:bg-slate-900 text-slate-800 hover:text-white font-bold text-sm rounded-xl border-2 border-slate-200 hover:border-slate-900 shadow-md hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 group">
+              Khám phá tất cả phòng 
+              <span class="group-hover:translate-x-1.5 transition-transform duration-200">→</span>
+            </button>
+          </div>
+
+        </div>
+      } @else {
+        <ng-template #noRooms>
+          <div class="text-center py-16 bg-white rounded-3xl border border-dashed border-slate-200 p-8 max-w-lg mx-auto shadow-sm w-full grid justify-center">
+            <div class="text-5xl mb-4">🏨</div>
+            <h4 class="text-gray-800 font-bold text-lg">Đang cập nhật danh sách đề xuất</h4>
+            <p class="text-slate-400 text-sm mt-1">Các không gian nghỉ dưỡng đang được đồng bộ, bạn vui lòng quay lại sau ít phút nhé!</p>
+          </div>
+        </ng-template>
+      }
+
+    </div>
+  </section>
+
+  <section class="py-20 bg-slate-50 border-t border-slate-100">
+    <div class="container mx-auto px-4 max-w-7xl">
+      <div class="text-center max-w-2xl mx-auto mb-16">
+        <span class="text-blue-600 font-bold text-xs uppercase tracking-widest">Đánh giá thực tế</span>
+        <h2 class="text-3xl font-black text-slate-900 mt-1">Phản Hồi Từ Khách Hàng</h2>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between">
+          <div>
+            <div class="text-amber-400 text-sm font-bold mb-3">★★★★★</div>
+            <p class="text-slate-600 text-sm italic font-medium leading-relaxed">"Phòng nghỉ vô cùng sạch sẽ, view nhìn thẳng ra biển rất thơ mộng. Nhân viên phục vụ nhiệt tình, chu đáo hỗ trợ nhóm mình check-in sớm."</p>
+          </div>
+          <div class="flex items-center gap-3 mt-6 pt-4 border-t border-slate-50">
+            <div class="w-10 h-10 bg-blue-600 text-white font-black rounded-full flex items-center justify-center text-sm">T</div>
+            <div>
+              <h5 class="font-bold text-slate-800 text-sm">Anh Tuấn</h5>
+              <p class="text-slate-400 text-[10px]">Đến từ Hà Nội • Cặp đôi</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between">
+          <div>
+            <div class="text-amber-400 text-sm font-bold mb-3">★★★★★</div>
+            <p class="text-slate-600 text-sm italic font-medium leading-relaxed">"Gia đình tôi đã có một kỳ nghỉ tuyệt vời tại đây. Các tiện ích như hồ bơi vô cực và khu ẩm thực buffet sáng vô cùng xuất sắc, đáng tiền."</p>
+          </div>
+          <div class="flex items-center gap-3 mt-6 pt-4 border-t border-slate-50">
+            <div class="w-10 h-10 bg-teal-600 text-white font-black rounded-full flex items-center justify-center text-sm">L</div>
+            <div>
+              <h5 class="font-bold text-slate-800 text-sm">Chị Linh</h5>
+              <p class="text-slate-400 text-[10px]">Đến từ TP.HCM • Chuyến đi đơn thân</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between">
+          <div>
+            <div class="text-amber-400 text-sm font-bold mb-3">★★★★★</div>
+            <p class="text-slate-600 text-sm italic font-medium leading-relaxed">"Không gian yên tĩnh, thiết kế sang trọng đẳng cấp. Hệ thống cách âm cực tốt phù hợp cho những chuyến nghỉ dưỡng dài ngày của đại gia đình."</p>
+          </div>
+          <div class="flex items-center gap-3 mt-6 pt-4 border-t border-slate-50">
+            <div class="w-10 h-10 bg-indigo-600 text-white font-black rounded-full flex items-center justify-center text-sm">HM</div>
+            <div>
+              <h5 class="font-bold text-slate-800 text-sm">Gia đình Hoàng Minh</h5>
+              <p class="text-slate-400 text-[10px]">Đến từ Đà Nẵng • Đại gia đình</p>
             </div>
           </div>
         </div>
       </div>
     </div>
   </section>
+
+  <section class="bg-white py-16 border-t border-slate-100">
+    <div class="container mx-auto px-4 max-w-7xl mb-10 text-center">
+      <span class="text-blue-600 font-bold text-xs uppercase tracking-widest">Hành trình thuận tiện</span>
+      <h2 class="text-3xl font-black text-slate-900 mt-1 mb-2">Vị Trí Thuận Tiện Cho Mọi Hành Trình</h2>
+      <p class="text-slate-400 text-sm max-w-md mx-auto">Chỉ cách trung tâm thành phố 10 phút di chuyển và rất gần các địa điểm tham quan nổi tiếng.</p>
+    </div>
+    
+    <div class="w-full h-[380px] bg-slate-200 relative">
+      <iframe 
+        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3724.6362241639943!2d105.8247071!3d21.0072142!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3135ac7715b491a9%3A0x6b86689d02dbf068!2zSGFub2ksIFZpZXRuYW0!5e0!3m2!1sen!2s!4v1654673849102!5m2!1sen!2s" 
+        class="w-full h-full border-0 grayscale opacity-85 hover:grayscale-0 transition-all duration-700" 
+        allowfullscreen="" 
+        loading="lazy" 
+        referrerpolicy="no-referrer-when-downgrade">
+      </iframe>
+    </div>
+  </section>
 </main>
-<app-footer></app-footer>
+
+<footer class="bg-slate-950 text-slate-400 pt-16 pb-8 border-t border-slate-900">
+  <div class="container mx-auto px-4 max-w-7xl">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 mb-12">
+      
+      <div class="lg:col-span-2">
+        <h3 class="text-white font-black text-xl tracking-tight mb-4 flex items-center gap-2">
+          <span class="p-1.5 bg-blue-600 text-white rounded-lg text-sm">🏨</span> LuxeHotel
+        </h3>
+        <p class="text-slate-400 text-sm max-w-sm leading-relaxed mb-6">
+          Nền tảng đặt phòng trực tuyến tiện lợi, an toàn và nhanh chóng. Mang đến không gian nghỉ dưỡng xứng tầm đẳng cấp quốc tế cho bạn.
+        </p>
+        <div class="flex items-center gap-3">
+          <a href="#" class="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-slate-300 hover:bg-blue-600 hover:text-white transition-all text-xs">FB</a>
+          <a href="#" class="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-slate-300 hover:bg-purple-600 hover:text-white transition-all text-xs">IG</a>
+          <a href="#" class="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-slate-300 hover:bg-black hover:text-white transition-all text-xs">TK</a>
+        </div>
+      </div>
+
+      <div>
+        <h4 class="text-white font-bold text-xs uppercase tracking-widest mb-4">Về Chúng Tôi</h4>
+        <ul class="space-y-2.5 text-sm">
+          <li><a href="#" class="hover:text-white transition-colors">Giới thiệu tổng quan</a></li>
+          <li><a href="#" class="hover:text-white transition-colors">Hệ thống phòng nghỉ</a></li>
+          <li><a href="#" class="hover:text-white transition-colors">Tin tức & Sự kiện</a></li>
+          <li><a href="#" class="hover:text-white transition-colors">Tuyển dụng 2026</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4 class="text-white font-bold text-xs uppercase tracking-widest mb-4">Hỗ Trợ & Chính Sách</h4>
+        <ul class="space-y-2.5 text-sm">
+          <li><a href="#" class="hover:text-white transition-colors">Chính sách bảo mật</a></li>
+          <li><a href="#" class="hover:text-white transition-colors">Điều khoản sử dụng</a></li>
+          <li><a href="#" class="hover:text-white transition-colors">Quy định hoàn tiền</a></li>
+          <li><a href="#" class="hover:text-white transition-colors">Trung tâm trợ giúp</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4 class="text-white font-bold text-xs uppercase tracking-widest mb-4">Nhận Tin Ưu Đãi</h4>
+        <p class="text-xs text-slate-400 mb-3 leading-relaxed">Đăng ký để nhận thông tin giảm giá độc quyền sớm nhất.</p>
+        <div class="flex gap-2">
+          <input type="email" placeholder="Email của bạn..." class="w-full p-2.5 bg-white/5 border border-white/10 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors">
+          <button class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-all">Gửi</button>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="pt-8 border-t border-slate-900 text-center text-xs text-slate-500">
+      <p>© 2026 LuxeHotel. Tất cả các quyền được bảo lưu. Thiết kế và phát triển dựa trên tiêu chuẩn ứng dụng đồ án cao cấp.</p>
+    </div>
+  </div>
+</footer>

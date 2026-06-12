@@ -67,4 +67,18 @@ public class Room {
     public boolean isDeleted() {
         return this.isDeleted != null && this.isDeleted;
     }
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "room_promotions",
+            joinColumns = @JoinColumn(name = "room_id"),
+            inverseJoinColumns = @JoinColumn(name = "promotion_id")
+    )
+    private java.util.Set<Promotion> promotions = new java.util.HashSet<>();
+
+    // ✔️ TRƯỜNG ĐÁNH DẤU CHƯƠNG TRÌNH ĐANG ÁP DỤNG THỰC TẾ LÊN PHÒNG
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "applied_promotion_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "rooms"})
+    private Promotion appliedPromotion;
 }

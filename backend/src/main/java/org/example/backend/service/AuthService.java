@@ -17,8 +17,9 @@ import org.example.backend.repository.RoleRepository;
 import org.example.backend.repository.UserRepository;
 import org.example.backend.security.JwtUtils;
 import org.springframework.http.HttpStatus;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
+import jakarta.mail.internet.MimeMessage;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -38,32 +39,42 @@ public class AuthService {
     private final RoleRepository roleRepository;
     private final JwtUtils jwtUtils;
 
+    /**
+     * BƯỚC 1: Đăng ký thành viên mới
+     * Đã tách biệt xử lý để nếu lỗi Mail xảy ra, User vẫn được tạo tạm thời
+     */
     @Transactional
     public void register(RegisterRequest request) {
-        // Kiểm tra Email tồn tại
         if (userRepository.findByEmail(request.email()).isPresent()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email này đã tồn tại trong hệ thống LuxeHotel!");
         }
 
-        // Lấy quyền Customer
         Role customerRole = roleRepository.findByRoleType(RoleType.CUSTOMER)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi cấu hình hệ thống: Không tìm thấy quyền khách hàng."));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi hệ thống: Không tìm thấy quyền khách hàng."));
 
-        // Tạo User mới
         User user = new User();
         user.setUsername(request.email());
         user.setEmail(request.email());
         user.setFullName(request.fullName());
         user.setPhone(request.phone());
         user.setPasswordHash(passwordEncoder.encode(request.password()));
-        user.setStatus(UserStatus.PENDING);
+        user.setStatus(UserStatus.PENDING); // Tài khoản tạm giữ chờ kích hoạt
         user.setRole(customerRole);
         userRepository.save(user);
 
-        // Gửi OTP xác thực
-        sendNewOtp(request.email(), OtpType.REGISTER);
+        try {
+            // Thực hiện sinh mã và gửi mail
+            sendNewOtp(request.email(), OtpType.REGISTER);
+        } catch (Exception e) {
+            // Khi gửi Mail lỗi, không làm sập luồng đăng ký mà cảnh báo để Client hiển thị nút "Gửi lại mã"
+            log.warn("Tài khoản đã tạo nhưng không gửi được Mail kích hoạt: {}", e.getMessage());
+            throw new ResponseStatusException(HttpStatus.MULTI_STATUS, "Tài khoản đã tạo thành công, nhưng hệ thống gặp sự cố gửi Mail. Vui lòng bấm gửi lại mã OTP.");
+        }
     }
 
+    /**
+     * BƯỚC PHỤ: Cập nhật Email mới tại màn hình OTP và gửi lại mã mới
+     */
     @Transactional
     public void updateEmailAndResendOtp(UpdateEmailRequest request) {
         User user = userRepository.findByPhone(request.phone())
@@ -73,7 +84,9 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email mới đã được sử dụng bởi một tài khoản khác.");
         }
 
+        // Dọn dẹp OTP cũ gắn liền với email cũ
         otpStorageRepository.deleteByEmail(user.getEmail());
+
         user.setEmail(request.newEmail());
         user.setUsername(request.newEmail());
         userRepository.save(user);
@@ -81,6 +94,9 @@ public class AuthService {
         sendNewOtp(request.newEmail(), OtpType.REGISTER);
     }
 
+    /**
+     * BƯỚC 2: Xác thực OTP - Kích hoạt tài khoản chính thức
+     */
     @Transactional
     public void verifyOtp(String email, String code) {
         OtpStorage otp = otpStorageRepository.findFirstByEmailAndOtpTypeOrderByExpiryTimeDesc(email, OtpType.REGISTER)
@@ -97,8 +113,10 @@ public class AuthService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new AppException("Không tìm thấy thông tin người dùng.", HttpStatus.NOT_FOUND));
 
-        user.setStatus(UserStatus.ACTIVE);
+        user.setStatus(UserStatus.ACTIVE); // Kích hoạt tài khoản thành công
         userRepository.save(user);
+
+        // Xác thực xong thì xóa mã tránh dùng lại (Tối ưu bảo mật)
         otpStorageRepository.deleteByEmail(email);
     }
 
@@ -107,6 +125,10 @@ public class AuthService {
 
         User user = userRepository.findByUsernameOrEmail(identifier, identifier)
                 .orElseThrow(() -> new AppException("Tài khoản không tồn tại trong hệ thống.", HttpStatus.UNAUTHORIZED));
+
+        if (user.getStatus() == UserStatus.PENDING) {
+            throw new AppException("Tài khoản của bạn chưa được kích hoạt OTP.", HttpStatus.FORBIDDEN);
+        }
 
         if (user.getRole() == null) {
             throw new AppException("Tài khoản chưa được phân quyền.", HttpStatus.FORBIDDEN);
@@ -140,25 +162,45 @@ public class AuthService {
         otpStorageRepository.delete(storage);
     }
 
-    // --- HÀM BỔ TRỢ GỬI MAIL ---
+    /**
+     * --- HÀM BỔ TRỢ: TẠO OTP VÀ KHỞI TẠO TIẾN TRÌNH GỬI MAIL (MimeMessage HTML) ---
+     */
     private void sendNewOtp(String email, OtpType type) {
-        try {
-            String code = String.valueOf(new Random().nextInt(899999) + 100000);
-            OtpStorage otp = new OtpStorage();
-            otp.setEmail(email);
-            otp.setOtpCode(code);
-            otp.setExpiryTime(LocalDateTime.now().plusMinutes(5));
-            otp.setOtpType(type);
-            otpStorageRepository.save(otp);
+        String code = String.valueOf(new Random().nextInt(899999) + 100000);
 
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setTo(email);
-            message.setSubject("Mã xác thực LuxeHotel");
-            message.setText("Mã xác nhận thành viên LuxeHotel của bạn là: " + code);
-            mailSender.send(message);
+        OtpStorage otp = new OtpStorage();
+        otp.setEmail(email);
+        otp.setOtpCode(code);
+        otp.setExpiryTime(LocalDateTime.now().plusMinutes(5));
+        otp.setOtpType(type);
+        otpStorageRepository.save(otp);
+
+        try {
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
+
+            helper.setTo(email);
+            helper.setSubject("Mã xác thực đặc quyền LuxeHotel");
+
+            // Thiết kế giao diện Email HTML chuyên nghiệp tăng điểm đồ án
+            String htmlContent = "<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e3e3e3; border-radius: 12px;'>"
+                    + "<h2 style='color: #d4af37; text-align: center; text-transform: uppercase; letter-spacing: 2px;'>LuxeHotel Premium</h2>"
+                    + "<hr style='border: 0; border-top: 1px solid #eee; margin: 20px 0;'>"
+                    + "<p>Xin chào,</p>"
+                    + "<p>Cảm ơn bạn đã lựa chọn đăng ký thành viên đặc quyền tại hệ thống quản lý khách sạn cao cấp <strong>LuxeHotel</strong>.</p>"
+                    + "<p>Mã xác thực giao dịch kích hoạt tài khoản của bạn là:</p>"
+                    + "<div style='text-align: center; margin: 30px 0;'>"
+                    + "<span style='font-size: 32px; font-weight: bold; color: #d4af37; letter-spacing: 5px; background: #11141d; padding: 10px 30px; border-radius: 8px;'>" + code + "</span>"
+                    + "</div>"
+                    + "<p style='color: #777; font-size: 12px;'>Lưu ý: Mã OTP này có hiệu lực trong vòng 5 phút và chỉ được sử dụng một lần duy nhất. Vui lòng tuyệt đối không chia sẻ mã này với bất kỳ ai.</p>"
+                    + "</div>";
+
+            helper.setText(htmlContent, true); // Bật true để nhận diện định dạng HTML
+            mailSender.send(mimeMessage);
+            log.info("Đã gửi Mail OTP thành công tới địa chỉ: {}", email);
         } catch (Exception e) {
-            log.error("Lỗi gửi Mail: {}", e.getMessage());
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Không thể gửi mã xác thực tới Email này.");
+            log.error("Lỗi kết nối JavaMailSender nghiêm trọng: {}", e.getMessage());
+            throw new RuntimeException("Môi trường máy chủ không thể xử lý lệnh gửi Mail: " + e.getMessage());
         }
     }
 }

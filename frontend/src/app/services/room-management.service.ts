@@ -88,5 +88,13 @@ export class RoomManagementService {
   getRoomReviews(roomId: number): Observable<RoomReviewDetailDTO[]> {
     return this.http.get<RoomReviewDetailDTO[]>(`${this.baseUrl}/rooms/${roomId}/reviews`);
   }
- 
+  // 1. Lấy toàn bộ danh sách mã giảm giá đang hoạt động từ Backend
+  getActivePromotions(): Observable<any[]> {
+    return this.http.get<any[]>('http://localhost:8080/api/bookings/management/promotions/active');
+  }
+
+  // 2. Gọi API gán mã giảm giá vào phòng vật lý bằng phương thức PUT
+  applyPromotionToRoom(roomId: number, promotionId: number): Observable<any> {
+    return this.http.put(`http://localhost:8080/api/bookings/management/promotions/apply-to-room?roomId=${roomId}&promotionId=${promotionId}`, {});
+  }
 }

@@ -1,0 +1,34 @@
+<button class="chat-toggle-btn" (click)="toggleChat()">
+  <span *ngIf="!isOpen">💬 Góp ý / Hỗ trợ</span>
+  <span *ngIf="isOpen">✖ Đóng</span>
+</button>
+
+<div class="chat-window" *ngIf="isOpen">
+  <div class="chat-header">
+    Hỗ trợ trực tuyến AI
+  </div>
+  
+  <div class="chat-body" #chatBody>
+    
+    <div *ngFor="let msg of messages" 
+         [ngClass]="{'message-user': msg.sender === 'user', 'message-bot': msg.sender === 'bot'}">
+      
+      <div class="message-bubble" *ngIf="msg.sender === 'user'">
+        {{ msg.text }}
+      </div>
+
+      <div class="message-bubble" *ngIf="msg.sender === 'bot'" [innerHTML]="msg.text | safeHtml">
+      </div>
+
+    </div>
+    
+    <div class="message-bot" *ngIf="isLoading">
+      <div class="message-bubble typing-indicator">Lễ tân đang gõ...</div>
+    </div>
+  </div>
+
+  <div class="chat-footer">
+    <input type="text" [(ngModel)]="userInput" (keyup.enter)="sendMessage()" placeholder="Nhập câu hỏi của bạn...">
+    <button (click)="sendMessage()" [disabled]="isLoading || !userInput.trim()">Gửi</button>
+  </div>
+</div>

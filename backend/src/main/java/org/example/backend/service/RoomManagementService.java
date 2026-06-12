@@ -27,7 +27,9 @@ public class RoomManagementService {
     private final RoomTypeImageRepository roomTypeImageRepository;
     private final HotelRepository hotelRepository;
 
-    // ================= SỬA LỖI ĐỒNG BỘ: HÀM LẤY TOÀN BỘ LOẠI PHÒNG CHO CONTROLLER =================
+    // ✔️ INJECT THÊM REPOSITORY ƯU ĐÃI ĐỂ PHỤC VỤ LUỒNG NGHIỆP VỤ
+    private final PromotionRepository promotionRepository;
+
     @Transactional(readOnly = true)
     public List<RoomType> getRoomTypes() {
         return roomTypeRepository.findAll();
@@ -51,7 +53,6 @@ public class RoomManagementService {
         }).collect(Collectors.toList());
     }
 
-    // ================= TỐI ƯU TRIỆT ĐỂ: THÊM PHÒNG / TÁI SINH PHÒNG VÀ HÌNH ẢNH =================
     @Transactional
     public Room createRoom(RoomRequest request) {
         Hotel hotel = hotelRepository.findById(request.getHotelId())
@@ -70,7 +71,7 @@ public class RoomManagementService {
         Optional<Room> hiddenRoomOpt = roomRepository.findByHotelIdAndRoomNumberAndIsDeletedTrue(request.getHotelId(), request.getRoomNumber());
 
         Room roomToSave;
-        boolean isBrandNewRoom = false; // Cờ đánh dấu bẫy lỗi xóa dữ liệu ảo
+        boolean isBrandNewRoom = false;
 
         if (hiddenRoomOpt.isPresent()) {
             roomToSave = hiddenRoomOpt.get();
@@ -86,12 +87,11 @@ public class RoomManagementService {
             roomToSave.setFloor(request.getFloor());
             roomToSave.setStatus(RoomStatus.AVAILABLE);
             roomToSave.setIsDeleted(false);
-            isBrandNewRoom = true; // Đây là phòng mới tinh
+            isBrandNewRoom = true;
         }
 
         Room savedRoom = roomRepository.save(roomToSave);
 
-        // FIX CHÍ MẠNG: Chỉ xóa album ảnh cũ nếu đây là phòng cũ được tái sinh để tránh gãy luồng SQL của thực thể mới tinh
         if (!isBrandNewRoom) {
             roomImageRepository.deleteByRoomId(savedRoom.getId());
         }
@@ -114,7 +114,6 @@ public class RoomManagementService {
         return savedRoom;
     }
 
-    // ================= BẪY LỖI: KHỞI TẠO PHÒNG HÀNG LOẠT (BATCH INSERT) =================
     @Transactional
     public void createBulkRooms(RoomBatchRequest request) {
         Hotel hotel = hotelRepository.findById(request.getHotelId())
@@ -274,6 +273,22 @@ public class RoomManagementService {
         }).collect(Collectors.toList());
     }
 
+    // ================= 🔥 HÀM XỬ LÝ CHUẨN HÓA LƯU KHUYẾN MÃI VÀO COLUMN APPLIED_PROMOTION_ID =================
+    @Transactional
+    public void applyPromotionToRoom(Long roomId, Long promotionId) {
+        Room room = roomRepository.findById(roomId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phòng ID: " + roomId));
+
+        if (promotionId == null || promotionId <= 0) {
+            room.setAppliedPromotion(null);
+        } else {
+            Promotion promotion = promotionRepository.findById(promotionId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chương trình ưu đãi ID: " + promotionId));
+            room.setAppliedPromotion(promotion);
+        }
+        roomRepository.save(room);
+    }
+
     private RoomResponseDTO convertToDTO(Room room) {
         List<String> album = room.getImages() != null ? room.getImages().stream()
                 .map(RoomImage::getImageUrl).collect(Collectors.toList()) : new ArrayList<>();
@@ -285,6 +300,18 @@ public class RoomManagementService {
                     .map(RoomImage::getImageUrl).findFirst().orElse(album.get(0));
         }
 
+        // ✔️ ĐỒNG BỘ DỮ LIỆU ĐỔ RA CLIENT: Đọc mã giảm giá đang kích hoạt từ quan hệ appliedPromotion
+        List<PromotionResponseDTO> promoDTOs = new ArrayList<>();
+        if (room.getAppliedPromotion() != null) {
+            Promotion p = room.getAppliedPromotion();
+            promoDTOs.add(PromotionResponseDTO.builder()
+                    .id(p.getId())
+                    .code(p.getCode())
+                    .discountPercentage(p.getDiscountPercentage())
+                    .endDate(p.getEndDate())
+                    .build());
+        }
+
         return RoomResponseDTO.builder()
                 .roomId(room.getId())
                 .roomNumber(room.getRoomNumber())
@@ -294,6 +321,7 @@ public class RoomManagementService {
                 .price(room.getRoomType() != null ? room.getRoomType().getBasePrice() : java.math.BigDecimal.ZERO)
                 .imageUrl(primaryUrl)
                 .albumImages(album)
+                .appliedPromotions(promoDTOs) // Trả về dạng mảng khớp hoàn toàn với DTO và UI Angular cũ
                 .build();
     }
 }
