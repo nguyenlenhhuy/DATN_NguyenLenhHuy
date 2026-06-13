@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LuxeHotel - Luxury Deluxe Ocean Room</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+
+        /* ── Glassmorphism ── */
+        .glass {
+            background: rgba(255,255,255,0.88);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.45);
+        }
+
+        /* ── Shimmer CTA ── */
+        .btn-shimmer { position: relative; overflow: hidden; }
+        .btn-shimmer::after {
+            content: '';
+            position: absolute;
+            top: -50%; left: -75%;
+            width: 50%; height: 200%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent);
+            transform: skewX(-20deg);
+            animation: shimmer 2.8s infinite;
+        }
+        @keyframes shimmer { 0%{left:-75%} 100%{left:125%} }
+
+        /* ── Scroll reveal ── */
+        .reveal {
+            opacity: 0;
+            transform: translateY(28px);
+            transition: opacity 0.65s cubic-bezier(0.22,1,0.36,1), transform 0.65s cubic-bezier(0.22,1,0.36,1);
+        }
+        .reveal.visible { opacity:1; transform:translateY(0); }
+        .reveal-d1 { transition-delay: 0.1s; }
+        .reveal-d2 { transition-delay: 0.2s; }
+        .reveal-d3 { transition-delay: 0.3s; }
+
+        /* ── Gallery hover ── */
+        .g-img img { transition: transform 0.7s cubic-bezier(0.25,0.46,0.45,0.94); }
+        .g-img:hover img { transform: scale(1.06); }
+
+        /* ── Amenity hover ── */
+        .amenity-card { transition: all 0.22s ease; }
+        .amenity-card:hover { background: #fffbeb; border-color: #fde68a; transform: translateY(-2px); }
+        .amenity-card:hover .am-icon { color: #d97706; transform: translateY(-2px) scale(1.12); }
+        .am-icon { transition: color 0.2s ease, transform 0.25s cubic-bezier(0.34,1.56,0.64,1); }
+
+        /* ── Tabs ── */
+        .tab-btn { color: #94a3b8; border-bottom: 2px solid transparent; transition: all 0.2s ease; }
+        .tab-btn:hover { color: #475569; }
+        .tab-btn.is-active { color: #0f172a; border-bottom-color: #f59e0b; }
+        .tab-panel { display: none; }
+        .tab-panel.is-active { display: block; }
+
+        /* ── Rating bar ── */
+        .rating-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #f59e0b, #fbbf24);
+            border-radius: 9999px;
+        }
+
+        /* ── Promo input glow ── */
+        .promo-input:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(245,158,11,0.18);
+            border-color: #f59e0b;
+        }
+
+        /* ── Heart pulse ── */
+        @keyframes heartpulse { 0%,100%{transform:scale(1)} 40%{transform:scale(1.22)} }
+        .heart-btn:hover i { animation: heartpulse 0.55s ease; color: #ef4444; }
+
+        /* ── Shadows ── */
+        .card-shadow { box-shadow: 0 2px 12px -2px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.04); }
+        .widget-shadow { box-shadow: 0 24px 48px -10px rgba(15,23,42,0.13), 0 0 0 1px rgba(15,23,42,0.04); }
+
+        /* ── Gallery gradient overlay ── */
+        .gallery-grad { background: linear-gradient(to top, rgba(15,23,42,0.38) 0%, transparent 55%); }
+
+        /* ── Mobile bar ── */
+        @media (min-width: 1024px) { .mobile-bar { display: none !important; } }
+
+        /* ── Scrollbar ── */
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: #f8fafc; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+        /* ── Discount row hidden by default ── */
+        .discount-hidden { display: none; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased pb-20 lg:pb-0">
+
+<!-- ═══════════════════════════════════════════════
+     HEADER — Glassmorphism
+═══════════════════════════════════════════════ -->
+<header class="fixed top-0 left-0 right-0 z-50 glass h-20 flex items-center" style="border-bottom:1px solid rgba(255,255,255,0.3)">
+    <div class="max-w-7xl w-full px-6 lg:px-8 flex items-center justify-between mx-auto">
+        <a href="#" class="flex items-center gap-2.5">
+            <span class="bg-amber-500 text-white p-2 rounded-xl text-sm shadow-md shadow-amber-500/30">
+                <i class="fa-solid fa-hotel"></i>
+            </span>
+            <span class="font-extrabold text-xl text-transparent bg-clip-text bg-gradient-to-r from-blue-950 to-amber-600 tracking-tight">LuxeHotel</span>
+        </a>
+
+        <nav class="hidden md:flex items-center gap-8 font-semibold text-xs uppercase tracking-wider text-slate-600">
+            <a href="#" class="hover:text-blue-950 transition-colors">Trang chủ</a>
+            <a href="#" class="text-amber-600 relative">Phòng
+                <span class="absolute -bottom-1 left-0 right-0 h-0.5 bg-amber-500 rounded-full block"></span>
+            </a>
+            <a href="#" class="hover:text-blue-950 transition-colors">Dịch vụ</a>
+            <a href="#" class="hover:text-blue-950 transition-colors">Ưu đãi</a>
+            <a href="#" class="hover:text-blue-950 transition-colors">Liên hệ</a>
+        </nav>
+
+        <div class="flex items-center gap-3 text-xs font-bold">
+            <button class="text-slate-600 hover:text-blue-950 px-4 py-2 transition-colors">Đăng nhập</button>
+            <button class="bg-blue-950 hover:bg-blue-900 text-white px-5 py-2.5 rounded-xl transition-all shadow-sm hover:shadow-md">Đăng ký</button>
+        </div>
+    </div>
+</header>
+
+<div class="pt-20">
+
+<!-- ═══════════════════════════════════════════════
+     GALLERY — Bento asymmetric grid
+═══════════════════════════════════════════════ -->
+<section class="max-w-7xl mx-auto px-6 lg:px-8 pt-8">
+    <div class="grid grid-cols-12 grid-rows-2 gap-2.5 h-[500px] rounded-3xl overflow-hidden">
+
+        <!-- Main photo — 7 cols, full height -->
+        <div class="col-span-12 lg:col-span-7 row-span-2 g-img relative overflow-hidden bg-slate-100">
+            <img src="https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80"
+                 alt="Luxury Deluxe Ocean Master View" class="w-full h-full object-cover"/>
+            <div class="gallery-grad absolute inset-0 pointer-events-none"></div>
+            <div class="absolute bottom-4 left-4 flex gap-2">
+                <span class="glass text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full text-amber-700">
+                    <i class="fa-solid fa-circle-check text-amber-500 mr-1"></i>Bán chạy nhất
+                </span>
+                <span class="glass text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full text-emerald-700">
+                    <i class="fa-solid fa-circle text-emerald-500 text-[7px] mr-1"></i>Còn phòng
+                </span>
+            </div>
+        </div>
+
+        <!-- Top-right: tall photo -->
+        <div class="col-span-6 lg:col-span-3 row-span-1 g-img overflow-hidden bg-slate-100">
+            <img src="https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=600&q=80"
+                 class="w-full h-full object-cover" alt="Phòng tắm cao cấp"/>
+        </div>
+        <div class="col-span-6 lg:col-span-2 row-span-1 g-img overflow-hidden bg-slate-100">
+            <img src="https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=400&q=80"
+                 class="w-full h-full object-cover" alt="Góc thư giãn"/>
+        </div>
+
+        <!-- Bottom-right: 2 photos + count overlay -->
+        <div class="col-span-6 lg:col-span-2 row-span-1 g-img overflow-hidden bg-slate-100">
+            <img src="https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=400&q=80"
+                 class="w-full h-full object-cover" alt="Nội thất"/>
+        </div>
+        <div class="col-span-6 lg:col-span-3 row-span-1 relative g-img overflow-hidden bg-slate-100 cursor-pointer">
+            <img src="https://images.unsplash.com/photo-1591088398332-8a7791972843?auto=format&fit=crop&w=600&q=80"
+                 class="w-full h-full object-cover" alt="View biển"/>
+            <div class="absolute inset-0 bg-slate-950/42 hover:bg-slate-950/55 transition-all flex flex-col items-center justify-center">
+                <i class="fa-solid fa-images text-white text-xl mb-1.5"></i>
+                <span class="text-white text-[10px] font-bold uppercase tracking-widest">Tất cả ảnh</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════
+     MAIN — 2/3 + 1/3 layout
+═══════════════════════════════════════════════ -->
+<main class="max-w-7xl mx-auto px-6 lg:px-8 py-8">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-10 items-start">
+
+        <!-- ─────────────────────────────────────
+             LEFT COLUMN
+        ───────────────────────────────────── -->
+        <div class="lg:col-span-2 space-y-6">
+
+            <!-- Title block -->
+            <div class="reveal">
+                <div class="flex flex-wrap items-start justify-between gap-4">
+                    <div>
+                        <h1 class="text-3xl sm:text-4xl font-extrabold text-slate-950 tracking-tight leading-snug">
+                            Luxury Deluxe<br>
+                            <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-950 via-blue-700 to-amber-500">Ocean Room</span>
+                        </h1>
+                        <div class="flex flex-wrap items-center gap-3 mt-3 text-xs font-medium text-slate-500">
+                            <span class="flex items-center gap-1.5">
+                                <i class="fa-solid fa-star text-amber-400"></i>
+                                <i class="fa-solid fa-star text-amber-400"></i>
+                                <i class="fa-solid fa-star text-amber-400"></i>
+                                <i class="fa-solid fa-star text-amber-400"></i>
+                                <i class="fa-solid fa-star text-amber-400"></i>
+                                <strong class="text-slate-800 ml-1">4.9</strong>
+                                <span class="text-slate-400">(48 đánh giá)</span>
+                            </span>
+                            <span class="text-slate-300">|</span>
+                            <span><i class="fa-solid fa-location-dot text-blue-400 mr-1"></i>Khu VIP Đông, Tầm nhìn trực diện biển</span>
+                        </div>
+                    </div>
+                    <div class="text-right shrink-0">
+                        <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Giá công khai từ</span>
+                        <div class="flex items-baseline gap-1 justify-end">
+                            <span class="text-3xl font-black text-amber-600">1.850.000₫</span>
+                            <span class="text-xs text-slate-400">/đêm</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Specs bar -->
+            <div class="reveal reveal-d1 bg-gradient-to-br from-blue-950 to-slate-900 text-white rounded-2xl p-5 grid grid-cols-3 sm:grid-cols-6 gap-4 text-center shadow-xl shadow-blue-950/20">
+                <div class="space-y-2 group cursor-default">
+                    <div class="w-9 h-9 bg-white/10 rounded-xl flex items-center justify-center mx-auto group-hover:bg-amber-500/20 group-hover:scale-110 transition-all duration-300">
+                        <i class="fa-solid fa-maximize text-amber-400 text-sm"></i>
+                    </div>
+                    <span class="text-[10px] text-slate-400 block font-medium">Diện tích</span>
+                    <p class="text-xs font-bold">45 m²</p>
+                </div>
+                <div class="space-y-2 group cursor-default">
+                    <div class="w-9 h-9 bg-white/10 rounded-xl flex items-center justify-center mx-auto group-hover:bg-amber-500/20 group-hover:scale-110 transition-all duration-300">
+                        <i class="fa-solid fa-user-group text-amber-400 text-sm"></i>
+                    </div>
+                    <span class="text-[10px] text-slate-400 block font-medium">Sức chứa</span>
+                    <p class="text-xs font-bold">2 Người lớn</p>
+                </div>
+                <div class="space-y-2 group cursor-default">
+                    <div class="w-9 h-9 bg-white/10 rounded-xl flex items-center justify-center mx-auto group-hover:bg-amber-500/20 group-hover:scale-110 transition-all duration-300">
+                        <i class="fa-solid fa-bed text-amber-400 text-sm"></i>
+                    </div>
+                    <span class="text-[10px] text-slate-400 block font-medium">Giường ngủ</span>
+                    <p class="text-xs font-bold">1 Giường King</p>
+                </div>
+                <div class="space-y-2 group cursor-default">
+                    <div class="w-9 h-9 bg-white/10 rounded-xl flex items-center justify-center mx-auto group-hover:bg-amber-500/20 group-hover:scale-110 transition-all duration-300">
+                        <i class="fa-solid fa-compass text-amber-400 text-sm"></i>
+                    </div>
+                    <span class="text-[10px] text-slate-400 block font-medium">Hướng phòng</span>
+                    <p class="text-xs font-bold">Hướng đại dương</p>
+                </div>
+                <div class="space-y-2 group cursor-default">
+                    <div class="w-9 h-9 bg-white/10 rounded-xl flex items-center justify-center mx-auto group-hover:bg-amber-500/20 group-hover:scale-110 transition-all duration-300">
+                        <i class="fa-solid fa-wifi text-amber-400 text-sm"></i>
+                    </div>
+                    <span class="text-[10px] text-slate-400 block font-medium">Kết nối</span>
+                    <p class="text-xs font-bold">Wifi Miễn phí</p>
+                </div>
+                <div class="space-y-2 group cursor-default">
+                    <div class="w-9 h-9 bg-white/10 rounded-xl flex items-center justify-center mx-auto group-hover:bg-amber-500/20 group-hover:scale-110 transition-all duration-300">
+                        <i class="fa-solid fa-utensils text-amber-400 text-sm"></i>
+                    </div>
+                    <span class="text-[10px] text-slate-400 block font-medium">Dịch vụ ăn uống</span>
+                    <p class="text-xs font-bold">Ăn sáng miễn phí</p>
+                </div>
+            </div>
+
+            <!-- ── Tabbed content ── -->
+            <div class="reveal reveal-d2 bg-white rounded-2xl border border-slate-100 card-shadow overflow-hidden">
+
+                <!-- Tab buttons -->
+                <div class="flex border-b border-slate-100 bg-slate-50/60">
+                    <button class="tab-btn is-active flex-1 py-4 text-xs font-bold uppercase tracking-wider" data-tab="intro">
+                        <i class="fa-solid fa-book-open mr-1.5 opacity-70"></i>Giới thiệu
+                    </button>
+                    <button class="tab-btn flex-1 py-4 text-xs font-bold uppercase tracking-wider" data-tab="amenities">
+                        <i class="fa-solid fa-star mr-1.5 opacity-70"></i>Tiện nghi
+                    </button>
+                    <button class="tab-btn flex-1 py-4 text-xs font-bold uppercase tracking-wider" data-tab="reviews">
+                        <i class="fa-solid fa-comments mr-1.5 opacity-70"></i>Đánh giá
+                    </button>
+                </div>
+
+                <!-- Tab: Giới thiệu -->
+                <div id="tab-intro" class="tab-panel is-active p-6 sm:p-8 space-y-5">
+                    <div class="text-slate-600 text-sm leading-relaxed font-light space-y-3">
+                        <p>Chào mừng bạn đến với không gian nghỉ dưỡng đỉnh cao tại <strong class="font-semibold text-slate-800">Luxury Deluxe Ocean Room</strong>. Nằm tại tầng cao nhất của khu VIP, căn phòng được thiết kế theo trường phái tối giản hiện đại của Châu Âu, tối ưu hóa các mặt kính lớn từ trần đến sàn để đón trọn vẹn ánh sáng tự nhiên và tiếng sóng vỗ rì rào từ biển khơi.</p>
+                        <p>Nội thất bên trong căn phòng là sự kết dính tinh tế giữa gỗ sồi tự nhiên màu sáng, các chi tiết kim loại mạ vàng gold sang trọng cùng hệ thống nệm lông vũ êm ái đạt tiêu chuẩn hoàng gia. Mỗi góc nhỏ đều được chăm chút kỹ lưỡng nhằm đem lại sự thư thái tuyệt đối cho kỳ nghỉ của bạn.</p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3 pt-1">
+                        <div class="bg-slate-50 rounded-xl p-3 flex items-start gap-2.5">
+                            <div class="w-7 h-7 bg-blue-50 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
+                                <i class="fa-solid fa-clock text-blue-500 text-xs"></i>
+                            </div>
+                            <div>
+                                <p class="text-[10px] font-bold text-slate-700 uppercase tracking-wide">Nhận phòng</p>
+                                <p class="text-xs text-slate-500 mt-0.5">Từ 14:00 hàng ngày</p>
+                            </div>
+                        </div>
+                        <div class="bg-slate-50 rounded-xl p-3 flex items-start gap-2.5">
+                            <div class="w-7 h-7 bg-amber-50 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
+                                <i class="fa-solid fa-arrow-right-from-bracket text-amber-500 text-xs"></i>
+                            </div>
+                            <div>
+                                <p class="text-[10px] font-bold text-slate-700 uppercase tracking-wide">Trả phòng</p>
+                                <p class="text-xs text-slate-500 mt-0.5">Trước 12:00 trưa</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Tiện nghi -->
+                <div id="tab-amenities" class="tab-panel p-6 sm:p-8">
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                        <div class="amenity-card flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100 cursor-default">
+                            <div class="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm shrink-0">
+                                <i class="fa-solid fa-wifi am-icon text-amber-500 text-sm"></i>
+                            </div>
+                            <span class="text-xs font-semibold text-slate-700">Wifi tốc độ cao</span>
+                        </div>
+                        <div class="amenity-card flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100 cursor-default">
+                            <div class="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm shrink-0">
+                                <i class="fa-solid fa-tv am-icon text-amber-500 text-sm"></i>
+                            </div>
+                            <span class="text-xs font-semibold text-slate-700">Smart TV 4K</span>
+                        </div>
+                        <div class="amenity-card flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100 cursor-default">
+                            <div class="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm shrink-0">
+                                <i class="fa-solid fa-snowflake am-icon text-amber-500 text-sm"></i>
+                            </div>
+                            <span class="text-xs font-semibold text-slate-700">Điều hòa trung tâm</span>
+                        </div>
+                        <div class="amenity-card flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100 cursor-default">
+                            <div class="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm shrink-0">
+                                <i class="fa-solid fa-bath am-icon text-amber-500 text-sm"></i>
+                            </div>
+                            <span class="text-xs font-semibold text-slate-700">Bồn tắm nằm cao cấp</span>
+                        </div>
+                        <div class="amenity-card flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100 cursor-default">
+                            <div class="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm shrink-0">
+                                <i class="fa-solid fa-wine-glass am-icon text-amber-500 text-sm"></i>
+                            </div>
+                            <span class="text-xs font-semibold text-slate-700">Quầy Minibar cao cấp</span>
+                        </div>
+                        <div class="amenity-card flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100 cursor-default">
+                            <div class="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm shrink-0">
+                                <i class="fa-solid fa-coffee am-icon text-amber-500 text-sm"></i>
+                            </div>
+                            <span class="text-xs font-semibold text-slate-700">Máy pha cà phê</span>
+                        </div>
+                        <div class="amenity-card flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100 cursor-default">
+                            <div class="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm shrink-0">
+                                <i class="fa-solid fa-vault am-icon text-amber-500 text-sm"></i>
+                            </div>
+                            <span class="text-xs font-semibold text-slate-700">Két an toàn bảo mật</span>
+                        </div>
+                        <div class="amenity-card flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100 cursor-default">
+                            <div class="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm shrink-0">
+                                <i class="fa-solid fa-shirt am-icon text-amber-500 text-sm"></i>
+                            </div>
+                            <span class="text-xs font-semibold text-slate-700">Dịch vụ giặt là </span>
+                        </div>
+                        <div class="amenity-card flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100 cursor-default">
+                            <div class="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm shrink-0">
+                                <i class="fa-solid fa-cloud-sun am-icon text-amber-500 text-sm"></i>
+                            </div>
+                            <span class="text-xs font-semibold text-slate-700">Ban công riêng biệt</span>
+                        </div>
+                        <div class="amenity-card flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100 cursor-default">
+                            <div class="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm shrink-0">
+                                <i class="fa-solid fa-smoking-ban am-icon text-amber-500 text-sm"></i>
+                            </div>
+                            <span class="text-xs font-semibold text-slate-700">Không hút thuốc</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Đánh giá -->
+                <div id="tab-reviews" class="tab-panel p-6 sm:p-8 space-y-6">
+                    <div class="flex flex-col sm:flex-row gap-6 items-center border-b border-slate-100 pb-6">
+                        <div class="text-center sm:pr-8 sm:border-r border-slate-100 shrink-0">
+                            <div class="text-5xl font-black text-blue-950">4.9</div>
+                            <div class="flex justify-center mt-1.5 gap-0.5">
+                                <i class="fa-solid fa-star text-amber-400 text-sm"></i>
+                                <i class="fa-solid fa-star text-amber-400 text-sm"></i>
+                                <i class="fa-solid fa-star text-amber-400 text-sm"></i>
+                                <i class="fa-solid fa-star text-amber-400 text-sm"></i>
+                                <i class="fa-solid fa-star text-amber-400 text-sm"></i>
+                            </div>
+                            <p class="text-[10px] text-slate-400 font-bold uppercase mt-1.5 tracking-wider">Tuyệt hảo</p>
+                            <p class="text-[10px] text-slate-400 mt-0.5">48 đánh giá</p>
+                        </div>
+                        <div class="w-full space-y-3">
+                            <div class="flex items-center gap-3 text-xs font-semibold text-slate-600">
+                                <span class="w-32 shrink-0">Độ sạch sẽ</span>
+                                <div class="flex-1 bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                                    <div class="rating-fill" style="width:96%"></div>
+                                </div>
+                                <span class="w-6 text-right text-amber-600 font-bold">4.9</span>
+                            </div>
+                            <div class="flex items-center gap-3 text-xs font-semibold text-slate-600">
+                                <span class="w-32 shrink-0">Chất lượng phục vụ</span>
+                                <div class="flex-1 bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                                    <div class="rating-fill" style="width:94%"></div>
+                                </div>
+                                <span class="w-6 text-right text-amber-600 font-bold">4.8</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="bg-slate-50 rounded-xl p-4 space-y-2.5">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-8 h-8 bg-blue-950 text-white rounded-full flex items-center justify-center text-[11px] font-bold shrink-0">NL</div>
+                                    <div>
+                                        <p class="text-xs font-bold text-slate-900">Nguyễn Hoàng Long</p>
+                                        <span class="text-[10px] text-slate-400">Tháng 02/2026</span>
+                                    </div>
+                                </div>
+                                <div class="flex gap-0.5">
+                                    <i class="fa-solid fa-star text-amber-400 text-[10px]"></i>
+                                    <i class="fa-solid fa-star text-amber-400 text-[10px]"></i>
+                                    <i class="fa-solid fa-star text-amber-400 text-[10px]"></i>
+                                    <i class="fa-solid fa-star text-amber-400 text-[10px]"></i>
+                                    <i class="fa-solid fa-star text-amber-400 text-[10px]"></i>
+                                </div>
+                            </div>
+                            <p class="text-xs text-slate-600 leading-relaxed font-light">Căn phòng có tầm nhìn ngắm hoàng hôn biển tuyệt đẹp, phòng tắm cực sạch sẽ và nệm ngủ rất êm ái. Xứng đáng số tiền bỏ ra.</p>
+                        </div>
+                        <div class="bg-slate-50 rounded-xl p-4 space-y-2.5">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-8 h-8 bg-amber-500 text-white rounded-full flex items-center justify-center text-[11px] font-bold shrink-0">MT</div>
+                                    <div>
+                                        <p class="text-xs font-bold text-slate-900">Minh Tuấn</p>
+                                        <span class="text-[10px] text-slate-400">Tháng 05/2026</span>
+                                    </div>
+                                </div>
+                                <div class="flex gap-0.5">
+                                    <i class="fa-solid fa-star text-amber-400 text-[10px]"></i>
+                                    <i class="fa-solid fa-star text-amber-400 text-[10px]"></i>
+                                    <i class="fa-solid fa-star text-amber-400 text-[10px]"></i>
+                                    <i class="fa-solid fa-star text-amber-400 text-[10px]"></i>
+                                    <i class="fa-solid fa-star text-amber-400 text-[10px]"></i>
+                                </div>
+                            </div>
+                            <p class="text-xs text-slate-600 leading-relaxed font-light">Cách âm tuyệt vời, dịch vụ ăn sáng tại phòng chu đáo. Hệ thống rèm tự động hoạt động rất thông minh.</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div><!-- /tabs -->
+        </div><!-- /left col -->
+
+        <!-- ─────────────────────────────────────
+             RIGHT COLUMN — Booking Widget
+        ───────────────────────────────────── -->
+        <div class="lg:sticky lg:top-24 space-y-4">
+
+            <div class="bg-white border border-slate-100 rounded-2xl p-6 widget-shadow space-y-5">
+
+                <!-- Price header -->
+                <div class="flex items-start justify-between">
+                    <div>
+                        <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Đơn giá cơ bản</span>
+                        <div class="flex items-baseline gap-1 mt-0.5">
+                            <span class="text-2xl font-black text-blue-950">1.850.000₫</span>
+                            <span class="text-xs text-slate-400 font-semibold">/đêm</span>
+                        </div>
+                    </div>
+                    <span class="bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2.5 py-1.5 rounded-lg border border-emerald-100 flex items-center gap-1 shrink-0">
+                        <i class="fa-solid fa-tag text-[9px]"></i>Ưu đãi hôm nay
+                    </span>
+                </div>
+
+                <!-- Dates -->
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-slate-700 uppercase tracking-wide block">Ngày nhận phòng</label>
+                        <input type="date" id="check-in" value="2026-07-10"
+                               class="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl font-medium focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 cursor-pointer transition-all text-xs"/>
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-slate-700 uppercase tracking-wide block">Ngày trả phòng</label>
+                        <input type="date" id="check-out" value="2026-07-12"
+                               class="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl font-medium focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 cursor-pointer transition-all text-xs"/>
+                    </div>
+                </div>
+
+                <!-- Guests -->
+                <div class="space-y-1 text-xs">
+                    <label class="text-[10px] font-bold text-slate-700 uppercase tracking-wide block">Số lượng khách</label>
+                    <select class="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl font-medium appearance-none focus:outline-none focus:ring-2 focus:ring-amber-400 cursor-pointer transition-all text-xs">
+                        <option>2 Người lớn</option>
+                        <option>1 Người lớn</option>
+                    </select>
+                </div>
+
+                <!-- Promo code -->
+                <div class="space-y-1">
+                    <label class="text-[10px] font-bold text-slate-700 uppercase tracking-wide block">Mã khuyến mãi</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="promo-code" placeholder="Nhập mã giảm giá..."
+                               class="promo-input flex-1 bg-slate-50 border border-slate-200 p-3 rounded-xl font-medium text-xs placeholder:text-slate-300 transition-all"/>
+                        <button onclick="applyPromo()"
+                                class="bg-slate-900 hover:bg-blue-950 text-white text-xs font-bold px-4 rounded-xl transition-all duration-200 shrink-0 whitespace-nowrap">
+                            Áp dụng
+                        </button>
+                    </div>
+                    <p id="promo-message" class="text-[10px] font-medium mt-1 hidden"></p>
+                </div>
+
+                <!-- Price summary -->
+                <div class="pt-4 border-t border-slate-100 space-y-2 text-xs font-medium text-slate-600">
+                    <div class="flex justify-between">
+                        <span>1.850.000₫ × <span id="night-count" class="font-bold text-slate-900">2</span> đêm</span>
+                        <span id="subtotal-price">3.700.000₫</span>
+                    </div>
+                    <div id="discount-row" class="flex justify-between text-emerald-600 discount-hidden">
+                        <span id="discount-label">Giảm giá</span>
+                        <span id="discount-amount">-0₫</span>
+                    </div>
+                    <div class="flex justify-between text-slate-900 font-bold text-sm pt-3 border-t border-dashed border-slate-100 mt-1">
+                        <span>Tổng thanh toán</span>
+                        <span id="total-price" class="text-amber-600 font-black text-base">3.700.000₫</span>
+                    </div>
+                </div>
+
+                <!-- CTA -->
+                <div class="flex gap-2.5 pt-1">
+                    <button class="btn-shimmer flex-1 bg-gradient-to-r from-blue-950 to-slate-900 hover:from-blue-900 hover:to-slate-950 text-white font-bold py-4 rounded-xl text-xs uppercase tracking-wider shadow-lg shadow-blue-950/20 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200">
+                        <i class="fa-solid fa-calendar-check mr-2"></i>Đặt phòng ngay
+                    </button>
+                    <button class="heart-btn border border-slate-200 hover:border-red-200 hover:bg-red-50 text-slate-500 hover:text-red-500 px-4 rounded-xl text-base transition-all duration-200 shadow-sm">
+                        <i class="fa-regular fa-heart"></i>
+                    </button>
+                </div>
+
+                <p class="text-[10px] text-slate-400 text-center">
+                    <i class="fa-solid fa-shield-halved text-slate-300 mr-1"></i>
+                    Đặt ngay, hủy miễn phí trước 48 giờ
+                </p>
+            </div>
+
+            <!-- Trust badges -->
+            <div class="bg-white border border-slate-100 rounded-2xl p-4 card-shadow">
+                <div class="grid grid-cols-3 gap-3 text-center text-[10px] font-medium text-slate-500">
+                    <div class="space-y-1.5">
+                        <i class="fa-solid fa-lock text-blue-400 block text-base"></i>
+                        <span>Thanh toán<br>bảo mật</span>
+                    </div>
+                    <div class="space-y-1.5">
+                        <i class="fa-solid fa-headset text-amber-400 block text-base"></i>
+                        <span>Hỗ trợ<br>24/7</span>
+                    </div>
+                    <div class="space-y-1.5">
+                        <i class="fa-solid fa-rotate-left text-emerald-400 block text-base"></i>
+                        <span>Hoàn tiền<br>nhanh chóng</span>
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- /right col -->
+    </div>
+</main>
+</div><!-- /pt-20 -->
+
+<!-- ═══════════════════════════════════════════════
+     MOBILE — Sticky bottom booking bar
+═══════════════════════════════════════════════ -->
+<div class="mobile-bar fixed bottom-0 left-0 right-0 z-40 glass px-4 py-3 flex items-center justify-between" style="border-top:1px solid rgba(255,255,255,0.3)">
+    <div>
+        <span class="text-[10px] text-slate-500 font-medium block">Giá từ</span>
+        <div class="flex items-baseline gap-1">
+            <span class="text-lg font-black text-blue-950">1.850.000₫</span>
+            <span class="text-xs text-slate-400">/đêm</span>
+        </div>
+    </div>
+    <button class="btn-shimmer bg-gradient-to-r from-blue-950 to-slate-900 text-white font-bold py-3 px-7 rounded-xl text-xs uppercase tracking-wider shadow-md">
+        <i class="fa-solid fa-calendar-check mr-1.5"></i>Đặt phòng ngay
+    </button>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     FOOTER
+═══════════════════════════════════════════════ -->
+<footer class="bg-blue-950 text-slate-400 pt-12 pb-6 border-t border-slate-900/50 mt-20 text-xs font-light">
+    <div class="max-w-7xl mx-auto px-6 lg:px-8 grid grid-cols-1 md:grid-cols-3 gap-8 border-b border-slate-900/60 pb-8 mb-6">
+        <div class="space-y-3">
+            <div class="flex items-center gap-2.5">
+                <span class="bg-amber-500 text-white p-1.5 rounded-lg text-sm"><i class="fa-solid fa-hotel"></i></span>
+                <span class="text-white text-base font-extrabold tracking-tight">LuxeHotel Global</span>
+            </div>
+            <p class="max-w-xs leading-relaxed">Hệ thống đặt phòng resort, khách sạn nghỉ dưỡng chuẩn 5 sao quốc tế hàng đầu tại Việt Nam.</p>
+        </div>
+        <div class="space-y-2">
+            <h4 class="text-white font-bold uppercase text-[11px] tracking-wider mb-3">Thông tin liên hệ</h4>
+            <p class="flex items-center gap-2"><i class="fa-solid fa-phone text-amber-500/60 w-4"></i>Hotline hỗ trợ: 1900 6868</p>
+            <p class="flex items-center gap-2"><i class="fa-solid fa-envelope text-amber-500/60 w-4"></i>Email: booking@luxehotel.com</p>
+        </div>
+        <div class="md:text-right space-y-2">
+            <h4 class="text-white font-bold uppercase text-[11px] tracking-wider mb-3">Mạng xã hội</h4>
+            <div class="flex md:justify-end gap-2">
+                <a href="#" class="w-8 h-8 bg-white/5 hover:bg-amber-500 hover:text-white text-slate-300 rounded-lg flex items-center justify-center transition-all duration-200 text-sm">
+                    <i class="fa-brands fa-facebook"></i>
+                </a>
+                <a href="#" class="w-8 h-8 bg-white/5 hover:bg-amber-500 hover:text-white text-slate-300 rounded-lg flex items-center justify-center transition-all duration-200 text-sm">
+                    <i class="fa-brands fa-instagram"></i>
+                </a>
+                <a href="#" class="w-8 h-8 bg-white/5 hover:bg-amber-500 hover:text-white text-slate-300 rounded-lg flex items-center justify-center transition-all duration-200 text-sm">
+                    <i class="fa-brands fa-linkedin"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="max-w-7xl mx-auto px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center text-[11px] text-slate-500 gap-2">
+        <span>&copy; 2026 LuxeHotel Management. All rights reserved.</span>
+        <div class="flex gap-4">
+            <a href="#" class="hover:text-amber-400 transition-colors">Điều khoản bảo mật</a>
+            <a href="#" class="hover:text-amber-400 transition-colors">Chính sách hủy phòng</a>
+        </div>
+    </div>
+</footer>
+
+<script>
+// ═══════════════════════════════════════════════
+// PRICE CALCULATION (original logic — preserved)
+// ═══════════════════════════════════════════════
+const checkIn  = document.getElementById('check-in');
+const checkOut = document.getElementById('check-out');
+const nightCount    = document.getElementById('night-count');
+const subtotalPrice = document.getElementById('subtotal-price');
+const totalPrice    = document.getElementById('total-price');
+
+let activeDiscount = 0;
+
+function reCalculateBill() {
+    const dateIn  = new Date(checkIn.value);
+    const dateOut = new Date(checkOut.value);
+
+    if (dateOut > dateIn) {
+        const calculatedNights = Math.ceil(Math.abs(dateOut - dateIn) / (1000 * 60 * 60 * 24));
+        nightCount.innerText = calculatedNights;
+
+        const basePricePerNight = 1850000;
+        const finalSum = basePricePerNight * calculatedNights;
+
+        subtotalPrice.innerText = finalSum.toLocaleString('vi-VN') + '₫';
+
+        if (activeDiscount > 0) {
+            const discountAmt = Math.round(finalSum * activeDiscount);
+            document.getElementById('discount-amount').innerText = '-' + discountAmt.toLocaleString('vi-VN') + '₫';
+            totalPrice.innerText = (finalSum - discountAmt).toLocaleString('vi-VN') + '₫';
+        } else {
+            totalPrice.innerText = finalSum.toLocaleString('vi-VN') + '₫';
+        }
+    } else {
+        nightCount.innerText = '0';
+        subtotalPrice.innerText = '0₫';
+        totalPrice.innerText = '0₫';
+    }
+}
+
+checkIn.addEventListener('change', reCalculateBill);
+checkOut.addEventListener('change', reCalculateBill);
+
+// ═══════════════════════════════════════════════
+// PROMO CODE
+// ═══════════════════════════════════════════════
+const PROMO_CODES = {
+    'LUXE10':  { discount: 0.10, label: 'Giảm 10%' },
+    'VIP20':   { discount: 0.20, label: 'Giảm 20%' },
+    'OCEAN15': { discount: 0.15, label: 'Giảm 15%' },
+};
+
+function applyPromo() {
+    const code = document.getElementById('promo-code').value.trim().toUpperCase();
+    const msgEl       = document.getElementById('promo-message');
+    const discountRow = document.getElementById('discount-row');
+    const discountLbl = document.getElementById('discount-label');
+
+    msgEl.classList.remove('hidden');
+
+    if (PROMO_CODES[code]) {
+        const promo = PROMO_CODES[code];
+        activeDiscount = promo.discount;
+        discountLbl.innerText = promo.label;
+        discountRow.classList.remove('discount-hidden');
+        msgEl.className = 'text-[10px] font-bold mt-1 text-emerald-600';
+        msgEl.innerText = '✓ Mã hợp lệ! ' + promo.label + ' đã được áp dụng.';
+    } else if (code === '') {
+        msgEl.className = 'text-[10px] font-medium mt-1 text-slate-400';
+        msgEl.innerText = 'Vui lòng nhập mã khuyến mãi.';
+    } else {
+        activeDiscount = 0;
+        discountRow.classList.add('discount-hidden');
+        msgEl.className = 'text-[10px] font-medium mt-1 text-red-500';
+        msgEl.innerText = '✗ Mã không hợp lệ hoặc đã hết hạn.';
+    }
+    reCalculateBill();
+}
+
+document.getElementById('promo-code').addEventListener('keydown', e => {
+    if (e.key === 'Enter') applyPromo();
+});
+
+// ═══════════════════════════════════════════════
+// INTERACTIVE TABS
+// ═══════════════════════════════════════════════
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', function () {
+        const tab = this.dataset.tab;
+
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('is-active'));
+        this.classList.add('is-active');
+
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('is-active'));
+        document.getElementById('tab-' + tab).classList.add('is-active');
+    });
+});
+
+// ═══════════════════════════════════════════════
+// SCROLL REVEAL — Intersection Observer
+// ═══════════════════════════════════════════════
+const revealObs = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            revealObs.unobserve(entry.target);
+        }
+    });
+}, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+
+document.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+</script>
+</body>
+</html>

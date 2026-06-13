@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 // 🔥 INTERFACE MỚI: Khớp 100% với DTO phẳng xử lý lịch sử của Backend Java
 export interface BookingHistoryResponseDTO {
@@ -50,9 +51,8 @@ export interface WalkInBookingRequestDTO {
 })
 export class BookingManagementService {
   
-  private apiUrl = 'http://localhost:8080/api/bookings/management/bookings';
-  // 🔥 Khai báo endpoint riêng kết nối trực tiếp đến ReviewController của bạn
-  private reviewApiUrl = 'http://localhost:8080/api/reviews'; 
+  private apiUrl = `${environment.apiUrl}/bookings/management/bookings`;
+  private reviewApiUrl = `${environment.apiUrl}/reviews`;
 
   constructor(private http: HttpClient) {}
 
@@ -87,7 +87,7 @@ export class BookingManagementService {
   }
 
   getDashboardStats(filterType: string): Observable<any> {
-    return this.http.get<any>(`http://localhost:8080/api/bookings/management/dashboard-stats`, {
+    return this.http.get<any>(`${environment.apiUrl}/bookings/management/dashboard-stats`, {
       params: { filterType }
     });
   }
@@ -101,7 +101,7 @@ export class BookingManagementService {
    * Gửi yêu cầu lấy lịch sử bằng trường định danh duy nhất Username
    */
   getCustomerHistory(): Observable<BookingHistoryResponseDTO[]> {
-    return this.http.get<BookingHistoryResponseDTO[]>(`http://localhost:8080/api/bookings/customer/history`);
+    return this.http.get<BookingHistoryResponseDTO[]>(`${environment.apiUrl}/bookings/customer/history`);
   }
 
   // =========================================================================

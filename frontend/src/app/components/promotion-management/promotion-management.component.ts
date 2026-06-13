@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { PromotionRequestDTO, PromotionResponseDTO } from '../../models/admin-management.model';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-promotion-management',
@@ -18,7 +19,7 @@ export class PromotionManagementComponent implements OnInit {
   // Khởi tạo Object mẫu rỗng để lưu trữ tạm thời dữ liệu người dùng gõ vào form
   newPromo: PromotionRequestDTO = { code: '', discountPercentage: 10, startDate: '', endDate: '' };
 
-  private baseApiUrl = 'http://localhost:8080/api/bookings/management/promotions';
+  private baseApiUrl = `${environment.apiUrl}/bookings/management/promotions`;
 
   constructor(private http: HttpClient) {}
 

@@ -1,0 +1,79 @@
+/* ─── Glassmorphism badge ─── */
+.glass-badge {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+}
+
+/* ─── Gallery ─── */
+.gallery-img img {
+  transition: transform 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.gallery-img:hover img {
+  transform: scale(1.06);
+}
+.gallery-grad {
+  background: linear-gradient(to top, rgba(15, 23, 42, 0.4) 0%, transparent 55%);
+}
+
+/* ─── Shimmer CTA ─── */
+.btn-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.btn-shimmer::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -75%;
+  width: 50%;
+  height: 200%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.16), transparent);
+  transform: skewX(-20deg);
+  animation: shimmer 2.8s infinite;
+}
+@keyframes shimmer {
+  0%   { left: -75%; }
+  100% { left: 125%; }
+}
+
+/* ─── Tabs ─── */
+.tab-btn {
+  color: #94a3b8;
+  border-bottom: 2px solid transparent;
+  transition: color 0.2s ease, border-color 0.2s ease;
+  background: transparent;
+  cursor: pointer;
+
+  &:hover {
+    color: #475569;
+  }
+
+  &.tab-active {
+    color: #0f172a;
+    border-bottom-color: #f59e0b;
+  }
+}
+
+/* ─── Amenity card hover ─── */
+.amenity-card {
+  transition: all 0.22s ease;
+  cursor: default;
+
+  &:hover {
+    background: #fffbeb;
+    border-color: #fde68a;
+    transform: translateY(-2px);
+  }
+}
+
+/* ─── Hide scrollbar (thumbnail strip) ─── */
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}

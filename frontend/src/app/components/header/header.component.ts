@@ -46,23 +46,17 @@ export class HeaderComponent implements OnInit {
   }
 
   logout(): void {
+    if (!confirm('Bạn có chắc chắn muốn đăng xuất?')) return;
     this.isDropdownOpen = false;
     this.authService.logout();
-    this.router.navigate(['/login']); 
   }
 
   onRoomsClick(): void {
-    console.log("Đã click vào menu Phòng");
     this.router.navigate(['/rooms']);
   }
 
-  /**
-   * 🔥 HÀM MỚI ĐƯỢC THÊM:
-   * Xử lý đóng Dropdown và ép lệnh chuyển trang sang trang Lịch sử đặt phòng
-   */
   onHistoryClick(): void {
-    this.isDropdownOpen = false; // Đóng menu thả xuống ngay lập tức
-    console.log("Đang điều hướng sang trang Lịch sử đặt phòng...");
-    this.router.navigate(['/history']); // Kích hoạt bộ định tuyến chuyển sang màn hình lịch sử
+    this.isDropdownOpen = false;
+    this.router.navigate(['/history']);
   }
 }

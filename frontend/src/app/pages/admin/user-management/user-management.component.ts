@@ -1,8 +1,9 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router'; // Inject Router để điều hướng chuẩn Angular
+import { Router } from '@angular/router';
 import { UserAdminService } from '../../../services/user-admin.service';
+import { AuthService } from '../../../services/auth.service';
 import { User } from '../../../models/user.model';
 
 @Component({
@@ -13,6 +14,7 @@ import { User } from '../../../models/user.model';
 })
 export class UserManagementComponent implements OnInit {
   private userAdminService = inject(UserAdminService);
+  private authService = inject(AuthService);
   private router = inject(Router);
 
   // Danh sách dữ liệu
@@ -137,16 +139,9 @@ export class UserManagementComponent implements OnInit {
     }
   }
 
-  // Đăng xuất và điều hướng về trang chủ
   logout(): void {
-    if (confirm('Bạn có chắc chắn muốn đăng xuất?')) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      // Sử dụng router để điều hướng mượt mà đúng chuẩn Angular
-      this.router.navigate(['/home']).then(() => {
-        window.location.reload(); // Reload để xóa sạch state cũ
-      });
-    }
+    if (!confirm('Bạn có chắc chắn muốn đăng xuất?')) return;
+    this.authService.logout();
   }
 
   private resetNewStaffForm(): void {

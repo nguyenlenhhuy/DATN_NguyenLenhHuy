@@ -17,7 +17,8 @@ import { PromotionManagementComponent } from './components/promotion-management/
 import { ReviewManagementComponent } from './components/review-management/review-management.component';
 
 // Guard kiểm tra đặc quyền ADMIN cao cấp
-import { adminGuard } from './guards/admin.guard'; 
+import { adminGuard } from './guards/admin.guard';
+import { authGuard } from './guards/auth.guard';
 import { FavoritesComponent } from './pages/favorites/favorites.component';
 import { RoomDetailComponent } from './pages/room-detail/room-detail.component';
 import { BookingHistoryComponent } from './components/booking-history/booking-history.component';
@@ -32,18 +33,17 @@ export const routes: Routes = [
   { path: 'login', component: LoginComponent },
   { path: 'register', component: RegisterComponent },
   { path: 'forgot-password', component: ForgotPasswordComponent },
-  { path: 'profile', component: ProfileComponent }, 
-  { path: 'favorites', component: FavoritesComponent }, 
-  
-  // ✔️ ĐÃ ĐẨY LÊN ĐÂY: Nằm trong vùng an toàn, không lo bị chặn ngầm nữa
-  { path: 'history', component: BookingHistoryComponent }, 
+  { path: 'profile',   component: ProfileComponent,        canActivate: [authGuard] },
+  { path: 'favorites', component: FavoritesComponent,      canActivate: [authGuard] },
+  { path: 'history',   component: BookingHistoryComponent, canActivate: [authGuard] },
 
   // ===========================================================================
   // 2. PHÂN HỆ QUẢN TRỊ & VẬN HÀNH KHÁCH SẠN (ADMIN & STAFF PANEL)
   // ===========================================================================
-  { 
-    path: 'admin', 
-    component: AdminLayoutComponent, 
+  {
+    path: 'admin',
+    component: AdminLayoutComponent,
+    canActivate: [adminGuard],
     children: [
       { 
         path: 'overview', 

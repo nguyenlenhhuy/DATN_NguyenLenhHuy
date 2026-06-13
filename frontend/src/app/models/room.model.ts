@@ -19,6 +19,8 @@ export interface RoomResponseDTO {
   status: string | null;
   maxGuests?: number;
   rating?: number;
+  hotelAddress?: string;
+  hotelStarRating?: number;
   
   // SỬA Ở ĐÂY: Dùng mảng appliedPromotions thay vì promotionCode
   appliedPromotions?: PromotionDTO[]; 

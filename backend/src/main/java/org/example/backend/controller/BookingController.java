@@ -19,7 +19,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 
+import org.springframework.format.annotation.DateTimeFormat;
+
 import java.security.Principal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
@@ -47,8 +50,10 @@ public class BookingController {
     }
 
     @GetMapping("/management/bookings/available-rooms")
-    public ResponseEntity<List<String>> getAvailableRooms() {
-        return ResponseEntity.ok(managementService.getAvailableRoomNumbers());
+    public ResponseEntity<List<String>> getAvailableRooms(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkIn,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkOut) {
+        return ResponseEntity.ok(managementService.getAvailableRoomNumbers(checkIn, checkOut));
     }
 
     @PostMapping("/management/bookings/walk-in")

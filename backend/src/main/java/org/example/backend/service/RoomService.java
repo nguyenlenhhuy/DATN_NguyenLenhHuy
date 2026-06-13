@@ -46,34 +46,47 @@ public class RoomService {
     public List<RoomResponseDTO> searchRooms(RoomSearchRequest request) {
         Specification<Room> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
-            predicates.add(cb.equal(root.get("isDeleted"), false));
 
+            // Tránh trùng lặp Join bằng cách khai báo rõ ràng (Explicit Join)
+            Join<Room, RoomType> roomTypeJoin = root.join("roomType", JoinType.INNER);
+
+            // 1. Chỉ lấy phòng chưa bị xóa và đang ở trạng thái CÓ THỂ ĐẶT
+            predicates.add(cb.equal(root.get("isDeleted"), false));
+            predicates.add(cb.equal(root.get("status"), org.example.backend.entity.enums.RoomStatus.AVAILABLE));
+
+            // 2. Xử lý khoảng thời gian (Fix lỗi dính Booking đã hủy)
             if (request.getCheckIn() != null && request.getCheckOut() != null) {
                 Subquery<Long> subquery = query.subquery(Long.class);
                 Root<BookingDetail> bDetail = subquery.from(BookingDetail.class);
                 subquery.select(bDetail.get("room").get("id"));
 
+                // Giả sử Booking có trường trạng thái là 'status' (bạn thay đổi cho khớp entity)
                 Predicate overlap = cb.and(
                         cb.lessThan(bDetail.get("booking").get("checkInDate"), request.getCheckOut()),
-                        cb.greaterThan(bDetail.get("booking").get("checkOutDate"), request.getCheckIn())
+                        cb.greaterThan(bDetail.get("booking").get("checkOutDate"), request.getCheckIn()),
+                        // CHỈ lọc những booking đang còn hiệu lực (chưa bị hủy)
+                        cb.notEqual(bDetail.get("booking").get("status"), "CANCELLED")
                 );
                 subquery.where(overlap);
                 predicates.add(cb.not(root.get("id").in(subquery)));
             }
 
+            // 3. Xử lý sức chứa (Chỉ áp dụng nếu user muốn tìm ĐÚNG 1 phòng chứa đủ n người)
             if (request.getGuestCount() != null) {
-                predicates.add(cb.greaterThanOrEqualTo(root.get("roomType").get("maxOccupancy"), request.getGuestCount()));
+                predicates.add(cb.greaterThanOrEqualTo(roomTypeJoin.get("maxOccupancy"), request.getGuestCount()));
             }
 
+            // 4. Xử lý giá cả (Sử dụng Join đã khai báo)
             if (request.getMinPrice() != null) {
-                predicates.add(cb.greaterThanOrEqualTo(root.get("roomType").get("basePrice"), request.getMinPrice()));
+                predicates.add(cb.greaterThanOrEqualTo(roomTypeJoin.get("basePrice"), request.getMinPrice()));
             }
             if (request.getMaxPrice() != null) {
-                predicates.add(cb.lessThanOrEqualTo(root.get("roomType").get("basePrice"), request.getMaxPrice()));
+                predicates.add(cb.lessThanOrEqualTo(roomTypeJoin.get("basePrice"), request.getMaxPrice()));
             }
 
-            if (request.getTypeName() != null && !request.getTypeName().isEmpty()) {
-                predicates.add(cb.equal(root.get("roomType").get("typeName"), request.getTypeName()));
+            // 5. Xử lý loại phòng
+            if (request.getTypeName() != null && !request.getTypeName().trim().isEmpty()) {
+                predicates.add(cb.equal(roomTypeJoin.get("typeName"), request.getTypeName().trim()));
             }
 
             return cb.and(predicates.toArray(new Predicate[0]));
@@ -151,8 +164,10 @@ public class RoomService {
                 .hotelName(room.getHotel() != null ? room.getHotel().getName() : "N/A")
                 .imageUrl(thumbnail)
                 .albumImages(allImages)
-                // 🔥 ĐÍNH KÈM: Gài mảng ưu đãi thật vào DTO để Angular bóc tách giao diện tự động áp mã
                 .appliedPromotions(appliedPromotions)
+                .maxGuests(room.getRoomType() != null ? room.getRoomType().getMaxOccupancy() : null)
+                .hotelAddress(room.getHotel() != null ? room.getHotel().getAddress() : null)
+                .hotelStarRating(room.getHotel() != null ? room.getHotel().getStarRating() : null)
                 .build();
     }
 

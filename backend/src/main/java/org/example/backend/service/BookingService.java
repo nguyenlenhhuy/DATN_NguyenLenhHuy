@@ -19,6 +19,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -85,7 +86,9 @@ public class BookingService {
 
         // Khởi tạo thực thể đơn hàng
         Booking booking = new Booking();
-        booking.setUser(entityManager.getReference(User.class, request.getUserId()));
+        if (request.getUserId() != null) {
+            booking.setUser(entityManager.getReference(User.class, request.getUserId()));
+        }
         booking.setCheckInDate(request.getCheckIn());
         booking.setCheckOutDate(request.getCheckOut());
 
@@ -110,7 +113,7 @@ public class BookingService {
 
         // Khởi tạo bản ghi chi tiết (BookingDetail) nhằm Snapshot lại giá phòng tại thời điểm đặt
         long totalDays = Duration.between(request.getCheckIn().atStartOfDay(), request.getCheckOut().atStartOfDay()).toDays();
-        BigDecimal avgPriceSnapshot = totalPrice.divide(BigDecimal.valueOf(totalDays > 0 ? totalDays : 1), 2, BigDecimal.ROUND_HALF_UP);
+        BigDecimal avgPriceSnapshot = totalPrice.divide(BigDecimal.valueOf(totalDays > 0 ? totalDays : 1), 2, RoundingMode.HALF_UP);
 
         BookingDetail detail = new BookingDetail();
         detail.setBooking(savedBooking);

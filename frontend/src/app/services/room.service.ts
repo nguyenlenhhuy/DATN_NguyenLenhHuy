@@ -2,18 +2,25 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { RoomResponseDTO } from '../models/room.model';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class RoomService {
-  private apiUrl = 'http://localhost:8080/api/rooms'; // Khớp với @RequestMapping("/api/rooms")
+  private apiUrl = `${environment.apiUrl}/rooms`;
 
   constructor(private http: HttpClient) {}
 
-  // Thêm hàm searchRooms
   searchRooms(params: any): Observable<RoomResponseDTO[]> {
-    return this.http.get<RoomResponseDTO[]>(`${this.apiUrl}/search`, { params });
+    const cleanParams: Record<string, string> = {};
+    Object.keys(params).forEach(key => {
+      const val = params[key];
+      if (val !== null && val !== undefined && val !== '') {
+        cleanParams[key] = String(val);
+      }
+    });
+    return this.http.get<RoomResponseDTO[]>(`${this.apiUrl}/search`, { params: cleanParams });
   }
 
   getFeaturedRooms(): Observable<RoomResponseDTO[]> {
@@ -21,7 +28,7 @@ export class RoomService {
   }
 
   getRoomTypes(): Observable<any[]> {
-    return this.http.get<any[]>(`http://localhost:8080/api/v1/management/room-types`);
+    return this.http.get<any[]>(`${environment.apiUrl}/v1/management/room-types`);
   }
 
   getAllRooms(): Observable<RoomResponseDTO[]> {
@@ -31,7 +38,7 @@ export class RoomService {
   // FIX CHUẨN ĐƯỜNG DẪN: Trỏ trực tiếp sang Controller quản lý thực thể Favorites 
   getFavoriteRooms(): Observable<RoomResponseDTO[]> {
     // Không dùng ${this.apiUrl}/favorites vì API gốc nằm ở /api/favorites
-    return this.http.get<RoomResponseDTO[]>('http://localhost:8080/api/favorites');
+    return this.http.get<RoomResponseDTO[]>(`${environment.apiUrl}/favorites`);
   }
   getRoomById(id: number): Observable<RoomResponseDTO> {
     return this.http.get<RoomResponseDTO>(`${this.apiUrl}/${id}`);

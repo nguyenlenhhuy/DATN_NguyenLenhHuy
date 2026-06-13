@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -74,25 +75,48 @@ public class ManagementService {
     }
 
     /**
-     * API Gợi ý: Lấy danh sách toàn bộ Số phòng đang trống (AVAILABLE) thời gian thực
+     * Lấy danh sách phòng trống cho form walk-in.
+     * Nếu cung cấp checkIn/checkOut, loại trừ các phòng có lịch đặt chồng chéo (kể cả PENDING online).
+     * Nếu không có ngày, trả về tất cả phòng có status = AVAILABLE.
      */
     @Transactional(readOnly = true)
-    public List<String> getAvailableRoomNumbers() {
-        return roomRepository.findAllByStatus(RoomStatus.AVAILABLE).stream()
+    public List<String> getAvailableRoomNumbers(LocalDate checkIn, LocalDate checkOut) {
+        List<Room> availableRooms = roomRepository.findAllByStatus(RoomStatus.AVAILABLE);
+        if (checkIn == null || checkOut == null) {
+            return availableRooms.stream().map(Room::getRoomNumber).collect(Collectors.toList());
+        }
+        // Bug 3 fix: loại trừ phòng có booking PENDING/CONFIRMED/CHECK_IN trùng khoảng thời gian
+        return availableRooms.stream()
+                .filter(room -> !bookingRepository.isRoomOccupied(room.getId(), checkIn, checkOut))
                 .map(Room::getRoomNumber)
                 .collect(Collectors.toList());
     }
 
     /**
      * Nghiệp vụ Khởi tạo đơn thuê phòng trực tiếp tại quầy Lễ tân (Walk-in)
+     *
+     * Fix Bug 1: Thêm isRoomOccupied — kiểm tra lịch đặt phòng chồng chéo (bao gồm cả đơn PENDING online)
+     * Fix Bug 2: Dùng findByRoomNumberWithLock — Pessimistic Lock chống race condition 2 lễ tân đặt đồng thời
+     * Fix Bug 5: Guard endDate == null khi validate coupon — tránh NullPointerException
+     * Fix Bug 6: amountPaid = ZERO khi UNPAID — sửa mâu thuẫn dữ liệu "có tiền nhưng chưa thanh toán"
      */
     @Transactional
     public void createWalkInBooking(WalkInBookingRequestDTO request) {
-        Room room = roomRepository.findByRoomNumber(request.getRoomNumber())
+        // Bug 2 fix: Pessimistic Lock — chặn 2 lễ tân đặt cùng phòng đồng thời
+        Room room = roomRepository.findByRoomNumberWithLock(request.getRoomNumber())
                 .orElseThrow(() -> new RuntimeException("Số phòng " + request.getRoomNumber() + " không tồn tại!"));
 
         if (room.getStatus() != RoomStatus.AVAILABLE) {
             throw new RuntimeException("Phòng số " + request.getRoomNumber() + " hiện tại không sẵn sàng đón khách!");
+        }
+
+        // Bug 1 fix: Kiểm tra lịch đặt chồng chéo — bắt cả đơn PENDING/CONFIRMED/CHECK_IN của online
+        boolean occupied = bookingRepository.isRoomOccupied(
+                room.getId(), request.getCheckInDate(), request.getCheckOutDate());
+        if (occupied) {
+            throw new RuntimeException("Phòng " + request.getRoomNumber()
+                    + " đã có lịch đặt trong khoảng " + request.getCheckInDate()
+                    + " → " + request.getCheckOutDate() + ". Vui lòng kiểm tra lại!");
         }
 
         // Tính số đêm lưu trú thực tế
@@ -102,21 +126,27 @@ public class ManagementService {
         BigDecimal basePricePerNight = room.getRoomType().getBasePrice();
         BigDecimal originalTotalPrice = basePricePerNight.multiply(BigDecimal.valueOf(totalNights));
 
-        // Kiểm tra và áp dụng mã voucher chiết khấu tiền phòng
+        // Bug 5 fix: Guard null trước khi gọi isBefore/isAfter trên endDate (tránh NPE)
         BigDecimal discountAmount = BigDecimal.ZERO;
         Promotion promotion = null;
         if (request.getAppliedCode() != null && !request.getAppliedCode().trim().isEmpty()) {
             promotion = promotionRepository.findByCodeIgnoreCaseAndIsActiveTrue(request.getAppliedCode().trim()).orElse(null);
             if (promotion != null) {
-                if (!request.getCheckInDate().isBefore(promotion.getStartDate()) && !request.getCheckInDate().isAfter(promotion.getEndDate())) {
+                boolean validStart = promotion.getStartDate() == null
+                        || !request.getCheckInDate().isBefore(promotion.getStartDate());
+                boolean validEnd = promotion.getEndDate() == null
+                        || !request.getCheckInDate().isAfter(promotion.getEndDate());
+                if (validStart && validEnd) {
                     BigDecimal percent = BigDecimal.valueOf(promotion.getDiscountPercentage());
-                    discountAmount = originalTotalPrice.multiply(percent).divide(BigDecimal.valueOf(100));
+                    discountAmount = originalTotalPrice
+                            .multiply(percent)
+                            .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
                 }
             }
         }
         BigDecimal finalAmount = originalTotalPrice.subtract(discountAmount);
 
-        // Khởi tạo thực thể Booking (Lưu thông tin định danh trực tiếp, không bắt buộc user_id)
+        // Khởi tạo thực thể Booking — lưu thông tin khách quầy trực tiếp, không cần tài khoản
         Booking booking = Booking.builder()
                 .user(null)
                 .customerName(request.getCustomerName().trim())
@@ -133,22 +163,23 @@ public class ManagementService {
                 .build();
         booking = bookingRepository.save(booking);
 
-        // Ghi nhận Snapshot bảng giá chi tiết đơn phòng
+        // Snapshot giá phòng tại thời điểm đặt
         BookingDetail detail = new BookingDetail();
         detail.setBooking(booking);
         detail.setRoom(room);
         detail.setPriceAtBooking(basePricePerNight);
         bookingDetailRepository.save(detail);
 
-        // Chuyển đổi trạng thái vật lý của phòng sang Đang có người ở
+        // Chuyển trạng thái phòng sang OCCUPIED ngay (khách walk-in đã có mặt)
         room.setStatus(RoomStatus.OCCUPIED);
         roomRepository.save(room);
 
-        // Phát hành hóa đơn Tiền mặt mặc định ở quầy trạng thái chờ thanh toán lúc trả phòng
+        // Bug 6 fix: amountPaid phải là ZERO khi status UNPAID — khách trả khi checkout
+        // (amountPaid sẽ được điền đúng tại bước checkOut → processCheckOut)
         Invoice invoice = Invoice.builder()
                 .booking(booking)
                 .paymentMethod(PaymentMethod.CASH)
-                .amountPaid(finalAmount)
+                .amountPaid(BigDecimal.ZERO)
                 .paymentStatus(PaymentStatus.UNPAID)
                 .createdAt(LocalDateTime.now())
                 .build();

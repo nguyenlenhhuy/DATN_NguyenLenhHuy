@@ -46,33 +46,36 @@ export class RoomsComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.loadAllRooms();
     this.loadRoomTypes();
 
-    // Hứng dữ liệu tìm kiếm truyền từ URL (ví dụ: Từ Header hoặc Trang chủ)
     this.route.queryParams.subscribe(params => {
       this.urlKeyword = params['q'] || '';
-      
+
       if (params['typeName']) {
         this.searchRequest.typeName = params['typeName'];
       } else if (this.urlKeyword) {
         this.searchRequest.typeName = this.urlKeyword;
       }
-      
-      this.searchRequest.checkIn = params['checkIn'] || null;
+
+      this.searchRequest.checkIn  = params['checkIn']  || null;
       this.searchRequest.checkOut = params['checkOut'] || null;
-      this.searchRequest.guestCount = params['guestCount'] || null;
+      this.searchRequest.guestCount = params['guestCount'] ? Number(params['guestCount']) : null;
 
       this.minPrice = params['minPrice'] ? Number(params['minPrice']) : 0;
       this.maxPrice = params['maxPrice'] ? Number(params['maxPrice']) : 10000000;
 
-      // Đồng bộ thẻ Select với URL
       const presetStr = `${this.minPrice}-${this.maxPrice}`;
       const validPresets = ['0-10000000', '0-1000000', '1000000-3000000', '3000000-5000000', '5000000-10000000'];
-      if (validPresets.includes(presetStr)) {
-        this.selectedPricePreset = presetStr;
+      this.selectedPricePreset = validPresets.includes(presetStr) ? presetStr : 'custom';
+
+      // Auto-search nếu URL có bất kỳ filter nào; không thì tải toàn bộ phòng
+      const hasFilters = params['guestCount'] || params['checkIn'] || params['checkOut']
+                      || params['typeName']   || params['q']
+                      || params['minPrice']   || params['maxPrice'];
+      if (hasFilters) {
+        this.searchRooms();
       } else {
-        this.selectedPricePreset = 'custom';
+        this.loadAllRooms();
       }
     });
   }
@@ -166,7 +169,7 @@ export class RoomsComponent implements OnInit {
     this.floors = Array.from(floorSet).sort((a, b) => parseInt(a) - parseInt(b));
   }
 
-  // Logic lọc kết hợp (Tầng + Loại phòng + Khoảng giá)
+  // Logic lọc kết hợp (Tầng + Loại phòng + Khoảng giá + Sức chứa)
   get filteredRooms(): any[] {
     return this.rooms.filter(room => {
       const numStr = room.roomNumber.toString().trim();
@@ -174,19 +177,22 @@ export class RoomsComponent implements OnInit {
       const matchFloor = this.selectedFloor === 'ALL' || floorStr === this.selectedFloor;
 
       const keywordToSearch = this.searchRequest.typeName || this.urlKeyword;
-      const matchKeyword = !keywordToSearch || 
+      const matchKeyword = !keywordToSearch ||
         room.roomNumber.toString().toLowerCase().includes(keywordToSearch.toLowerCase()) ||
         (room.typeName && room.typeName.toLowerCase().includes(keywordToSearch.toLowerCase()));
 
-      const currentPrice = room.appliedPromotion 
-        ? room.price * (1 - room.appliedPromotion.discountPercentage / 100) 
+      const currentPrice = room.appliedPromotion
+        ? room.price * (1 - room.appliedPromotion.discountPercentage / 100)
         : room.price;
-        
       const safeMin = this.minPrice || 0;
       const safeMax = this.maxPrice || 999999999;
       const matchPrice = currentPrice >= safeMin && currentPrice <= safeMax;
 
-      return matchFloor && matchKeyword && matchPrice;
+      // Lọc theo sức chứa: chỉ hiện phòng có maxGuests >= số khách yêu cầu
+      const guestFilter = this.searchRequest.guestCount ? Number(this.searchRequest.guestCount) : null;
+      const matchGuests = !guestFilter || !room.maxGuests || room.maxGuests >= guestFilter;
+
+      return matchFloor && matchKeyword && matchPrice && matchGuests;
     });
   }
 

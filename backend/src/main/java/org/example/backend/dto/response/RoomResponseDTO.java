@@ -23,5 +23,8 @@ public class RoomResponseDTO {
     private List<String> albumImages; // Danh sách toàn bộ ảnh phục vụ Modal chỉnh sửa
     private boolean isDeleted;
     private List<PromotionResponseDTO> appliedPromotions;
+    private Integer maxGuests;
+    private String hotelAddress;
+    private Integer hotelStarRating;
 
 }

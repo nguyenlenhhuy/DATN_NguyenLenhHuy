@@ -27,13 +27,7 @@ export const adminGuard: CanActivateFn = (route, state) => {
     }
   }
 
-  // Debug để bạn kiểm tra trong Tab Console (F12)
-  console.log('--- Hệ thống kiểm tra Guard ---');
-  console.log('1. Trạng thái đăng nhập:', isLoggedIn);
-  console.log('2. Quyền hạn gốc:', rawRole);
-  console.log('3. Quyền hạn sau khi xử lý:', role);
-
-  // --- LOGIC KIỂM TRA QUYỀN (Giữ nguyên của bạn và tối ưu thêm) ---
+  // --- LOGIC KIỂM TRA QUYỀN ---
   if (isLoggedIn && role) {
     const upperRole = role.toUpperCase();
     
@@ -43,10 +37,6 @@ export const adminGuard: CanActivateFn = (route, state) => {
     }
   }
 
-  // Nếu không có quyền hoặc chưa đăng nhập
-  console.error('Truy cập bị từ chối: Bạn không có quyền Admin hoặc Staff để vào khu vực này.');
-  
-  // Điều hướng về trang login
   router.navigate(['/login']);
   return false;
 };

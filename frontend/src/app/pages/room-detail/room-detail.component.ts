@@ -4,12 +4,13 @@ import { ActivatedRoute, RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 
 import { RoomService } from '../../services/room.service';
-import { RoomResponseDTO as RoomModelDTO } from '../../models/room.model'; 
+import { RoomResponseDTO as RoomModelDTO } from '../../models/room.model';
 import { HeaderComponent } from '../../components/header/header.component';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { ReviewService, ReviewRequestDTO, ReviewResponseDTO } from '../../services/review.service'; 
+import { ReviewService, ReviewRequestDTO, ReviewResponseDTO } from '../../services/review.service';
 import { BookingService, BookingRequestDTO } from '../../services/booking.service';
 import { AuthService } from '../../services/auth.service';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-room-detail',
@@ -38,7 +39,8 @@ export class RoomDetailComponent implements OnInit {
   isSubmittingReview: boolean = false; 
   currentBookingId: number = 1; 
 
-  reviews: ReviewResponseDTO[] = []; 
+  reviews: ReviewResponseDTO[] = [];
+  activeTab: string = 'intro';
 
   constructor(
     private route: ActivatedRoute,
@@ -190,7 +192,7 @@ export class RoomDetailComponent implements OnInit {
       .set('code', cleanCode)
       .set('amount', baseAmount.toString());
 
-    this.http.get<any>('http://localhost:8080/api/bookings/management/promotions/validate', { params }).subscribe({
+    this.http.get<any>(`${environment.apiUrl}/bookings/management/promotions/validate`, { params }).subscribe({
       next: (res) => {
         this.discount = res.discountAmount;
         this.updateFinalPrice();
@@ -322,6 +324,10 @@ submitReview(): void {
         alert(err.error?.message || 'Có lỗi xảy ra khi gửi đánh giá. Vui lòng thử lại.');
       }
     });
+  }
+
+  setTab(tab: string): void {
+    this.activeTab = tab;
   }
 
   private formatDateToYYYYMMDD(date: Date): string {

@@ -2,13 +2,14 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { User } from '../models/user.model';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class UserAdminService {
   private http = inject(HttpClient);
-  private readonly API_URL = 'http://localhost:8080/api/admin/users';
+  private readonly API_URL = `${environment.apiUrl}/admin/users`;
 
   // Lấy toàn bộ danh sách người dùng
   getAllUsers(): Observable<User[]> {

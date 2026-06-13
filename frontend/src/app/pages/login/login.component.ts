@@ -35,47 +35,16 @@ export class LoginComponent implements OnInit {
   onLogin(): void {
     this.errorMessage = '';
     this.isLoading = true;
-    
+
     this.authService.login(this.loginData).subscribe({
-      next: (res) => {
-        const token = res.accessToken; 
-        const role = (res.role || '').toUpperCase(); 
+      next: () => {
+        // auth.service.ts tap() đã xử lý: lưu token/username/role, gọi setLoginStatus(true)
+        const role = this.authService.getRole()?.toUpperCase() ?? '';
 
-        if (token) {
-          // Lưu các trường đơn lẻ
-          localStorage.setItem('token', token);
-          localStorage.setItem('role', role);
-          localStorage.setItem('username', res.username);
-          
-          // Đóng gói thông tin tài khoản thành chuỗi JSON
-          const userSession = {
-            id: res.id,
-            username: res.username,
-            role: role
-          };
-          localStorage.setItem('currentUser', JSON.stringify(userSession));
+        const targetUrl = this.returnUrl ||
+          ((role === 'ADMIN' || role === 'STAFF') ? '/admin/overview' : '/home');
 
-          // Cập nhật trạng thái đăng nhập toàn cục
-          this.authService.setLoginStatus(true);
-
-          // 4. XỬ LÝ CHUYỂN HƯỚNG THÔNG MINH
-          let targetUrl = this.returnUrl;
-
-          // Nếu không có returnUrl (người dùng tự bấm nút Đăng nhập trên Header) -> Điều hướng theo Role
-          if (!targetUrl) {
-            if (role === 'ADMIN' || role === 'STAFF') {
-              targetUrl = '/admin/overview'; // Đã sửa lại khớp với app.routes.ts
-            } else {
-              targetUrl = '/home';
-            }
-          }
-
-          // Dùng navigateByUrl để xử lý mượt mà các URL chứa tham số (ví dụ: /rooms/19)
-          this.router.navigateByUrl(targetUrl).then(() => {
-            // Tự động tải lại trang để Header và các Component khác cập nhật dữ liệu User mới
-            window.location.reload();
-          });
-        }
+        this.router.navigateByUrl(targetUrl);
         this.isLoading = false;
       },
       error: (err) => {

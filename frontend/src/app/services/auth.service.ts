@@ -3,10 +3,11 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, BehaviorSubject } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { Router } from '@angular/router';
+import { environment } from '../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private apiUrl = 'http://localhost:8080/api/auth';
+  private apiUrl = `${environment.apiUrl}/auth`;
   
   // Quản lý trạng thái đăng nhập toàn cục
   private loggedIn = new BehaviorSubject<boolean>(this.isLoggedIn());
@@ -82,14 +83,9 @@ export class AuthService {
     return role;
   }
 
-  // Đăng xuất: Xóa bộ nhớ và về trang chủ
   logout(): void {
-    if (confirm('Bạn có chắc chắn muốn đăng xuất?')) {
-      localStorage.clear();
-      this.setLoginStatus(false);
-      this.router.navigate(['/home']).then(() => {
-        window.location.reload(); 
-      });
-    }
+    localStorage.clear();
+    this.setLoginStatus(false);
+    this.router.navigate(['/home']);
   }
 }

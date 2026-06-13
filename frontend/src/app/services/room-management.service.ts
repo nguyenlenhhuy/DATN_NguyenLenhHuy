@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { RoomRequest, RoomTypeRequest, RoomResponseDTO, RoomType, RoomStatus } from '../models/room-management.model';
+import { environment } from '../../environments/environment';
 
 // 🔥 INTERFACE MỚI: Định nghĩa cấu trúc Object hứng mảng Review chi tiết từ Java trả về
 export interface RoomReviewDetailDTO {
@@ -19,7 +20,7 @@ export interface RoomReviewDetailDTO {
 export class RoomManagementService {
   
   // Tiền tố dẫn vào các Endpoint quản lý của Spring Boot
-  private baseUrl = 'http://localhost:8080/api/v1/management';
+  private baseUrl = `${environment.apiUrl}/v1/management`;
 
   constructor(private http: HttpClient) {}
 
@@ -90,11 +91,11 @@ export class RoomManagementService {
   }
   // 1. Lấy toàn bộ danh sách mã giảm giá đang hoạt động từ Backend
   getActivePromotions(): Observable<any[]> {
-    return this.http.get<any[]>('http://localhost:8080/api/bookings/management/promotions/active');
+    return this.http.get<any[]>(`${environment.apiUrl}/bookings/management/promotions/active`);
   }
 
   // 2. Gọi API gán mã giảm giá vào phòng vật lý bằng phương thức PUT
   applyPromotionToRoom(roomId: number, promotionId: number): Observable<any> {
-    return this.http.put(`http://localhost:8080/api/bookings/management/promotions/apply-to-room?roomId=${roomId}&promotionId=${promotionId}`, {});
+    return this.http.put(`${environment.apiUrl}/bookings/management/promotions/apply-to-room?roomId=${roomId}&promotionId=${promotionId}`, {});
   }
 }

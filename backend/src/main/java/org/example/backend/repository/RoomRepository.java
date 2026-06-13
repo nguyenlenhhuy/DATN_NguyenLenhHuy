@@ -61,6 +61,10 @@ public interface RoomRepository extends JpaRepository<Room, Long>, JpaSpecificat
     @Query("SELECT r FROM Room r WHERE r.roomNumber = :roomNumber AND r.isDeleted = false")
     Optional<Room> findByRoomNumber(@Param("roomNumber") String roomNumber);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT r FROM Room r WHERE r.roomNumber = :roomNumber AND r.isDeleted = false")
+    Optional<Room> findByRoomNumberWithLock(@Param("roomNumber") String roomNumber);
+
     @Query("SELECT r FROM Room r WHERE r.status = :status AND r.isDeleted = false")
     List<Room> findAllByStatus(@Param("status") RoomStatus status);
 
