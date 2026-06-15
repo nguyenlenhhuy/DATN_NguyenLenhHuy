@@ -1,5 +1,6 @@
 package org.example.backend.controller;
 
+import org.example.backend.dto.response.BookedDateRangeDTO;
 import org.example.backend.dto.response.RoomResponseDTO;
 import org.example.backend.dto.request.RoomSearchRequest;
 import org.example.backend.dto.response.RoomTypeDetailResponse;
@@ -7,6 +8,7 @@ import org.example.backend.service.RoomService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -47,5 +49,20 @@ public class RoomController {
     @GetMapping("/all")
     public ResponseEntity<List<RoomResponseDTO>> getAllRooms() {
         return ResponseEntity.ok(roomService.getAllRooms());
+    }
+
+    /**
+     * Trả về danh sách khoảng ngày đã đặt của một phòng trong khoảng [from, to].
+     * Frontend dùng để vẽ lịch phòng và cảnh báo trùng ngày.
+     * GET /api/rooms/{id}/availability?from=2026-06-15&to=2026-09-15
+     */
+    @GetMapping("/{id}/availability")
+    public ResponseEntity<List<BookedDateRangeDTO>> getRoomAvailability(
+            @PathVariable Long id,
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to) {
+        LocalDate fromDate = (from != null) ? LocalDate.parse(from) : LocalDate.now();
+        LocalDate toDate   = (to   != null) ? LocalDate.parse(to)   : LocalDate.now().plusMonths(2);
+        return ResponseEntity.ok(roomService.getBookedRanges(id, fromDate, toDate));
     }
 }

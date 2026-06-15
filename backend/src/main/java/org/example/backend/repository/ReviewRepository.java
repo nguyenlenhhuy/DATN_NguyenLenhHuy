@@ -13,7 +13,9 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 
     List<Review> findByHotelIdOrderByCreatedAtDesc(Long hotelId);
 
-    boolean existsByBookingId(Long bookingId);
+    boolean existsByBookingIdAndRoomId(Long bookingId, Long roomId);
+
+    long countByBookingId(Long bookingId);
 
     @Query("SELECT r FROM Review r JOIN FETCH r.user WHERE r.hotel.id = :hotelId ORDER BY r.createdAt DESC")
     Page<Review> findByHotelId(@Param("hotelId") Long hotelId, Pageable pageable);

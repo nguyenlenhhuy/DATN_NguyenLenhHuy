@@ -13,8 +13,11 @@ import java.util.List;
 @AllArgsConstructor // 🔥 Đã thêm: Đi kèm song song để bổ trợ cho @Builder vận hành chuẩn xác
 public class ReviewRequestDTO {
 
-    @NotNull(message = "Mã đặt phòng không được trống") //
-    private Long bookingId; //
+    @NotNull(message = "Mã đặt phòng không được trống")
+    private Long bookingId;
+
+    @NotNull(message = "Mã phòng không được trống")
+    private Long roomId;
 
     @Min(value = 1, message = "Đánh giá thấp nhất là 1 sao") //
     @Max(value = 5, message = "Đánh giá cao nhất là 5 sao") //

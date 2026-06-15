@@ -1,6 +1,7 @@
 package org.example.backend.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.example.backend.dto.request.BatchBookingRequest;
 import org.example.backend.dto.request.BookingRequest;
 import org.example.backend.dto.request.WalkInBookingRequestDTO;
 import org.example.backend.dto.response.BookingHistoryResponseDTO;
@@ -60,6 +61,30 @@ public class BookingController {
     public ResponseEntity<Map<String, String>> createWalkInBooking(@RequestBody WalkInBookingRequestDTO requestDTO) {
         managementService.createWalkInBooking(requestDTO);
         return ResponseEntity.ok(Map.of("message", "Khởi tạo đơn thuê phòng tại quầy thành công!"));
+    }
+
+    /**
+     * Xác minh kết quả thanh toán PayOS sau khi redirect về returnUrl.
+     * Angular gọi endpoint này với orderCode từ query params của PayOS.
+     */
+    @GetMapping("/payment/verify")
+    public ResponseEntity<Map<String, Object>> verifyPayment(@RequestParam Long orderCode) {
+        return ResponseEntity.ok(paymentService.verifyAndProcessPayment(orderCode));
+    }
+
+    @GetMapping("/management/bookings/{id}/audit-logs")
+    public ResponseEntity<List<org.example.backend.dto.response.AuditLogDTO>> getBookingAuditLogs(@PathVariable Long id) {
+        return ResponseEntity.ok(bookingService.getBookingAuditLogs(id));
+    }
+
+    @PostMapping("/management/bookings/{id}/refund")
+    public ResponseEntity<Map<String, String>> processRefund(
+            @PathVariable Long id,
+            @RequestParam Long operatorId,
+            @RequestParam(required = false, defaultValue = "") String operatorName,
+            @RequestParam String reason) {
+        bookingService.processRefund(id, operatorId, operatorName, reason);
+        return ResponseEntity.ok(Map.of("message", "Hoàn tiền thành công!"));
     }
 
     @PostMapping("/management/bookings/{id}/check-in")
@@ -170,10 +195,28 @@ public class BookingController {
             @RequestParam String checkOutDate,
             @RequestParam(required = false) String appliedCode) {
 
-        java.time.LocalDate checkIn = java.time.LocalDate.parse(checkInDate);
-        java.time.LocalDate checkOut = java.time.LocalDate.parse(checkOutDate);
+        LocalDate checkIn = LocalDate.parse(checkInDate);
+        LocalDate checkOut = LocalDate.parse(checkOutDate);
 
         return ResponseEntity.ok(managementService.previewWalkInPrice(roomNumber, checkIn, checkOut, appliedCode));
+    }
+
+    @GetMapping("/management/bookings/available-rooms-detail")
+    public ResponseEntity<List<Map<String, Object>>> getAvailableRoomsDetail(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkIn,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkOut) {
+        return ResponseEntity.ok(managementService.getAvailableRoomsDetail(checkIn, checkOut));
+    }
+
+    @GetMapping("/management/bookings/preview-price-multi")
+    public ResponseEntity<Map<String, Object>> previewPriceMulti(
+            @RequestParam List<String> roomNumbers,
+            @RequestParam String checkInDate,
+            @RequestParam String checkOutDate,
+            @RequestParam(required = false) String appliedCode) {
+        LocalDate checkIn = LocalDate.parse(checkInDate);
+        LocalDate checkOut = LocalDate.parse(checkOutDate);
+        return ResponseEntity.ok(managementService.previewWalkInPriceMulti(roomNumbers, checkIn, checkOut, appliedCode));
     }
 
     @GetMapping("/management/dashboard-stats")
@@ -181,7 +224,50 @@ public class BookingController {
             @RequestParam(defaultValue = "WEEK") String filterType) {
         return ResponseEntity.ok(managementService.getDashboardStatsFiltered(filterType));
     }
+
+    @GetMapping("/management/occupancy-calendar")
+    public ResponseEntity<Map<String, Integer>> getOccupancyCalendar(
+            @RequestParam int year,
+            @RequestParam int month) {
+        return ResponseEntity.ok(managementService.getRoomOccupancyCalendar(year, month));
+    }
+
+    @GetMapping("/management/occupancy-calendar/day-detail")
+    public ResponseEntity<Map<String, Object>> getOccupancyDayDetail(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        return ResponseEntity.ok(managementService.getRoomOccupancyDayDetail(date));
+    }
     // Lấy lịch sử đặt phòng của khách hàng đang đăng nhập
+    /**
+     * Đặt nhiều phòng cùng lúc từ danh sách yêu thích
+     */
+    @PostMapping("/batch")
+    public ResponseEntity<Map<String, Object>> createBatchBooking(
+            @Valid @RequestBody BatchBookingRequest request,
+            Principal principal) throws Exception {
+
+        String username = principal.getName();
+        User currentUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("Tài khoản không tồn tại hoặc phiên đăng nhập đã hết hạn"));
+        request.setUserId(currentUser.getId());
+
+        Booking booking = bookingService.processMultiRoomBooking(request);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("bookingId", booking.getId());
+        response.put("status", booking.getStatus());
+        response.put("roomCount", request.getRoomIds().size());
+        response.put("message", "Đặt " + request.getRoomIds().size() + " phòng thành công!");
+
+        if ("PAYOS".equalsIgnoreCase(request.getPaymentMethod())) {
+            Long invoiceId = booking.getInvoice().getId();
+            String checkoutUrl = paymentService.createPaymentLink(invoiceId);
+            response.put("checkoutUrl", checkoutUrl);
+        }
+
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
+    }
+
     @GetMapping("/customer/history")
     public ResponseEntity<List<BookingHistoryResponseDTO>> getCustomerBookingHistory(Principal principal) {
         // 1. Trích xuất username an toàn từ Token bảo mật đã đi qua Interceptor

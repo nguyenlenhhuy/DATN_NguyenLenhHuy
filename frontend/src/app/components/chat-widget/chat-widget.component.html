@@ -1,34 +1,114 @@
+<!-- Hidden file input for image upload -->
+<input #fileInput type="file" accept="image/*" class="hidden-input" (change)="onImageSelect($event)">
+
+<!-- Toggle Button -->
 <button class="chat-toggle-btn" (click)="toggleChat()">
-  <span *ngIf="!isOpen">💬 Góp ý / Hỗ trợ</span>
+  <span *ngIf="!isOpen">💬 Hỗ trợ AI</span>
   <span *ngIf="isOpen">✖ Đóng</span>
 </button>
 
+<!-- Chat Window -->
 <div class="chat-window" *ngIf="isOpen">
+
+  <!-- Header -->
   <div class="chat-header">
-    Hỗ trợ trực tuyến AI
+    <div class="header-left">
+      <span class="header-avatar">🤖</span>
+      <div>
+        <div class="header-title">{{ roleLabel }}</div>
+        <div class="header-status">
+          <span class="status-dot"></span>
+          <span *ngIf="!isLoading">Trực tuyến</span>
+          <span *ngIf="isLoading">Đang trả lời...</span>
+        </div>
+      </div>
+    </div>
+    <button class="clear-btn" (click)="clearChat()" title="Xóa lịch sử">🗑️</button>
   </div>
-  
+
+  <!-- Messages -->
   <div class="chat-body" #chatBody>
-    
-    <div *ngFor="let msg of messages" 
+
+    <div *ngFor="let msg of messages"
          [ngClass]="{'message-user': msg.sender === 'user', 'message-bot': msg.sender === 'bot'}">
-      
-      <div class="message-bubble" *ngIf="msg.sender === 'user'">
-        {{ msg.text }}
+
+      <!-- User message -->
+      <ng-container *ngIf="msg.sender === 'user'">
+        <img *ngIf="msg.imagePreview" [src]="msg.imagePreview" class="msg-image-preview" alt="Ảnh đính kèm">
+        <div class="message-bubble">{{ msg.text }}</div>
+      </ng-container>
+
+      <!-- Bot streaming (plain text + blinking cursor) -->
+      <div class="message-bubble" *ngIf="msg.sender === 'bot' && msg.isStreaming">
+        <ng-container *ngIf="msg.text; else thinking">
+          {{ msg.text }}<span class="cursor-blink">▋</span>
+        </ng-container>
+        <ng-template #thinking>
+          <span class="dot-flashing"></span>
+        </ng-template>
       </div>
 
-      <div class="message-bubble" *ngIf="msg.sender === 'bot'" [innerHTML]="msg.text | safeHtml">
+      <!-- Bot completed (render HTML for room cards etc.) -->
+      <div class="message-bubble" *ngIf="msg.sender === 'bot' && !msg.isStreaming"
+           [innerHTML]="msg.text | safeHtml">
       </div>
 
     </div>
-    
-    <div class="message-bot" *ngIf="isLoading">
-      <div class="message-bubble typing-indicator">Lễ tân đang gõ...</div>
+
+    <!-- Quick Reply Chips -->
+    <div class="quick-replies" *ngIf="showQuickReplies">
+      <button *ngFor="let reply of quickReplies"
+              class="quick-chip"
+              (click)="selectQuickReply(reply)">
+        {{ reply }}
+      </button>
     </div>
+
+    <!-- Human Handoff Banner -->
+    <div class="handoff-banner" *ngIf="showHandoffBanner">
+      <p>Có vẻ tôi chưa giải quyết được yêu cầu của bạn. Bạn có muốn kết nối với nhân viên hỗ trợ không?</p>
+      <button class="handoff-btn" (click)="requestHumanSupport()">🙋 Kết nối nhân viên</button>
+    </div>
+
   </div>
 
+  <!-- Image Preview (trước footer) -->
+  <div class="image-preview-bar" *ngIf="selectedImage">
+    <img [src]="selectedImage.preview" class="preview-thumb" alt="Ảnh chọn">
+    <span class="preview-label">Ảnh đính kèm</span>
+    <button class="remove-img-btn" (click)="removeImage()" title="Xóa ảnh">✕</button>
+  </div>
+
+  <!-- Footer -->
   <div class="chat-footer">
-    <input type="text" [(ngModel)]="userInput" (keyup.enter)="sendMessage()" placeholder="Nhập câu hỏi của bạn...">
-    <button (click)="sendMessage()" [disabled]="isLoading || !userInput.trim()">Gửi</button>
+    <!-- Image button -->
+    <button class="icon-btn img-btn" (click)="openFileInput()" [disabled]="isLoading" title="Đính kèm ảnh">
+      📎
+    </button>
+
+    <!-- Voice button -->
+    <button class="icon-btn mic-btn"
+            [class.recording]="isRecording"
+            (click)="toggleVoice()"
+            [disabled]="isLoading || !voiceSupported"
+            [title]="voiceSupported ? (isRecording ? 'Dừng ghi âm' : 'Nhập bằng giọng nói') : 'Trình duyệt không hỗ trợ giọng nói'">
+      {{ isRecording ? '🔴' : '🎤' }}
+    </button>
+
+    <!-- Text input -->
+    <input
+      type="text"
+      [(ngModel)]="userInput"
+      (keyup.enter)="sendMessage()"
+      [placeholder]="isRecording ? 'Đang nghe...' : 'Nhập câu hỏi...'"
+      [disabled]="isLoading">
+
+    <!-- Send button -->
+    <button class="send-btn"
+            (click)="sendMessage()"
+            [disabled]="isLoading || (!userInput.trim() && !selectedImage)">
+      ➤
+    </button>
   </div>
+
 </div>

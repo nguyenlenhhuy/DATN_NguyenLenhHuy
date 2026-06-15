@@ -33,8 +33,10 @@ export class BookingHistoryComponent implements OnInit {
 
   // ⭐ TRẠNG THÁI POPUP ĐÁNH GIÁ DỊCH VỤ
   reviewBookingId: number | null = null;
+  selectedBookingForReview: BookingHistoryResponseDTO | null = null;
   isReviewModalOpen: boolean = false;
-  reviewRating: number = 5; 
+  reviewRating: number = 5;
+  hoverRating: number = 0;
   reviewComment: string = '';
 
   constructor(
@@ -121,9 +123,11 @@ export class BookingHistoryComponent implements OnInit {
   // =========================================================================
   // ⚡ SỰ KIỆN: ĐÓNG MỞ POPUP KHỐI ĐÁNH GIÁ
   // =========================================================================
-  openReviewModal(bookingId: number): void {
-    this.reviewBookingId = bookingId;
-    this.reviewRating = 5; 
+  openReviewModal(booking: BookingHistoryResponseDTO): void {
+    this.reviewBookingId = booking.bookingId;
+    this.selectedBookingForReview = booking;
+    this.reviewRating = 5;
+    this.hoverRating = 0;
     this.reviewComment = '';
     this.isReviewModalOpen = true;
   }
@@ -131,6 +135,18 @@ export class BookingHistoryComponent implements OnInit {
   closeReviewModal(): void {
     this.isReviewModalOpen = false;
     this.reviewBookingId = null;
+    this.selectedBookingForReview = null;
+    this.hoverRating = 0;
+  }
+
+  setReviewRating(n: number): void { this.reviewRating = n; }
+  hoverStar(n: number): void      { this.hoverRating = n; }
+  clearHover(): void               { this.hoverRating = 0; }
+  activeStars(): number            { return this.hoverRating || this.reviewRating; }
+
+  ratingLabel(n: number): string {
+    const labels = ['', 'Rất tệ', 'Không hài lòng', 'Tạm ổn', 'Tốt', 'Hoàn hảo'];
+    return labels[n] || '';
   }
 
   // =========================================================================
@@ -144,8 +160,12 @@ export class BookingHistoryComponent implements OnInit {
       return;
     }
 
-    // 🔥 Sửa dứt điểm dấu đóng mở và ngắt token mũi tên => chính xác
-    this.bookingService.submitReview(this.reviewBookingId, this.reviewRating, this.reviewComment).subscribe({
+    const roomId = this.selectedBookingForReview?.roomId;
+    if (!roomId) {
+      alert('Không xác định được phòng cần đánh giá. Vui lòng thử qua trang chi tiết phòng.');
+      return;
+    }
+    this.bookingService.submitReview(this.reviewBookingId, roomId, this.reviewRating, this.reviewComment).subscribe({
       next: (response: any) => {
         alert(`Cảm ơn bạn đã đóng góp ý kiến ${this.reviewRating}/5 sao cho dịch vụ!`);
         
@@ -235,25 +255,42 @@ export class BookingHistoryComponent implements OnInit {
               <tr>
                 <td colspan="2"><span class="font-b">Địa chỉ chi nhánh:</span> ${booking.hotelAddress}</td>
               </tr>
+              <tr>
+                <td colspan="2"><span class="font-b">Số phòng đặt:</span>
+                  ${booking.rooms && booking.rooms.length > 1
+                    ? `<strong>${booking.rooms.length} phòng</strong>: ` + booking.rooms.map((r: any) => `Phòng ${r.roomNumber}`).join(', ')
+                    : `Phòng <strong>${booking.roomNumber}</strong>`
+                  }
+                </td>
+              </tr>
             </table>
 
             <h3 style="color: #111827; margin-top: 30px;">Chi Tiết Dịch Vụ Lưu Trú</h3>
             <table class="details-table">
               <thead>
                 <tr>
-                  <th>Nội dung hiển thị</th>
+                  <th>STT</th>
                   <th>Số phòng</th>
                   <th>Loại phòng</th>
                   <th>Thời gian kỳ nghỉ</th>
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td>Thuê phòng lưu trú trực tuyến</td>
-                  <td><strong>Phòng ${booking.roomNumber}</strong></td>
-                  <td>${booking.roomType}</td>
-                  <td>${new Date(booking.checkInDate).toLocaleDateString('vi-VN')} ➔ ${new Date(booking.checkOutDate).toLocaleDateString('vi-VN')}</td>
-                </tr>
+                ${(booking.rooms && booking.rooms.length > 1
+                  ? booking.rooms.map((r: any, i: number) => `
+                    <tr>
+                      <td>${i + 1}</td>
+                      <td><strong>Phòng ${r.roomNumber}</strong></td>
+                      <td>${r.roomType}</td>
+                      <td>${new Date(booking.checkInDate).toLocaleDateString('vi-VN')} ➔ ${new Date(booking.checkOutDate).toLocaleDateString('vi-VN')}</td>
+                    </tr>`).join('')
+                  : `<tr>
+                      <td>1</td>
+                      <td><strong>Phòng ${booking.roomNumber}</strong></td>
+                      <td>${booking.roomType}</td>
+                      <td>${new Date(booking.checkInDate).toLocaleDateString('vi-VN')} ➔ ${new Date(booking.checkOutDate).toLocaleDateString('vi-VN')}</td>
+                    </tr>`
+                )}
               </tbody>
             </table>
 

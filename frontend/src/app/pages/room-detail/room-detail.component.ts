@@ -1,4 +1,19 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+
+interface CalendarDay {
+  date: string;   // 'YYYY-MM-DD'
+  day: number;
+  isPast: boolean;
+  isBooked: boolean;
+  isWeekend: boolean;
+}
+
+interface CalendarMonth {
+  label: string;
+  year: number;
+  month: number;
+  days: (CalendarDay | null)[];  // null = ô padding đầu tháng
+}
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -10,6 +25,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { ReviewService, ReviewRequestDTO, ReviewResponseDTO } from '../../services/review.service';
 import { BookingService, BookingRequestDTO } from '../../services/booking.service';
 import { AuthService } from '../../services/auth.service';
+import { RoomHoldService } from '../../services/room-hold.service';
 import { environment } from '../../../environments/environment';
 
 @Component({
@@ -19,55 +35,167 @@ import { environment } from '../../../environments/environment';
   templateUrl: './room-detail.component.html',
   styleUrl: './room-detail.component.scss'
 })
-export class RoomDetailComponent implements OnInit {
-  room!: RoomModelDTO; 
+export class RoomDetailComponent implements OnInit, OnDestroy {
+  room!: RoomModelDTO;
   isLoading = true;
-  selectedImage: string = ''; 
-  currentIndex: number = 0; 
+  selectedImage: string = '';
+  currentIndex: number = 0;
 
-  checkInDate: string = ''; 
+  checkInDate: string = '';
   checkOutDate: string = '';
   numberOfNights: number = 1;
   couponCode: string = '';
   discount: number = 0;
   totalPrice: number = 0;
-  isBooking: boolean = false; 
+  isBooking: boolean = false;
 
   userRating: number = 0;
   hoveredStar: number = 0;
-  reviewContent: string = ''; 
-  isSubmittingReview: boolean = false; 
-  currentBookingId: number = 1; 
+  reviewContent: string = '';
+  isSubmittingReview: boolean = false;
+  currentBookingId: number = 0;
+
+  fromBookingId: number | null = null;
+  canReviewFromBooking: boolean = false;
+  alreadyReviewed: boolean = false;
+  reviewCheckLoading: boolean = false;
 
   reviews: ReviewResponseDTO[] = [];
   activeTab: string = 'intro';
+
+  // Availability Calendar
+  bookedRanges: { checkIn: string; checkOut: string }[] = [];
+  calendarMonths: CalendarMonth[] = [];
+  dateConflictError = '';
+  showCalendar = false;
+  bookingError = '';
+
+  // Room Hold
+  holdToken: string | null = null;
+  isHeldByOther = false;
+  holdHeldByOtherMessage = '';
+  holdCountdown = '';
+  private currentRoomId: number | null = null;
+  private holdTimerId: any = null;
+  private renewTimerId: any = null;
 
   constructor(
     private route: ActivatedRoute,
     private roomService: RoomService,
     private reviewService: ReviewService,
-    private bookingService: BookingService, 
+    private bookingService: BookingService,
     private router: Router,
     private http: HttpClient,
-    public authService: AuthService 
+    public authService: AuthService,
+    private roomHoldService: RoomHoldService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
     const roomIdStr = this.route.snapshot.paramMap.get('id');
     if (roomIdStr) {
       const roomId = Number(roomIdStr);
+      this.currentRoomId = roomId;
       this.loadRoomDetail(roomId);
-      this.loadRoomReviews(roomId); 
+      this.loadRoomReviews(roomId);
+      this.loadRoomAvailability(roomId);
+      // Hold KHÔNG kích hoạt khi xem trang — chỉ kích hoạt khi bấm "Đặt phòng"
     } else {
       this.router.navigate(['/rooms']);
     }
 
+    const fromBookingStr = this.route.snapshot.queryParamMap.get('fromBooking');
+    if (fromBookingStr && this.authService.isLoggedIn()) {
+      this.fromBookingId = Number(fromBookingStr);
+      this.currentBookingId = this.fromBookingId;
+      this.activeTab = 'reviews';
+      // roomId sẽ được đọc sau khi loadRoomDetail hoàn tất (room.roomId)
+    }
+
     const today = new Date();
     const tomorrow = new Date();
-    tomorrow.setDate(today.getDate() + 1); 
+    tomorrow.setDate(today.getDate() + 1);
 
     this.checkInDate = this.formatDateToYYYYMMDD(today);
     this.checkOutDate = this.formatDateToYYYYMMDD(tomorrow);
+  }
+
+  checkReviewEligibility(bookingId: number, roomId: number): void {
+    this.reviewCheckLoading = true;
+    this.reviewService.checkCanReview(bookingId, roomId).subscribe({
+      next: (res) => {
+        this.canReviewFromBooking = res.canReview;
+        this.alreadyReviewed = !res.canReview && res.reason === 'already_reviewed';
+        this.reviewCheckLoading = false;
+      },
+      error: () => {
+        this.canReviewFromBooking = false;
+        this.reviewCheckLoading = false;
+      }
+    });
+  }
+
+  ngOnDestroy(): void {
+    if (this.holdTimerId) clearInterval(this.holdTimerId);
+    if (this.renewTimerId) clearInterval(this.renewTimerId);
+    if (this.currentRoomId && this.holdToken) {
+      this.roomHoldService.releaseHold(this.currentRoomId, this.holdToken).subscribe();
+    }
+  }
+
+  private acquireRoomHold(roomId: number, onSuccess: () => void): void {
+    this.roomHoldService.acquireHold(roomId).subscribe({
+      next: (res) => {
+        if (res.success && res.holdToken) {
+          this.holdToken = res.holdToken;
+          this.isHeldByOther = false;
+          this.startHoldCountdown(res.expiresInSeconds ?? 600);
+          this.startHoldRenew(roomId);
+          onSuccess();
+        } else {
+          this.isBooking = false;
+          this.isHeldByOther = true;
+          this.holdHeldByOtherMessage = res.message || 'Phòng đang được người khác xử lý. Vui lòng thử lại sau.';
+        }
+      },
+      error: (err) => {
+        this.isBooking = false;
+        this.isHeldByOther = true;
+        this.holdHeldByOtherMessage = err.error?.message || 'Phòng đang được người khác xử lý. Vui lòng thử lại sau.';
+      }
+    });
+  }
+
+  private startHoldCountdown(seconds: number): void {
+    if (this.holdTimerId) clearInterval(this.holdTimerId);
+    let remaining = seconds;
+    const tick = () => {
+      if (remaining <= 0) {
+        clearInterval(this.holdTimerId);
+        this.holdToken = null;
+        this.holdCountdown = '';
+        return;
+      }
+      const m = Math.floor(remaining / 60);
+      const s = remaining % 60;
+      this.holdCountdown = `${m}:${String(s).padStart(2, '0')}`;
+      remaining--;
+    };
+    tick();
+    this.holdTimerId = setInterval(tick, 1000);
+  }
+
+  private startHoldRenew(roomId: number): void {
+    if (this.renewTimerId) clearInterval(this.renewTimerId);
+    this.renewTimerId = setInterval(() => {
+      if (this.holdToken) {
+        this.roomHoldService.renewHold(roomId, this.holdToken).subscribe(res => {
+          if (res.success && res.expiresInSeconds) {
+            this.startHoldCountdown(res.expiresInSeconds);
+          }
+        });
+      }
+    }, 5 * 60 * 1000);
   }
 
   loadRoomReviews(roomId: number): void {
@@ -92,7 +220,7 @@ export class RoomDetailComponent implements OnInit {
     this.roomService.getRoomById(id).subscribe({
       next: (data: RoomModelDTO) => {
         this.room = data;
-        
+
         // Xử lý ảnh bìa
         const roomAny = this.room as any;
         if (roomAny.albumImages && roomAny.albumImages.length > 0) {
@@ -101,20 +229,30 @@ export class RoomDetailComponent implements OnInit {
         } else {
           this.selectedImage = this.room.imageUrl || 'https://images.unsplash.com/photo-1582719478250-c89404bb8a0e?q=80&w=1000&auto=format&fit=crop';
         }
-        
+
         // 🔥 ĐÃ SỬA: Chỉ tự động áp dụng mã giảm giá khi người dùng ĐÃ ĐĂNG NHẬP
         if (this.room.appliedPromotions && this.room.appliedPromotions.length > 0) {
           this.couponCode = this.room.appliedPromotions[0].code;
-          
+
           if (this.authService.isLoggedIn()) {
             setTimeout(() => {
               this.applyCoupon();
             }, 300);
           }
         }
-        
+
         this.isLoading = false;
-        this.calculateTotal(); 
+        this.calculateTotal();
+
+        // Tự mở lịch khi phòng không AVAILABLE để hướng dẫn đặt trước
+        if (data.status !== 'AVAILABLE' && data.status !== 'MAINTENANCE') {
+          this.showCalendar = true;
+        }
+
+        // Kiểm tra quyền đánh giá sau khi đã có roomId từ room data
+        if (this.fromBookingId && this.room.roomId) {
+          this.checkReviewEligibility(this.fromBookingId, this.room.roomId);
+        }
       },
       error: (err) => {
         console.error('Lỗi không thể tải chi tiết phòng:', err);
@@ -214,53 +352,64 @@ export class RoomDetailComponent implements OnInit {
   }
 
   bookRoom(): void {
-    // 1. [CHỐT CHẶN BẢO MẬT]: Bắt buộc phải đăng nhập mới được gọi API
     if (!this.authService.isLoggedIn()) {
       this.redirectToLogin();
-      return; // Cắt luồng ngay lập tức, ngăn chặn lỗi 403
+      return;
+    }
+    if (!this.checkInDate || !this.checkOutDate) {
+      this.bookingError = 'Vui lòng chọn ngày nhận và trả phòng!';
+      return;
+    }
+    if (new Date(this.checkOutDate) <= new Date(this.checkInDate)) {
+      this.bookingError = 'Ngày trả phòng phải sau ngày nhận phòng!';
+      return;
+    }
+    if (!this.validateDates()) {
+      // dateConflictError đã được set bởi validateDates()
+      return;
     }
 
-    // 2. [KIỂM TRA DỮ LIỆU ĐẦU VÀO]: Validate ngày tháng hợp lệ
-    if (!this.checkInDate || !this.checkOutDate) { 
-      alert('Vui lòng chọn ngày nhận và trả phòng!'); 
-      return; 
-    }
-    if (new Date(this.checkOutDate) <= new Date(this.checkInDate)) { 
-      alert('Ngày trả phòng phải sau ngày nhận!'); 
-      return; 
-    }
+    this.isBooking = true;
+    this.bookingError = '';
+    this.isHeldByOther = false;
 
-    // 3. [KHÓA GIAO DIỆN]: Bật cờ loading, chặn người dùng double-click
-    this.isBooking = true; 
-
-    // 4. [CHUẨN BỊ DỮ LIỆU GỬI ĐI]: Đóng gói Payload
-    const payload = {
-      roomId: this.room.roomId!, 
-      checkIn: this.checkInDate,
-      checkOut: this.checkOutDate,
-      paymentMethod: 'PAYOS',
-      couponCode: this.discount > 0 ? this.couponCode.trim().toUpperCase() : null 
+    const doSubmit = () => {
+      const payload: BookingRequestDTO = {
+        roomId: this.room.roomId!,
+        checkIn: this.checkInDate,
+        checkOut: this.checkOutDate,
+        paymentMethod: 'PAYOS',
+        couponCode: this.discount > 0 ? this.couponCode.trim().toUpperCase() : undefined,
+        holdToken: this.holdToken ?? undefined
+      };
+      this.bookingService.createBooking(payload).subscribe({
+        next: (response) => {
+          if (response.checkoutUrl) {
+            window.location.href = response.checkoutUrl;
+          } else {
+            this.router.navigate(['/history']);
+          }
+        },
+        error: (error) => {
+          this.isBooking = false;
+          const msg: string = error.error?.message || 'Có lỗi xảy ra, vui lòng thử lại.';
+          // Nếu server báo conflict ngày → cập nhật lịch và hiển thị lỗi tại chỗ
+          if (error.status === 409) {
+            this.bookingError = msg;
+            if (this.currentRoomId) this.loadRoomAvailability(this.currentRoomId);
+          } else {
+            this.bookingError = msg;
+          }
+        }
+      });
     };
 
-    // 5. [GIAO TIẾP VỚI SERVER]: Gọi API tạo Booking
-    this.bookingService.createBooking(payload).subscribe({
-      next: (response) => {
-        // Phân luồng luân chuyển sau khi đặt phòng thành công
-        if (response.checkoutUrl) {
-          // Luồng 1: Có URL cổng thanh toán -> Đẩy sang trang thanh toán của bên thứ 3
-          window.location.href = response.checkoutUrl;
-        } else { 
-          // Luồng 2: Thanh toán sau / Trả tiền mặt -> Chuyển về lịch sử đặt phòng
-          alert('Đặt phòng thành công!'); 
-          this.router.navigate(['/history']); 
-        }
-      },
-      error: (error) => {
-        // [QUAN TRỌNG]: Bắt buộc phải "nhả" khóa UI ra để người dùng có thể thử lại
-        this.isBooking = false; 
-        alert('Lỗi đặt phòng: ' + (error.error?.message || 'Có lỗi xảy ra.'));
-      }
-    });
+    // Acquire hold at booking time (not on page load)
+    if (this.currentRoomId && !this.holdToken) {
+      this.acquireRoomHold(this.currentRoomId, doSubmit);
+    } else {
+      doSubmit();
+    }
   }
 
   getRatingText(rating: number): string {
@@ -298,24 +447,23 @@ submitReview(): void {
 
     // 3. [KHÓA UI & ĐÓNG GÓI PAYLOAD]
     this.isSubmittingReview = true;
-    const payload: ReviewRequestDTO = { 
-      bookingId: this.currentBookingId, 
-      rating: this.userRating, 
-      comment: this.reviewContent, 
-      mediaUrls: [] 
+    const payload: ReviewRequestDTO = {
+      bookingId: this.currentBookingId,
+      roomId: this.room.roomId!,
+      rating: this.userRating,
+      comment: this.reviewContent,
+      mediaUrls: []
     };
 
     // 4. [GỌI API]
     this.reviewService.submitReview(payload).subscribe({
       next: (response: ReviewResponseDTO) => {
-        // Đẩy bình luận mới nhất lên đầu danh sách
         this.reviews.unshift(response);
-        
-        // Reset form và nhả khóa UI (Nên tách dòng để code dễ đọc, dễ bảo trì)
-        this.userRating = 0; 
-        this.reviewContent = ''; 
+        this.userRating = 0;
+        this.reviewContent = '';
         this.isSubmittingReview = false;
-        
+        this.canReviewFromBooking = false;
+        this.alreadyReviewed = true;
         alert('Cảm ơn bạn đã gửi đánh giá!');
       },
       error: (err: any) => {
@@ -336,6 +484,121 @@ submitReview(): void {
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
   }
+
+  // ─── Availability Calendar ───────────────────────────────────────────────
+
+  loadRoomAvailability(roomId: number): void {
+    this.roomService.getRoomAvailability(roomId).subscribe({
+      next: (ranges) => {
+        this.bookedRanges = ranges;
+        this.buildCalendar();
+        this.cdr.markForCheck();
+      },
+      error: () => {}
+    });
+  }
+
+  buildCalendar(): void {
+    const today = new Date();
+    const monthNames = ['Tháng 1','Tháng 2','Tháng 3','Tháng 4','Tháng 5','Tháng 6',
+                        'Tháng 7','Tháng 8','Tháng 9','Tháng 10','Tháng 11','Tháng 12'];
+    this.calendarMonths = [];
+
+    for (let m = 0; m < 2; m++) {
+      const d = new Date(today.getFullYear(), today.getMonth() + m, 1);
+      const year  = d.getFullYear();
+      const month = d.getMonth();
+      const daysInMonth   = new Date(year, month + 1, 0).getDate();
+      const firstDayOfWeek = (new Date(year, month, 1).getDay() + 6) % 7; // Mon=0…Sun=6
+
+      const days: (CalendarDay | null)[] = [];
+      for (let p = 0; p < firstDayOfWeek; p++) days.push(null);
+
+      const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dateObj = new Date(year, month, day);
+        const dateStr = this.formatDateToYYYYMMDD(dateObj);
+        const isPast  = dateObj < todayStart;
+        const isBooked   = !isPast && this.isDateInBookedRange(dateStr);
+        const isWeekend  = dateObj.getDay() === 0 || dateObj.getDay() === 6;
+        days.push({ date: dateStr, day, isPast, isBooked, isWeekend });
+      }
+
+      this.calendarMonths.push({ label: `${monthNames[month]} ${year}`, year, month, days });
+    }
+  }
+
+  isDateInBookedRange(dateStr: string): boolean {
+    return this.bookedRanges.some(r => dateStr >= r.checkIn && dateStr < r.checkOut);
+  }
+
+  isDateInSelectedRange(dateStr: string): boolean {
+    if (!this.checkInDate || !this.checkOutDate) return false;
+    return dateStr > this.checkInDate && dateStr < this.checkOutDate;
+  }
+
+  onDateChange(): void {
+    this.bookingError = '';
+    this.calculateTotal();
+    this.validateDates();
+  }
+
+  validateDates(): boolean {
+    if (!this.checkInDate || !this.checkOutDate) {
+      this.dateConflictError = '';
+      return true;
+    }
+    if (this.checkOutDate <= this.checkInDate) {
+      this.dateConflictError = 'Ngày trả phòng phải sau ngày nhận phòng!';
+      return false;
+    }
+    const hasConflict = this.bookedRanges.some(r =>
+      this.checkInDate < r.checkOut && this.checkOutDate > r.checkIn
+    );
+    if (hasConflict) {
+      this.dateConflictError = 'Khoảng thời gian này đã có người đặt. Vui lòng chọn ngày khác!';
+      return false;
+    }
+    this.dateConflictError = '';
+    return true;
+  }
+
+  get isRoomBookable(): boolean {
+    return this.room?.status !== 'MAINTENANCE';
+  }
+
+  get isAdvanceBooking(): boolean {
+    return this.room?.status === 'OCCUPIED'
+        || this.room?.status === 'DIRTY'
+        || this.room?.status === 'RESERVED';
+  }
+
+  get statusLabel(): string {
+    switch (this.room?.status) {
+      case 'OCCUPIED':  return 'có khách đang ở';
+      case 'DIRTY':     return 'đang được dọn dẹp';
+      case 'RESERVED':  return 'đã có lịch đặt';
+      default:          return 'không trống';
+    }
+  }
+
+  get isTodayAvailable(): boolean {
+    const today = this.formatDateToYYYYMMDD(new Date());
+    return !this.isDateInBookedRange(today);
+  }
+
+  get nextAvailableFrom(): string | null {
+    const today = this.formatDateToYYYYMMDD(new Date());
+    if (!this.isDateInBookedRange(today)) return null;
+    const checkout = this.bookedRanges
+      .filter(r => r.checkIn <= today && r.checkOut > today)
+      .map(r => r.checkOut)
+      .sort()[0];
+    if (!checkout) return null;
+    const d = new Date(checkout);
+    return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
+  }
+
   redirectToLogin(): void {
     alert('Vui lòng đăng nhập để thực hiện chức năng này!');
     this.router.navigate(['/login'], { 

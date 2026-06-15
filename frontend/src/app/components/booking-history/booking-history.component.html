@@ -90,10 +90,30 @@
           <p class="font-bold text-gray-800 flex items-center gap-1.5">🏨 {{ b.hotelName }}</p>
           <p class="text-xs text-gray-400">📍 {{ b.hotelAddress }}</p>
           
-          <p class="text-xs font-bold text-indigo-600 flex items-center gap-1.5 pt-0.5">
-            <span>🔑</span> Số phòng: <span class="bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">Phòng {{ b.roomNumber }}</span>
+          <!-- Đặt 1 phòng -->
+          <p *ngIf="!b.rooms || b.rooms.length <= 1" class="text-xs font-bold text-indigo-600 flex items-center gap-1.5 pt-0.5">
+            <span>🔑</span> Số phòng:
+            <a [routerLink]="['/rooms', b.roomId]" [queryParams]="{fromBooking: b.bookingId}"
+               class="bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100 hover:bg-indigo-100 hover:border-indigo-300 transition-colors cursor-pointer">
+              Phòng {{ b.roomNumber }}
+            </a>
             <span class="text-gray-300 font-normal">|</span> Hạng phòng: <span class="text-gray-700 font-medium">{{ b.roomType }}</span>
           </p>
+          <!-- Đặt nhiều phòng (batch booking) -->
+          <div *ngIf="b.rooms && b.rooms.length > 1" class="pt-0.5 space-y-1">
+            <p class="text-xs font-bold text-indigo-600 flex items-center gap-1.5">
+              🏠 <span class="bg-indigo-600 text-white px-1.5 py-0.5 rounded text-[10px] font-black">{{ b.rooms.length }} phòng</span> đã đặt trong cùng 1 đơn:
+            </p>
+            <div class="flex flex-wrap gap-1.5">
+              <a *ngFor="let r of b.rooms"
+                 [routerLink]="['/rooms', r.roomId]" [queryParams]="{fromBooking: b.bookingId}"
+                 class="inline-flex items-center gap-1 bg-indigo-50 border border-indigo-100 text-indigo-700 text-[11px] font-bold px-2 py-0.5 rounded-md hover:bg-indigo-100 hover:border-indigo-300 transition-colors cursor-pointer">
+                🔑 Phòng {{ r.roomNumber }}
+                <span class="text-indigo-400 font-normal">—</span>
+                <span class="text-gray-600 font-medium">{{ r.roomType }}</span>
+              </a>
+            </div>
+          </div>
 
           <p class="text-xs font-medium text-gray-500 pt-1">
             📅 {{ b.checkInDate | date:'dd/MM/yyyy' }} ➔ {{ b.checkOutDate | date:'dd/MM/yyyy' }}
@@ -136,16 +156,29 @@
               Hóa đơn PDF
             </button>
             
-            <button *ngIf="b.status === 'CHECK_OUT' || b.status === 'CANCELLED'" (click)="reBookRoom(b)" class="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-600 rounded-lg text-xs font-bold transition">Đặt lại</button>
+            <button *ngIf="(b.status === 'CHECK_OUT' || b.status === 'CANCELLED') && (!b.rooms || b.rooms.length <= 1)"
+                    (click)="reBookRoom(b)"
+                    class="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-600 rounded-lg text-xs font-bold transition">Đặt lại</button>
           </div>
 
           <div class="pt-1 flex justify-start lg:justify-end">
-            <button *ngIf="b.canReview" (click)="openReviewModal(b.bookingId)" class="w-full text-center bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white text-xs font-bold py-1.5 px-3.5 rounded-lg transition shadow-md shadow-indigo-50">
+            <!-- Đơn 1 phòng: nút modal như cũ -->
+            <button *ngIf="b.canReview && (!b.rooms || b.rooms.length <= 1)"
+                    (click)="openReviewModal(b)"
+                    class="w-full text-center bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white text-xs font-bold py-1.5 px-3.5 rounded-lg transition shadow-md shadow-indigo-50">
               ⭐ Viết đánh giá
             </button>
+
+            <!-- Đơn nhiều phòng: hướng dẫn nhấn chip -->
+            <div *ngIf="b.canReview && b.rooms && b.rooms.length > 1"
+                 class="text-[11px] text-indigo-600 font-semibold text-right leading-snug">
+              ⭐ Nhấn vào từng phòng<br>để đánh giá riêng
+            </div>
+
+            <!-- Đã đánh giá hết -->
             <div *ngIf="b.status === 'CHECK_OUT' && !b.canReview" class="flex flex-col items-start lg:items-end gap-1">
               <div class="flex text-amber-400 text-sm">★★★★★</div>
-              <span class="text-[11px] font-bold text-gray-400">⭐ Bạn đã đánh giá 5/5</span>
+              <span class="text-[11px] font-bold text-gray-400">✅ Đã đánh giá</span>
             </div>
           </div>
         </div>
@@ -163,8 +196,48 @@
       <div class="space-y-2 text-sm text-gray-600">
         <p><strong>Chi nhánh:</strong> {{ selectedBooking.hotelName }}</p>
         <p><strong>Địa chỉ:</strong> {{ selectedBooking.hotelAddress }}</p>
-        <p><strong>Số phòng vật lý:</strong> <span class="font-bold text-indigo-600">Phòng {{ selectedBooking.roomNumber }}</span></p>
-        <p><strong>Hạng cấu hình phòng:</strong> {{ selectedBooking.roomType }}</p>
+
+        <!-- 1 phòng -->
+        <div *ngIf="!selectedBooking.rooms || selectedBooking.rooms.length <= 1">
+          <p><strong>Số phòng:</strong>
+            <a [routerLink]="['/rooms', selectedBooking.roomId]" [queryParams]="{fromBooking: selectedBooking.bookingId}"
+               (click)="closeDetailModal()"
+               class="font-bold text-indigo-600 hover:text-indigo-800 hover:underline ml-1 cursor-pointer">
+              Phòng {{ selectedBooking.roomNumber }}
+            </a>
+          </p>
+          <p><strong>Hạng phòng:</strong> {{ selectedBooking.roomType }}</p>
+        </div>
+
+        <!-- Nhiều phòng -->
+        <div *ngIf="selectedBooking.rooms && selectedBooking.rooms.length > 1">
+          <p class="font-bold text-gray-800 mb-1.5">🏠 Danh sách {{ selectedBooking.rooms.length }} phòng đã đặt:</p>
+          <div class="rounded-xl border border-gray-100 overflow-hidden">
+            <table class="w-full text-xs">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-3 py-2 text-left font-bold text-gray-500">STT</th>
+                  <th class="px-3 py-2 text-left font-bold text-gray-500">Số phòng</th>
+                  <th class="px-3 py-2 text-left font-bold text-gray-500">Hạng phòng</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-50">
+                <tr *ngFor="let r of selectedBooking.rooms; let i = index" class="hover:bg-indigo-50/30">
+                  <td class="px-3 py-2 text-gray-400 font-medium">{{ i + 1 }}</td>
+                  <td class="px-3 py-2">
+                    <a [routerLink]="['/rooms', r.roomId]" [queryParams]="{fromBooking: selectedBooking.bookingId}"
+                       (click)="closeDetailModal()"
+                       class="font-bold text-indigo-600 hover:text-indigo-800 hover:underline cursor-pointer">
+                      Phòng {{ r.roomNumber }}
+                    </a>
+                  </td>
+                  <td class="px-3 py-2 text-gray-600">{{ r.roomType }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
         <p><strong>Ngày nhận phòng:</strong> {{ selectedBooking.checkInDate | date:'dd/MM/yyyy' }} (Sau 14:00)</p>
         <p><strong>Ngày trả phòng:</strong> {{ selectedBooking.checkOutDate | date:'dd/MM/yyyy' }} (Trước 12:00)</p>
         <p><strong>Số đêm lưu trú:</strong> {{ getNightCount(selectedBooking.checkInDate, selectedBooking.checkOutDate) }} đêm</p>
@@ -177,28 +250,82 @@
   </div>
 
   <div *ngIf="isReviewModalOpen" class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
-    <div class="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-gray-100 space-y-4">
+    <div class="bg-white rounded-3xl p-6 max-w-lg w-full shadow-2xl border border-gray-100 space-y-4">
+
       <div class="flex justify-between items-center border-b pb-3">
         <h3 class="text-lg font-black text-gray-900">⭐ Đánh Giá Dịch Vụ Lưu Trú</h3>
-        <button (click)="closeReviewModal()" class="text-gray-400 hover:text-gray-600 text-xl font-bold">&times;</button>
+        <button (click)="closeReviewModal()" class="text-gray-400 hover:text-gray-600 text-xl font-bold leading-none">&times;</button>
       </div>
+
+      <!-- Booking context -->
+      <div *ngIf="selectedBookingForReview" class="bg-indigo-50 rounded-2xl px-4 py-3 border border-indigo-100 space-y-1">
+        <p class="font-bold text-indigo-800 text-sm">🏨 {{ selectedBookingForReview.hotelName }}</p>
+        <!-- 1 phòng -->
+        <p *ngIf="!selectedBookingForReview.rooms || selectedBookingForReview.rooms.length <= 1"
+           class="text-indigo-600 text-xs">
+          🔑 Phòng {{ selectedBookingForReview.roomNumber }}
+          <span class="text-indigo-400 mx-1">|</span> {{ selectedBookingForReview.roomType }}
+          <span class="text-indigo-400 mx-1">|</span>
+          {{ selectedBookingForReview.checkInDate | date:'dd/MM/yyyy' }} → {{ selectedBookingForReview.checkOutDate | date:'dd/MM/yyyy' }}
+        </p>
+        <!-- Nhiều phòng -->
+        <div *ngIf="selectedBookingForReview.rooms && selectedBookingForReview.rooms.length > 1">
+          <p class="text-indigo-600 text-xs mb-1">
+            📅 {{ selectedBookingForReview.checkInDate | date:'dd/MM/yyyy' }} → {{ selectedBookingForReview.checkOutDate | date:'dd/MM/yyyy' }}
+            <span class="text-indigo-400 mx-1">|</span>
+            <span class="font-bold">{{ selectedBookingForReview.rooms.length }} phòng</span>
+          </p>
+          <div class="flex flex-wrap gap-1">
+            <span *ngFor="let r of selectedBookingForReview.rooms"
+                  class="text-[10px] font-bold bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-md">
+              Phòng {{ r.roomNumber }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Interactive star rating -->
+      <div class="space-y-2">
+        <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Mức độ hài lòng của bạn:</label>
+        <div class="flex items-center gap-1">
+          <span
+            *ngFor="let star of [1,2,3,4,5]"
+            (click)="setReviewRating(star)"
+            (mouseenter)="hoverStar(star)"
+            (mouseleave)="clearHover()"
+            class="cursor-pointer text-4xl leading-none transition-all duration-100 select-none"
+            [ngClass]="star <= activeStars() ? 'text-amber-400 scale-110' : 'text-gray-200 hover:text-amber-300'">
+            ★
+          </span>
+          <span class="ml-3 text-sm font-bold"
+                [ngClass]="reviewRating >= 4 ? 'text-emerald-600' : reviewRating === 3 ? 'text-yellow-600' : 'text-rose-500'">
+            {{ ratingLabel(hoverRating || reviewRating) }} ({{ hoverRating || reviewRating }}/5)
+          </span>
+        </div>
+      </div>
+
+      <!-- Comment with character counter -->
       <div class="space-y-1.5">
-        <label class="text-xs font-bold text-gray-500 uppercase">Mức độ hài lòng của bạn:</label>
-        <select [(ngModel)]="reviewRating" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm font-bold text-gray-800 focus:outline-none">
-          <option [value]="5">⭐⭐⭐⭐⭐ Hoàn hảo (5/5)</option>
-          <option [value]="4">⭐⭐⭐⭐ Tốt (4/5)</option>
-          <option [value]="3">⭐⭐⭐ Tạm ổn (3/5)</option>
-          <option [value]="2">⭐⭐ Không hài lòng (2/5)</option>
-          <option [value]="1">⭐ Rất tệ (1/5)</option>
-        </select>
+        <div class="flex justify-between items-center">
+          <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Chia sẻ trải nghiệm thực tế:</label>
+          <span class="text-xs font-medium" [ngClass]="reviewComment.length > 900 ? 'text-rose-500' : 'text-gray-400'">
+            {{ reviewComment.length }}/1000
+          </span>
+        </div>
+        <textarea
+          [(ngModel)]="reviewComment"
+          rows="4"
+          maxlength="1000"
+          placeholder="Phòng có sạch sẽ, thoáng mát không? Nhân viên phục vụ ra sao? Bạn có muốn quay lại không?..."
+          class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 placeholder:text-gray-300 resize-none transition">
+        </textarea>
       </div>
-      <div class="space-y-1.5">
-        <label class="text-xs font-bold text-gray-500 uppercase">Chia sẻ trải nghiệm thực tế:</label>
-        <textarea [(ngModel)]="reviewComment" rows="4" placeholder="Phòng ốc có sạch sẽ không? Nhân viên phục vụ ra sao?..." class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:outline-none placeholder:text-gray-300"></textarea>
-      </div>
+
       <div class="flex justify-end gap-2 pt-2 border-t">
         <button (click)="closeReviewModal()" class="px-4 py-2 bg-gray-100 text-gray-600 font-bold text-xs rounded-xl hover:bg-gray-200 transition">Hủy bỏ</button>
-        <button (click)="submitReview()" class="px-4 py-2 bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-bold text-xs rounded-xl">Gửi đánh giá</button>
+        <button (click)="submitReview()" class="px-5 py-2 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-bold text-xs rounded-xl shadow-md shadow-indigo-100 transition">
+          Gửi đánh giá
+        </button>
       </div>
     </div>
   </div>

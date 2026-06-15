@@ -21,6 +21,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,17 +48,24 @@ public class ManagementService {
     @Transactional(readOnly = true)
     public List<BookingResponseDTO> getAllBookings() {
         return bookingRepository.findAllBookingsWithInvoiceAndUser().stream().map(b -> {
-            String roomNum = "N/A";
             List<BookingDetail> details = bookingDetailRepository.findByBookingId(b.getId());
-            if (details != null && !details.isEmpty() && details.get(0).getRoom() != null) {
-                roomNum = details.get(0).getRoom().getRoomNumber();
-            }
+
+            List<String> roomNums = details != null
+                    ? details.stream()
+                        .filter(d -> d.getRoom() != null)
+                        .map(d -> d.getRoom().getRoomNumber())
+                        .collect(Collectors.toList())
+                    : java.util.List.of();
+
+            String primaryRoom = roomNums.isEmpty() ? "N/A" : roomNums.get(0);
 
             Invoice inv = b.getInvoice();
 
             return BookingResponseDTO.builder()
                     .bookingId(b.getId())
-                    .roomNumber(roomNum)
+                    .roomNumber(primaryRoom)
+                    .roomNumbers(roomNums)
+                    .roomCount(roomNums.size())
                     .customerName(b.getCustomerName() != null ? b.getCustomerName() : (b.getUser() != null ? b.getUser().getFullName() : "Khách vãng lai"))
                     .customerPhone(b.getCustomerPhone() != null ? b.getCustomerPhone() : (b.getUser() != null ? b.getUser().getPhone() : "N/A"))
                     .customerCccd(b.getCustomerCccd())
@@ -93,40 +101,102 @@ public class ManagementService {
     }
 
     /**
-     * Nghiệp vụ Khởi tạo đơn thuê phòng trực tiếp tại quầy Lễ tân (Walk-in)
+     * Lấy danh sách phòng trống kèm chi tiết (tầng, loại, giá) để hiển thị lưới chọn phòng walk-in.
+     */
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getAvailableRoomsDetail(LocalDate checkIn, LocalDate checkOut) {
+        List<Room> availableRooms = roomRepository.findAllByStatus(RoomStatus.AVAILABLE);
+        return availableRooms.stream()
+                .filter(r -> checkIn == null || checkOut == null
+                        || !bookingRepository.isRoomOccupied(r.getId(), checkIn, checkOut))
+                .map(r -> {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("roomNumber", r.getRoomNumber());
+                    m.put("floor", r.getFloor());
+                    m.put("typeName", r.getRoomType() != null ? r.getRoomType().getTypeName() : "N/A");
+                    m.put("price", r.getRoomType() != null ? r.getRoomType().getBasePrice() : BigDecimal.ZERO);
+                    return m;
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Preview giá tạm tính cho nhiều phòng (multi-room walk-in).
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> previewWalkInPriceMulti(List<String> roomNumbers, LocalDate checkIn, LocalDate checkOut, String appliedCode) {
+        if (checkIn == null || checkOut == null || roomNumbers == null || roomNumbers.isEmpty()) {
+            return Map.of("originalPrice", BigDecimal.ZERO, "discountAmount", BigDecimal.ZERO, "finalAmount", BigDecimal.ZERO);
+        }
+        long totalNights = ChronoUnit.DAYS.between(checkIn, checkOut);
+        if (totalNights <= 0) totalNights = 1;
+        final long nights = totalNights;
+
+        BigDecimal originalTotal = BigDecimal.ZERO;
+        for (String roomNum : roomNumbers) {
+            Room room = roomRepository.findByRoomNumber(roomNum).orElse(null);
+            if (room != null && room.getRoomType() != null) {
+                originalTotal = originalTotal.add(room.getRoomType().getBasePrice().multiply(BigDecimal.valueOf(nights)));
+            }
+        }
+        BigDecimal discountAmount = BigDecimal.ZERO;
+        if (appliedCode != null && !appliedCode.trim().isEmpty()) {
+            Promotion promo = promotionRepository.findByCodeIgnoreCaseAndIsActiveTrue(appliedCode.trim()).orElse(null);
+            if (promo != null) {
+                boolean validStart = promo.getStartDate() == null || !checkIn.isBefore(promo.getStartDate());
+                boolean validEnd = promo.getEndDate() == null || !checkIn.isAfter(promo.getEndDate());
+                if (validStart && validEnd) {
+                    discountAmount = originalTotal.multiply(BigDecimal.valueOf(promo.getDiscountPercentage()))
+                            .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+                }
+            }
+        }
+        return Map.of("originalPrice", originalTotal, "discountAmount", discountAmount, "finalAmount", originalTotal.subtract(discountAmount));
+    }
+
+    /**
+     * Khởi tạo đơn thuê phòng tại quầy — hỗ trợ đặt nhiều phòng cùng lúc cho 1 khách.
      *
-     * Fix Bug 1: Thêm isRoomOccupied — kiểm tra lịch đặt phòng chồng chéo (bao gồm cả đơn PENDING online)
-     * Fix Bug 2: Dùng findByRoomNumberWithLock — Pessimistic Lock chống race condition 2 lễ tân đặt đồng thời
-     * Fix Bug 5: Guard endDate == null khi validate coupon — tránh NullPointerException
-     * Fix Bug 6: amountPaid = ZERO khi UNPAID — sửa mâu thuẫn dữ liệu "có tiền nhưng chưa thanh toán"
+     * - Dùng roomNumbers (multi) hoặc fallback về roomNumber (single, backward compat)
+     * - Pessimistic Lock từng phòng trước khi tạo booking
+     * - Tạo 1 Booking + N BookingDetail + 1 Invoice chung
      */
     @Transactional
     public void createWalkInBooking(WalkInBookingRequestDTO request) {
-        // Bug 2 fix: Pessimistic Lock — chặn 2 lễ tân đặt cùng phòng đồng thời
-        Room room = roomRepository.findByRoomNumberWithLock(request.getRoomNumber())
-                .orElseThrow(() -> new RuntimeException("Số phòng " + request.getRoomNumber() + " không tồn tại!"));
+        List<String> roomNums = (request.getRoomNumbers() != null && !request.getRoomNumbers().isEmpty())
+                ? request.getRoomNumbers()
+                : (request.getRoomNumber() != null && !request.getRoomNumber().isEmpty()
+                   ? List.of(request.getRoomNumber()) : List.of());
 
-        if (room.getStatus() != RoomStatus.AVAILABLE) {
-            throw new RuntimeException("Phòng số " + request.getRoomNumber() + " hiện tại không sẵn sàng đón khách!");
+        if (roomNums.isEmpty()) {
+            throw new RuntimeException("Vui lòng chọn ít nhất 1 phòng!");
         }
 
-        // Bug 1 fix: Kiểm tra lịch đặt chồng chéo — bắt cả đơn PENDING/CONFIRMED/CHECK_IN của online
-        boolean occupied = bookingRepository.isRoomOccupied(
-                room.getId(), request.getCheckInDate(), request.getCheckOutDate());
-        if (occupied) {
-            throw new RuntimeException("Phòng " + request.getRoomNumber()
-                    + " đã có lịch đặt trong khoảng " + request.getCheckInDate()
-                    + " → " + request.getCheckOutDate() + ". Vui lòng kiểm tra lại!");
-        }
-
-        // Tính số đêm lưu trú thực tế
         long totalNights = ChronoUnit.DAYS.between(request.getCheckInDate(), request.getCheckOutDate());
         if (totalNights <= 0) totalNights = 1;
+        final long nights = totalNights;
 
-        BigDecimal basePricePerNight = room.getRoomType().getBasePrice();
-        BigDecimal originalTotalPrice = basePricePerNight.multiply(BigDecimal.valueOf(totalNights));
+        // Pessimistic Lock và validate tất cả phòng trước khi ghi DB
+        List<Room> rooms = new ArrayList<>();
+        for (String roomNum : roomNums) {
+            Room room = roomRepository.findByRoomNumberWithLock(roomNum)
+                    .orElseThrow(() -> new RuntimeException("Số phòng " + roomNum + " không tồn tại!"));
+            if (room.getStatus() != RoomStatus.AVAILABLE) {
+                throw new RuntimeException("Phòng số " + roomNum + " hiện tại không sẵn sàng đón khách!");
+            }
+            boolean occupied = bookingRepository.isRoomOccupied(room.getId(), request.getCheckInDate(), request.getCheckOutDate());
+            if (occupied) {
+                throw new RuntimeException("Phòng " + roomNum + " đã có lịch đặt trong khoảng "
+                        + request.getCheckInDate() + " → " + request.getCheckOutDate() + ". Vui lòng kiểm tra lại!");
+            }
+            rooms.add(room);
+        }
 
-        // Bug 5 fix: Guard null trước khi gọi isBefore/isAfter trên endDate (tránh NPE)
+        // Tổng giá gốc = Σ(giá/đêm × số đêm) trên tất cả phòng
+        BigDecimal originalTotalPrice = rooms.stream()
+                .map(r -> r.getRoomType().getBasePrice().multiply(BigDecimal.valueOf(nights)))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
         BigDecimal discountAmount = BigDecimal.ZERO;
         Promotion promotion = null;
         if (request.getAppliedCode() != null && !request.getAppliedCode().trim().isEmpty()) {
@@ -137,21 +207,23 @@ public class ManagementService {
                 boolean validEnd = promotion.getEndDate() == null
                         || !request.getCheckInDate().isAfter(promotion.getEndDate());
                 if (validStart && validEnd) {
-                    BigDecimal percent = BigDecimal.valueOf(promotion.getDiscountPercentage());
                     discountAmount = originalTotalPrice
-                            .multiply(percent)
+                            .multiply(BigDecimal.valueOf(promotion.getDiscountPercentage()))
                             .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
                 }
             }
         }
         BigDecimal finalAmount = originalTotalPrice.subtract(discountAmount);
 
-        // Khởi tạo thực thể Booking — lưu thông tin khách quầy trực tiếp, không cần tài khoản
+        String customerEmailTrimmed = (request.getCustomerEmail() != null && !request.getCustomerEmail().isBlank())
+                ? request.getCustomerEmail().trim() : null;
+
         Booking booking = Booking.builder()
                 .user(null)
                 .customerName(request.getCustomerName().trim())
                 .customerPhone(request.getCustomerPhone().trim())
                 .customerCccd(request.getCustomerCccd().trim())
+                .customerEmail(customerEmailTrimmed)
                 .checkInDate(request.getCheckInDate())
                 .checkOutDate(request.getCheckOutDate())
                 .totalPrice(originalTotalPrice)
@@ -159,23 +231,21 @@ public class ManagementService {
                 .finalAmount(finalAmount)
                 .promotion(promotion)
                 .status(BookingStatus.CHECK_IN)
-                .hotel(room.getHotel())
+                .hotel(rooms.get(0).getHotel())
                 .build();
         booking = bookingRepository.save(booking);
 
-        // Snapshot giá phòng tại thời điểm đặt
-        BookingDetail detail = new BookingDetail();
-        detail.setBooking(booking);
-        detail.setRoom(room);
-        detail.setPriceAtBooking(basePricePerNight);
-        bookingDetailRepository.save(detail);
+        // Tạo BookingDetail và chuyển OCCUPIED cho từng phòng
+        for (Room room : rooms) {
+            BookingDetail detail = new BookingDetail();
+            detail.setBooking(booking);
+            detail.setRoom(room);
+            detail.setPriceAtBooking(room.getRoomType().getBasePrice());
+            bookingDetailRepository.save(detail);
+            room.setStatus(RoomStatus.OCCUPIED);
+            roomRepository.save(room);
+        }
 
-        // Chuyển trạng thái phòng sang OCCUPIED ngay (khách walk-in đã có mặt)
-        room.setStatus(RoomStatus.OCCUPIED);
-        roomRepository.save(room);
-
-        // Bug 6 fix: amountPaid phải là ZERO khi status UNPAID — khách trả khi checkout
-        // (amountPaid sẽ được điền đúng tại bước checkOut → processCheckOut)
         Invoice invoice = Invoice.builder()
                 .booking(booking)
                 .paymentMethod(PaymentMethod.CASH)
@@ -262,9 +332,15 @@ public class ManagementService {
         if (appliedCode != null && !appliedCode.trim().isEmpty()) {
             Promotion promotion = promotionRepository.findByCodeIgnoreCaseAndIsActiveTrue(appliedCode.trim()).orElse(null);
             if (promotion != null) {
-                if (!checkIn.isBefore(promotion.getStartDate()) && !checkIn.isAfter(promotion.getEndDate())) {
+                // Fix Bug 2: Guard null startDate/endDate (đồng bộ với createWalkInBooking)
+                boolean validStart = promotion.getStartDate() == null
+                        || !checkIn.isBefore(promotion.getStartDate());
+                boolean validEnd = promotion.getEndDate() == null
+                        || !checkIn.isAfter(promotion.getEndDate());
+                if (validStart && validEnd) {
                     BigDecimal percent = BigDecimal.valueOf(promotion.getDiscountPercentage());
-                    discountAmount = originalTotalPrice.multiply(percent).divide(BigDecimal.valueOf(100));
+                    discountAmount = originalTotalPrice.multiply(percent)
+                            .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
                 }
             }
         }
@@ -281,121 +357,170 @@ public class ManagementService {
     // 📊 3. PHÂN HỆ THỐNG KÊ DOANH THU & HIỆU SUẤT DASHBOARD (DOCKING FILTER)
     // =========================================================================
 
-    /**
-     * 📊 NGHIỆP VỤ NÂNG CẤP: Tổng hợp số liệu báo cáo doanh thu động theo NGÀY / TUẦN / THÁNG / NĂM
-     * @param filterType Nhận các giá trị cấu hình: "DATE", "WEEK", "MONTH", "YEAR"
-     */
     @Transactional(readOnly = true)
     public DashboardStatsResponseDTO getDashboardStatsFiltered(String filterType) {
         LocalDate today = LocalDate.now();
-        List<Invoice> allInvoices = invoiceRepository.findAll();
 
-        // 1. Tính tổng doanh thu thực tế đã thanh toán trong ngày hôm nay
-        BigDecimal revenueToday = allInvoices.stream()
-                .filter(inv -> inv.getPaymentDate() != null && inv.getPaymentDate().toLocalDate().isEqual(today))
-                .filter(inv -> inv.getPaymentStatus() == PaymentStatus.PAID)
-                .map(Invoice::getAmountPaid)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        // Fix Bug 1: Dùng query COUNT/SUM trực tiếp thay vì load toàn bộ bảng vào RAM
+        BigDecimal revenueToday = safeRevenue(invoiceRepository.calculateTotalRevenue(
+                today.atStartOfDay(), today.plusDays(1).atStartOfDay()));
 
-        // 2. Đếm số lượng đơn đặt phòng phát sinh trong ngày hôm nay
-        long bookingsToday = bookingRepository.findAll().stream()
-                .filter(b -> b.getCheckInDate().isEqual(today))
-                .count();
+        long bookingsToday = bookingRepository.countBookingsCreatedBetween(
+                today.atStartOfDay(), today.plusDays(1).atStartOfDay());
 
-        // 3. Thống kê trạng thái phòng thời gian thực
         long totalRooms = roomRepository.count();
-        long availableRooms = roomRepository.findAllByStatus(RoomStatus.AVAILABLE).size();
+        // Fix occupancy bug: đếm phòng có booking đang hoạt động hôm nay (CONFIRMED/CHECK_IN, date overlap)
+        // countByStatusAndNotDeleted(AVAILABLE) không chính xác vì online booking CONFIRMED giữ phòng ở AVAILABLE
+        long occupiedToday = bookingDetailRepository.countOccupiedRoomsOnDay(today);
+        long availableRooms = Math.max(totalRooms - occupiedToday, 0);
 
-        // 4. Phân tách và cấu trúc Map dữ liệu biểu đồ dựa trên bộ lọc thời gian chọn
         Map<String, BigDecimal> chartData = new LinkedHashMap<>();
+        BigDecimal periodRevenue = BigDecimal.ZERO;
         String type = (filterType != null) ? filterType.toUpperCase() : "WEEK";
 
         switch (type) {
             case "DATE":
-                // Lọc biểu đồ chi tiết: Hiển thị doanh thu 3 ngày gần đây để đối chiếu sát sườn
+                // 3 ngày gần nhất để so sánh chi tiết
                 for (int i = 2; i >= 0; i--) {
-                    LocalDate targetDate = today.minusDays(i);
-                    String label = targetDate.format(DateTimeFormatter.ofPattern("dd/MM"));
-                    chartData.put(label, calculateDailyRevenue(allInvoices, targetDate));
+                    LocalDate d = today.minusDays(i);
+                    BigDecimal rev = revenueForDay(d);
+                    chartData.put(d.format(DateTimeFormatter.ofPattern("dd/MM")), rev);
+                    periodRevenue = periodRevenue.add(rev);
                 }
                 break;
 
             case "WEEK":
-                // Xu hướng thanh khoản trong 7 ngày gần nhất (Mặc định)
                 for (int i = 6; i >= 0; i--) {
-                    LocalDate targetDate = today.minusDays(i);
-                    String label = targetDate.format(DateTimeFormatter.ofPattern("dd/MM"));
-                    chartData.put(label, calculateDailyRevenue(allInvoices, targetDate));
+                    LocalDate d = today.minusDays(i);
+                    BigDecimal rev = revenueForDay(d);
+                    chartData.put(d.format(DateTimeFormatter.ofPattern("dd/MM")), rev);
+                    periodRevenue = periodRevenue.add(rev);
                 }
                 break;
 
             case "MONTH":
-                // Phân rã doanh thu theo 4 tuần trong tháng hiện tại
-                for (int i = 3; i >= 0; i--) {
-                    LocalDate endWeek = today.minusWeeks(i);
-                    LocalDate startWeek = endWeek.minusDays(6);
-                    String label = "Tuần " + (4 - i);
-                    chartData.put(label, calculatePeriodRevenue(allInvoices, startWeek, endWeek));
+                // Fix Bug 3: Tuần theo lịch tháng hiện tại (ngày 1-7, 8-14, 15-21, 22-hết tháng)
+                // Đồng bộ với logic frontend filterBookingsByChartDate
+                LocalDate monthStart = today.withDayOfMonth(1);
+                int daysInMonth = today.lengthOfMonth();
+                for (int week = 1; week <= 4; week++) {
+                    LocalDate startWeek = monthStart.plusDays((long) (week - 1) * 7);
+                    LocalDate endWeek = (week == 4)
+                            ? monthStart.plusDays(daysInMonth - 1)
+                            : startWeek.plusDays(6);
+                    BigDecimal rev = revenueForPeriod(startWeek, endWeek);
+                    chartData.put("Tuần " + week, rev);
+                    periodRevenue = periodRevenue.add(rev);
                 }
                 break;
 
             case "YEAR":
-                // Tổng hợp báo cáo lũy kế theo 12 tháng trong năm
-                for (int i = 11; i >= 0; i--) {
-                    LocalDate targetMonth = today.minusMonths(i);
-                    String label = "Th. " + targetMonth.getMonthValue();
-
-                    BigDecimal monthlyRev = allInvoices.stream()
-                            .filter(inv -> inv.getPaymentDate() != null
-                                    && inv.getPaymentDate().getYear() == targetMonth.getYear()
-                                    && inv.getPaymentDate().getMonth() == targetMonth.getMonth())
-                            .filter(inv -> inv.getPaymentStatus() == PaymentStatus.PAID)
-                            .map(Invoice::getAmountPaid)
-                            .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-                    chartData.put(label, monthlyRev);
-                }
-                break;
-
             default:
-                // Fallback về dữ liệu tuần nếu truyền sai tham số
-                for (int i = 6; i >= 0; i--) {
-                    LocalDate targetDate = today.minusDays(i);
-                    chartData.put(targetDate.toString(), calculateDailyRevenue(allInvoices, targetDate));
+                // Fix Bug 7: default cũng dùng dd/MM như WEEK, không dùng toString()
+                for (int i = 11; i >= 0; i--) {
+                    LocalDate m = today.minusMonths(i);
+                    LocalDate mStart = m.withDayOfMonth(1);
+                    LocalDate mEnd = m.withDayOfMonth(m.lengthOfMonth());
+                    BigDecimal rev = revenueForPeriod(mStart, mEnd);
+                    chartData.put("Th. " + m.getMonthValue(), rev);
+                    periodRevenue = periodRevenue.add(rev);
                 }
                 break;
         }
 
         return DashboardStatsResponseDTO.builder()
                 .totalRevenueToday(revenueToday)
+                .totalRevenuePeriod(periodRevenue)   // Fix Bug 4: KPI card dùng đúng kỳ đang xem
                 .totalBookingsToday(bookingsToday)
                 .availableRooms(availableRooms)
                 .totalRooms(totalRooms)
-                .last7DaysRevenue(chartData) // Tái tận dụng trường dữ liệu Map để đẩy cấu trúc động về UI
+                .last7DaysRevenue(chartData)
                 .build();
     }
 
-    /**
-     * Hàm bổ trợ: Tính doanh thu một ngày cụ thể từ danh sách cache
-     */
-    private BigDecimal calculateDailyRevenue(List<Invoice> invoices, LocalDate date) {
-        return invoices.stream()
-                .filter(inv -> inv.getPaymentDate() != null && inv.getPaymentDate().toLocalDate().isEqual(date))
-                .filter(inv -> inv.getPaymentStatus() == PaymentStatus.PAID)
-                .map(Invoice::getAmountPaid)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    // =========================================================================
+    // 📅 4. CÔNG SUẤT PHÒNG THEO NGÀY — CALENDAR HEATMAP
+    // =========================================================================
+
+    @Transactional(readOnly = true)
+    public Map<String, Integer> getRoomOccupancyCalendar(int year, int month) {
+        LocalDate monthStart = LocalDate.of(year, month, 1);
+        LocalDate monthEnd = monthStart.withDayOfMonth(monthStart.lengthOfMonth());
+        long totalRooms = Math.max(roomRepository.count(), 1);
+
+        Map<String, Integer> result = new LinkedHashMap<>();
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+        LocalDate cursor = monthStart;
+        while (!cursor.isAfter(monthEnd)) {
+            long occupied = bookingDetailRepository.countOccupiedRoomsOnDay(cursor);
+            // Trả % công suất (0–100) để frontend dễ tô màu gradient
+            int pct = (int) Math.min(Math.round(occupied * 100.0 / totalRooms), 100);
+            result.put(cursor.format(fmt), pct);
+            cursor = cursor.plusDays(1);
+        }
+        return result;
     }
 
-    /**
-     * Hàm bổ trợ: Tính doanh thu trong khoảng thời gian (Phục vụ phân chia Tuần)
-     */
-    private BigDecimal calculatePeriodRevenue(List<Invoice> invoices, LocalDate start, LocalDate end) {
-        return invoices.stream()
-                .filter(inv -> inv.getPaymentDate() != null
-                        && !inv.getPaymentDate().toLocalDate().isBefore(start)
-                        && !inv.getPaymentDate().toLocalDate().isAfter(end))
-                .filter(inv -> inv.getPaymentStatus() == PaymentStatus.PAID)
-                .map(Invoice::getAmountPaid)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    // =========================================================================
+    // 📋 5. CHI TIẾT CÔNG SUẤT THEO NGÀY — CLICK CALENDAR CELL
+    // =========================================================================
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> getRoomOccupancyDayDetail(LocalDate date) {
+        List<BookingStatus> activeStatuses = java.util.List.of(BookingStatus.CONFIRMED, BookingStatus.CHECK_IN, BookingStatus.CHECK_OUT);
+        List<BookingDetail> details = bookingDetailRepository.findOccupiedRoomsDetailOnDay(date, activeStatuses);
+        long totalRooms = Math.max(roomRepository.count(), 1);
+
+        // Đếm phòng duy nhất đang được thuê (1 booking có thể có nhiều BookingDetail/phòng)
+        long occupiedRooms = details.stream()
+                .map(bd -> bd.getRoom().getId())
+                .distinct()
+                .count();
+        long availableRooms = Math.max(totalRooms - occupiedRooms, 0);
+        int pct = (int) Math.min(Math.round(occupiedRooms * 100.0 / totalRooms), 100);
+
+        long checkInCount   = details.stream().filter(bd -> bd.getBooking().getStatus() == BookingStatus.CHECK_IN).count();
+        long confirmedCount = details.stream().filter(bd -> bd.getBooking().getStatus() == BookingStatus.CONFIRMED).count();
+        long checkOutCount  = details.stream().filter(bd -> bd.getBooking().getStatus() == BookingStatus.CHECK_OUT).count();
+
+        List<Map<String, Object>> roomList = details.stream().map(bd -> {
+            Map<String, Object> rm = new LinkedHashMap<>();
+            rm.put("roomNumber", bd.getRoom().getRoomNumber());
+            rm.put("roomType",   bd.getRoom().getRoomType() != null ? bd.getRoom().getRoomType().getTypeName() : "N/A");
+            rm.put("bookingStatus", bd.getBooking().getStatus().name());
+            String customer = bd.getBooking().getCustomerName();
+            if (customer == null && bd.getBooking().getUser() != null) customer = bd.getBooking().getUser().getFullName();
+            rm.put("customerName", customer != null ? customer : "Khách vãng lai");
+            rm.put("checkInDate",  bd.getBooking().getCheckInDate().toString());
+            rm.put("checkOutDate", bd.getBooking().getCheckOutDate().toString());
+            return rm;
+        }).collect(Collectors.toList());
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("date",          date.toString());
+        result.put("totalRooms",    totalRooms);
+        result.put("occupiedRooms", occupiedRooms);
+        result.put("availableRooms",availableRooms);
+        result.put("occupancyRate", pct);
+        result.put("checkInCount",   checkInCount);
+        result.put("confirmedCount", confirmedCount);
+        result.put("checkOutCount",  checkOutCount);
+        result.put("rooms",         roomList);
+        return result;
+    }
+
+    private BigDecimal revenueForDay(LocalDate date) {
+        return safeRevenue(invoiceRepository.calculateTotalRevenue(
+                date.atStartOfDay(), date.plusDays(1).atStartOfDay()));
+    }
+
+    private BigDecimal revenueForPeriod(LocalDate start, LocalDate end) {
+        return safeRevenue(invoiceRepository.calculateTotalRevenue(
+                start.atStartOfDay(), end.plusDays(1).atStartOfDay()));
+    }
+
+    private BigDecimal safeRevenue(BigDecimal value) {
+        return value != null ? value : BigDecimal.ZERO;
     }
 }

@@ -1,27 +1,56 @@
 <div class="space-y-6">
-  
-  <div class="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-    <div>
-      <h2 class="text-xl font-black text-slate-800 tracking-tight flex items-center gap-2">
-        <span>⭐</span> Quản lý Đánh giá & Phản hồi
-      </h2>
-      <p class="text-xs text-slate-400 mt-1 font-medium">Kiểm duyệt bình luận tiêu cực và tương tác phản hồi khách hàng.</p>
+
+  <div class="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm space-y-4">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div>
+        <h2 class="text-xl font-black text-slate-800 tracking-tight flex items-center gap-2">
+          <span>⭐</span> Quản lý Đánh giá & Phản hồi
+        </h2>
+        <p class="text-xs text-slate-400 mt-1 font-medium">Kiểm duyệt bình luận và tương tác phản hồi khách hàng.</p>
+      </div>
+
+      <!-- Stats badges -->
+      <div class="flex items-center gap-3 shrink-0 flex-wrap">
+        <div class="bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 text-center min-w-[70px]">
+          <p class="text-[10px] font-bold text-amber-600 uppercase">Tổng</p>
+          <p class="text-lg font-black text-amber-700">{{ reviews.length }}</p>
+        </div>
+        <div class="bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2 text-center min-w-[70px]">
+          <p class="text-[10px] font-bold text-emerald-600 uppercase">TB sao</p>
+          <p class="text-lg font-black text-emerald-700">{{ averageRating }}</p>
+        </div>
+        <div class="bg-rose-50 border border-rose-100 rounded-xl px-3 py-2 text-center min-w-[70px]">
+          <p class="text-[10px] font-bold text-rose-600 uppercase">Đang ẩn</p>
+          <p class="text-lg font-black text-rose-700">{{ hiddenCount }}</p>
+        </div>
+      </div>
     </div>
-    
-    <div class="flex items-center gap-3 w-full md:w-auto">
-      <label class="text-xs font-black text-slate-500 whitespace-nowrap uppercase tracking-wider">Lọc theo phòng:</label>
-      
-      <select 
-        [(ngModel)]="selectedRoomId" 
+
+    <!-- Filters row -->
+    <div class="flex flex-wrap gap-3 items-center pt-2 border-t border-slate-100">
+      <label class="text-xs font-black text-slate-500 uppercase tracking-wider whitespace-nowrap">Lọc phòng:</label>
+      <select
+        [(ngModel)]="selectedRoomId"
         (change)="onRoomFilterChange()"
-        class="bg-slate-50 border border-slate-200 text-slate-700 text-xs font-semibold rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all cursor-pointer shadow-sm min-w-[180px]"
+        class="bg-slate-50 border border-slate-200 text-slate-700 text-xs font-semibold rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer min-w-[180px]"
       >
         <option value="">📂 Tất cả các phòng</option>
-        
         <option *ngFor="let rm of rooms" [value]="rm.id || rm.roomId || ''">
           🚪 Phòng {{ rm.roomNumber }} ({{ rm.typeName }})
         </option>
       </select>
+
+      <label class="text-xs font-black text-slate-500 uppercase tracking-wider whitespace-nowrap ml-2">Lọc sao:</label>
+      <div class="flex gap-1">
+        <button *ngFor="let n of [0,1,2,3,4,5]"
+          (click)="selectedRatingFilter = n"
+          [ngClass]="selectedRatingFilter === n
+            ? 'bg-amber-500 text-white border-amber-500'
+            : 'bg-white text-slate-600 border-slate-200 hover:border-amber-300'"
+          class="px-2.5 py-1 rounded-lg text-xs font-bold border transition-all">
+          {{ n === 0 ? 'Tất cả' : n + '★' }}
+        </button>
+      </div>
     </div>
   </div>
 
@@ -39,7 +68,7 @@
         </thead>
         <tbody class="divide-y divide-slate-100">
           
-          <ng-container *ngFor="let review of reviews">
+          <ng-container *ngFor="let review of filteredReviews">
             <tr class="hover:bg-slate-50/50 transition-colors bg-white">
               <td class="p-4">
                 <div class="font-bold text-slate-800 text-sm tracking-tight">{{ review.userName }}</div>
@@ -70,20 +99,27 @@
               </td>
               
               <td class="p-4 text-right">
-                <div class="inline-flex gap-1.5 justify-end items-center">
-                  <button 
+                <div class="inline-flex gap-1.5 justify-end items-center flex-wrap">
+                  <button
                     (click)="toggleReplyForm(review.id!, review.replyContent)"
                     class="bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border border-blue-100/60 active:scale-95"
                   >
                     💬 {{ review.replyContent ? 'Sửa phản hồi' : 'Phản hồi' }}
                   </button>
-                  
-                  <button 
+
+                  <button
                     (click)="onToggleVisibility(review)"
-                    [ngClass]="review.hidden ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/10' : 'bg-slate-800 hover:bg-slate-900 shadow-slate-900/10'"
+                    [ngClass]="review.hidden ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-slate-700 hover:bg-slate-800'"
                     class="text-white px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95"
                   >
                     {{ review.hidden ? '👁️ Hiện' : '🔒 Ẩn' }}
+                  </button>
+
+                  <button
+                    (click)="onDeleteReview(review)"
+                    class="bg-rose-50 hover:bg-rose-100 text-rose-600 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border border-rose-100/60 active:scale-95"
+                  >
+                    🗑️ Xóa
                   </button>
                 </div>
               </td>
@@ -110,7 +146,7 @@
             </tr>
           </ng-container>
 
-          <tr *ngIf="reviews.length === 0">
+          <tr *ngIf="filteredReviews.length === 0">
             <td colspan="5" class="p-16 text-center text-sm font-semibold text-slate-400 bg-white">
               📭 Không tìm thấy dữ liệu đánh giá nào cho phân khu phòng này.
             </td>

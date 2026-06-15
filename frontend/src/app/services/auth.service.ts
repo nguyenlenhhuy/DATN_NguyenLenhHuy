@@ -78,9 +78,15 @@ export class AuthService {
 
   getRole(): string | null {
     const role = localStorage.getItem('role');
-    // Nếu role bị lưu nhầm dạng [object Object], trả về null để Guard xử lý logic dự phòng
     if (!role || role.includes('object Object')) return null;
     return role;
+  }
+
+  isAdminOrStaff(): boolean {
+    const role = this.getRole();
+    if (!role) return false;
+    const upper = role.toUpperCase();
+    return upper.includes('ADMIN') || upper.includes('STAFF');
   }
 
   logout(): void {

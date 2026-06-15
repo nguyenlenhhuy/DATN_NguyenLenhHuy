@@ -6,6 +6,7 @@ import org.example.backend.dto.request.ReplyRequestDTO;
 import org.example.backend.dto.request.ReviewRequestDTO;
 import org.example.backend.dto.response.ReviewResponseDTO;
 import org.example.backend.entity.*;
+import org.example.backend.entity.enums.BookingStatus;
 import org.example.backend.entity.enums.MediaType;
 import org.example.backend.exception.ResourceNotFoundException;
 import org.example.backend.exception.ReviewAlreadyExistsException;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -25,6 +27,7 @@ public class ReviewService {
     private final BookingRepository bookingRepository;
     private final HotelRepository hotelRepository;
     private final AuditLogRepository auditLogRepository;
+    private final RoomRepository roomRepository;
 
     // ================= DÀNH CHO KHÁCH HÀNG THAM QUAN PHÒNG =================
 
@@ -65,12 +68,16 @@ public class ReviewService {
             throw new IllegalStateException("Bạn chỉ có thể đánh giá sau khi đã hoàn tất thủ tục trả phòng (Check-out).");
         }
 
-        if (reviewRepository.existsByBookingId(dto.getBookingId())) {
-            throw new ReviewAlreadyExistsException("Đơn hàng này đã được đánh giá");
+        Room room = roomRepository.findById(dto.getRoomId())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phòng cần đánh giá"));
+
+        if (reviewRepository.existsByBookingIdAndRoomId(dto.getBookingId(), dto.getRoomId())) {
+            throw new ReviewAlreadyExistsException("Phòng này trong đơn hàng đã được đánh giá");
         }
 
         Review review = new Review();
         review.setBooking(booking);
+        review.setRoom(room);
         review.setUser(booking.getUser());
         review.setHotel(booking.getHotel());
         review.setRating(dto.getRating());
@@ -144,6 +151,7 @@ public class ReviewService {
         return ReviewResponseDTO.builder()
                 .id(review.getId())
                 .userName(review.getUser() != null ? review.getUser().getFullName() : "Khách ẩn danh")
+                .roomNumber(review.getRoom() != null ? review.getRoom().getRoomNumber() : null)
                 .rating(review.getRating())
                 .comment(review.getComment())
                 .replyContent(review.getReplyContent())
@@ -152,6 +160,18 @@ public class ReviewService {
                         review.getMediaList().stream().map(ReviewMedia::getMediaUrl).toList() : List.of())
                 .build();
     }
+    public Map<String, Object> checkCanReview(Long userId, Long bookingId, Long roomId) {
+        Booking booking = bookingRepository.findById(bookingId).orElse(null);
+        if (booking == null) return Map.of("canReview", false, "reason", "booking_not_found");
+        if (booking.getUser() == null || !booking.getUser().getId().equals(userId))
+            return Map.of("canReview", false, "reason", "not_authorized");
+        if (booking.getStatus() != BookingStatus.CHECK_OUT)
+            return Map.of("canReview", false, "reason", "not_checked_out");
+        if (reviewRepository.existsByBookingIdAndRoomId(bookingId, roomId))
+            return Map.of("canReview", false, "reason", "already_reviewed");
+        return Map.of("canReview", true, "reason", "eligible");
+    }
+
     @Transactional
     public ReviewResponseDTO toggleReviewVisibility(Long reviewId) {
         Review review = reviewRepository.findById(reviewId)

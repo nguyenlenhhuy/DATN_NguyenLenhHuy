@@ -10,9 +10,10 @@ import java.util.Map;
 @AllArgsConstructor
 @Builder
 public class DashboardStatsResponseDTO {
-    private BigDecimal totalRevenueToday;
+    private BigDecimal totalRevenueToday;    // Doanh thu hôm nay (luôn cố định)
+    private BigDecimal totalRevenuePeriod;   // Doanh thu của kỳ đang xem (DATE/WEEK/MONTH/YEAR)
     private long totalBookingsToday;
     private long availableRooms;
     private long totalRooms;
-    private Map<String, BigDecimal> last7DaysRevenue; // Key: "yyyy-MM-dd", Value: Doanh thu
+    private Map<String, BigDecimal> last7DaysRevenue;
 }

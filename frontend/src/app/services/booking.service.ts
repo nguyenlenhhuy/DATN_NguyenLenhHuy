@@ -9,6 +9,16 @@ export interface BookingRequestDTO {
   checkIn: string;
   checkOut: string;
   paymentMethod: string;
+  couponCode?: string;
+  holdToken?: string;
+}
+
+export interface BatchBookingRequestDTO {
+  roomIds: number[];
+  checkIn: string;
+  checkOut: string;
+  paymentMethod: string;
+  couponCode?: string;
 }
 
 @Injectable({
@@ -30,8 +40,11 @@ export class BookingService {
     return this.http.post<any>(this.apiUrl, data);
   }
 
-  // (Optional) Lịch sử đơn hàng của người dùng hiện tại
   getMyHistory(): Observable<any> {
     return this.http.get<any>(`${this.apiUrl}/history`);
+  }
+
+  createBatchBooking(data: BatchBookingRequestDTO): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/batch`, data);
   }
 }

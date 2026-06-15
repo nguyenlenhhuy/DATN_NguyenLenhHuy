@@ -1,9 +1,10 @@
 import { Component, OnInit, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms'; 
-import { RouterModule, Router, ActivatedRoute } from '@angular/router'; 
+import { FormsModule } from '@angular/forms';
+import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { RoomService } from '../../services/room.service';
 import { FavoriteService } from '../../services/favorite.service';
+import { RoomHoldService } from '../../services/room-hold.service';
 import { RoomResponseDTO, RoomSearchRequest } from '../../models/room.model';
 import { HeaderComponent } from '../../components/header/header.component';
 import { AuthService } from '../../services/auth.service';
@@ -16,17 +17,20 @@ import { AuthService } from '../../services/auth.service';
   styleUrl: './rooms.component.scss'
 })
 export class RoomsComponent implements OnInit {
-  rooms: any[] = []; 
-  roomTypes: any[] = []; 
-  floors: string[] = []; 
-  selectedFloor: string = 'ALL'; 
-  isLoading = false; 
+  rooms: any[] = [];
+  roomTypes: any[] = [];
+  floors: string[] = [];
+  selectedFloor: string = 'ALL';
+  isLoading = false;
+  heldRoomIds: number[] = [];
+  sortOption: string = 'default';
 
   // === BIẾN QUẢN LÝ KHOẢNG GIÁ (HỘP CHỌN + ĐIỀN TAY) ===
   minPrice: number = 0;
   maxPrice: number = 10000000;
   maxSliderLimit: number = 10000000;
   selectedPricePreset: string = '0-10000000'; // Quản lý giá trị của thẻ <select>
+  onlyAvailable: boolean = false;
 
   urlKeyword: string = '';
 
@@ -40,6 +44,7 @@ export class RoomsComponent implements OnInit {
   constructor(
     private roomService: RoomService,
     private favoriteService: FavoriteService,
+    private roomHoldService: RoomHoldService,
     private router: Router,
     private route: ActivatedRoute,
     public authService: AuthService
@@ -47,6 +52,7 @@ export class RoomsComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadRoomTypes();
+    this.loadHeldRooms();
 
     this.route.queryParams.subscribe(params => {
       this.urlKeyword = params['q'] || '';
@@ -169,9 +175,9 @@ export class RoomsComponent implements OnInit {
     this.floors = Array.from(floorSet).sort((a, b) => parseInt(a) - parseInt(b));
   }
 
-  // Logic lọc kết hợp (Tầng + Loại phòng + Khoảng giá + Sức chứa)
+  // Logic lọc kết hợp (Tầng + Loại phòng + Khoảng giá + Sức chứa) + sort
   get filteredRooms(): any[] {
-    return this.rooms.filter(room => {
+    const filtered = this.rooms.filter(room => {
       const numStr = room.roomNumber.toString().trim();
       const floorStr = numStr.length >= 4 ? numStr.substring(0, numStr.length - 2) : numStr.charAt(0);
       const matchFloor = this.selectedFloor === 'ALL' || floorStr === this.selectedFloor;
@@ -181,19 +187,59 @@ export class RoomsComponent implements OnInit {
         room.roomNumber.toString().toLowerCase().includes(keywordToSearch.toLowerCase()) ||
         (room.typeName && room.typeName.toLowerCase().includes(keywordToSearch.toLowerCase()));
 
-      const currentPrice = room.appliedPromotion
-        ? room.price * (1 - room.appliedPromotion.discountPercentage / 100)
-        : room.price;
+      const currentPrice = this.getEffectivePrice(room);
       const safeMin = this.minPrice || 0;
       const safeMax = this.maxPrice || 999999999;
       const matchPrice = currentPrice >= safeMin && currentPrice <= safeMax;
 
-      // Lọc theo sức chứa: chỉ hiện phòng có maxGuests >= số khách yêu cầu
       const guestFilter = this.searchRequest.guestCount ? Number(this.searchRequest.guestCount) : null;
       const matchGuests = !guestFilter || !room.maxGuests || room.maxGuests >= guestFilter;
 
-      return matchFloor && matchKeyword && matchPrice && matchGuests;
+      const matchAvailable = !this.onlyAvailable || room.status === 'AVAILABLE';
+
+      return matchFloor && matchKeyword && matchPrice && matchGuests && matchAvailable;
     });
+
+    switch (this.sortOption) {
+      case 'price-asc':  return [...filtered].sort((a, b) => this.getEffectivePrice(a) - this.getEffectivePrice(b));
+      case 'price-desc': return [...filtered].sort((a, b) => this.getEffectivePrice(b) - this.getEffectivePrice(a));
+      case 'rating-desc': return [...filtered].sort((a, b) => (b.averageRating || 0) - (a.averageRating || 0));
+      default: return filtered;
+    }
+  }
+
+  getEffectivePrice(room: any): number {
+    const price = Number(room.price) || 0;
+    return room.appliedPromotion
+      ? price * (1 - room.appliedPromotion.discountPercentage / 100)
+      : price;
+  }
+
+  get activeFilterChips(): { label: string; key: string }[] {
+    const chips: { label: string; key: string }[] = [];
+    if (this.searchRequest.typeName)   chips.push({ label: `Loại: ${this.searchRequest.typeName}`, key: 'typeName' });
+    if (this.searchRequest.checkIn)    chips.push({ label: `Nhận: ${this.searchRequest.checkIn}`, key: 'checkIn' });
+    if (this.searchRequest.checkOut)   chips.push({ label: `Trả: ${this.searchRequest.checkOut}`, key: 'checkOut' });
+    if (this.searchRequest.guestCount) chips.push({ label: `${this.searchRequest.guestCount} khách`, key: 'guestCount' });
+    if (this.minPrice > 0)             chips.push({ label: `Từ ${this.formatPrice(this.minPrice)}`, key: 'minPrice' });
+    if (this.maxPrice < 10000000)      chips.push({ label: `Đến ${this.formatPrice(this.maxPrice)}`, key: 'maxPrice' });
+    if (this.onlyAvailable)            chips.push({ label: 'Chỉ phòng trống', key: 'onlyAvailable' });
+    return chips;
+  }
+
+  removeFilter(key: string): void {
+    if (key === 'typeName')    this.searchRequest.typeName = '';
+    else if (key === 'checkIn')     this.searchRequest.checkIn = null;
+    else if (key === 'checkOut')    this.searchRequest.checkOut = null;
+    else if (key === 'guestCount')  this.searchRequest.guestCount = null;
+    else if (key === 'minPrice')       this.minPrice = 0;
+    else if (key === 'maxPrice')       this.maxPrice = 10000000;
+    else if (key === 'onlyAvailable')  this.onlyAvailable = false;
+    const hasFilters = this.searchRequest.typeName || this.searchRequest.checkIn ||
+                       this.searchRequest.checkOut || this.searchRequest.guestCount ||
+                       this.minPrice > 0 || this.maxPrice < 10000000 || this.onlyAvailable;
+    if (hasFilters) this.searchRooms();
+    else { this.router.navigate(['/rooms']); this.loadAllRooms(); }
   }
 
   get roomsGroupedByFloor(): { floor: string, roomList: any[] }[] {
@@ -264,12 +310,23 @@ export class RoomsComponent implements OnInit {
     });
   }
 
+  loadHeldRooms(): void {
+    this.roomHoldService.getHeldRoomIds().subscribe(ids => {
+      this.heldRoomIds = ids.map(id => Number(id));
+    });
+  }
+
+  isRoomHeld(roomId: number): boolean {
+    return this.heldRoomIds.includes(roomId);
+  }
+
   resetSearch(): void {
     this.searchRequest = { checkIn: null, checkOut: null, guestCount: null, typeName: '' };
     this.selectedFloor = 'ALL';
     this.minPrice = 0;
     this.maxPrice = 10000000;
     this.selectedPricePreset = '0-10000000';
+    this.onlyAvailable = false;
     this.urlKeyword = '';
     this.router.navigate(['/rooms']);
     this.loadAllRooms();

@@ -57,6 +57,10 @@ public class SecurityConfig {
                         // ====================================================================
                         // 3. NHÓM GIAO DỊCH & CÁ NHÂN (Yêu cầu đăng nhập, bất kể là Role gì)
                         // ====================================================================
+                        // Chặn STAFF truy cập các endpoint quản trị đánh giá (chỉ ADMIN)
+                        .requestMatchers("/api/reviews/admin/**")
+                        .hasAnyAuthority("ADMIN", "ROLE_ADMIN")
+
                         // Nhóm này bắt buộc phải có tài khoản (Customer, Staff hoặc Admin đều được)
                         // Lưu ý: Liệt kê cả có tiền tố ROLE_ và không có tiền tố để tránh lỗi map dữ liệu
                         .requestMatchers("/api/users/**", "/api/bookings/**", "/api/favorites/**", "/api/reviews/**")

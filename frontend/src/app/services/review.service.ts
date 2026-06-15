@@ -6,6 +6,7 @@ import { environment } from '../../environments/environment';
 // Định nghĩa DTO gửi lên Backend
 export interface ReviewRequestDTO {
   bookingId: number;
+  roomId: number;
   rating: number;
   comment: string;
   mediaUrls?: string[];
@@ -15,12 +16,13 @@ export interface ReviewRequestDTO {
 export interface ReviewResponseDTO {
   id?: number;
   userName: string;
+  roomNumber?: string;
   rating: number;
   comment: string;
   replyContent?: string;
   createdAt: string | Date;
   mediaUrls?: string[];
-  hidden: boolean; // 🔥 Đã thêm thuộc tính quản lý ẩn/hiện đồng bộ Backend
+  hidden: boolean;
 }
 
 @Injectable({
@@ -32,6 +34,12 @@ export class ReviewService {
   constructor(private http: HttpClient) {}
 
   // --- API DÀNH CHO CUSTOMER ---
+  checkCanReview(bookingId: number, roomId: number): Observable<{ canReview: boolean; reason?: string }> {
+    return this.http.get<{ canReview: boolean; reason?: string }>(`${this.apiUrl}/can-review`, {
+      params: { bookingId: bookingId.toString(), roomId: roomId.toString() }
+    });
+  }
+
   submitReview(data: ReviewRequestDTO): Observable<any> {
     return this.http.post(`${this.apiUrl}/submit`, data);
   }
@@ -58,5 +66,10 @@ export class ReviewService {
   // 3. Thay đổi trạng thái Ẩn/Hiện
   toggleReviewVisibility(reviewId: number): Observable<ReviewResponseDTO> {
     return this.http.put<ReviewResponseDTO>(`${this.apiUrl}/admin/${reviewId}/toggle-visibility`, {});
+  }
+
+  // 4. Xóa đánh giá (admin)
+  deleteReview(reviewId: number): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/admin/${reviewId}`);
   }
 }

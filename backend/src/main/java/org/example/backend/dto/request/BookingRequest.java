@@ -27,4 +27,7 @@ public class BookingRequest {
     @NotNull(message = "Vui lòng chọn phương thức thanh toán")
     private String paymentMethod; // PAYOS, CASH...
     private String couponCode;
+
+    /** Token xác thực hold (lấy từ POST /api/rooms/{id}/hold). Tùy chọn — nếu không có hold, skip kiểm tra. */
+    private String holdToken;
 }

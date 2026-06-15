@@ -3,20 +3,30 @@ package org.example.backend.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.entity.Booking;
+import org.example.backend.entity.BookingDetail;
 import org.example.backend.entity.DailyRevenueStat;
 import org.example.backend.entity.Invoice;
+import org.example.backend.entity.Room;
 import org.example.backend.entity.enums.BookingStatus;
 import org.example.backend.entity.enums.PaymentStatus;
 import org.example.backend.exception.ResourceNotFoundException;
+import org.example.backend.repository.BookingDetailRepository;
 import org.example.backend.repository.BookingRepository;
 import org.example.backend.repository.DailyRevenueStatRepository;
 import org.example.backend.repository.InvoiceRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+
+import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 import vn.payos.PayOS;
 import vn.payos.type.CheckoutResponseData;
 import vn.payos.type.ItemData;
 import vn.payos.type.PaymentData;
+import vn.payos.type.PaymentLinkData;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -32,6 +42,8 @@ public class PaymentService {
     private final InvoiceRepository invoiceRepository;
     private final BookingRepository bookingRepository;
     private final DailyRevenueStatRepository revenueStatRepository;
+    private final BookingDetailRepository bookingDetailRepository;
+    private final EmailService emailService;
 
     @Transactional
     public String createPaymentLink(Long invoiceId) throws Exception {
@@ -95,7 +107,85 @@ public class PaymentService {
         invoiceRepository.save(invoice);
         bookingRepository.save(booking);
 
+        // Trích xuất dữ liệu phòng trong transaction (trước khi session đóng)
+        String toEmail = (booking.getUser() != null) ? booking.getUser().getEmail() : null;
+        String roomNumber = "N/A", roomType = "N/A", hotelName = "LuxeHotel";
+        try {
+            List<BookingDetail> details = bookingDetailRepository.findByBookingId(booking.getId());
+            if (!details.isEmpty()) {
+                Room room = details.get(0).getRoom();
+                if (room != null) {
+                    roomNumber = room.getRoomNumber();
+                    if (room.getRoomType() != null) {
+                        roomType = room.getRoomType().getTypeName();
+                        if (room.getRoomType().getHotel() != null) {
+                            hotelName = room.getRoomType().getHotel().getName();
+                        }
+                    }
+                }
+            }
+        } catch (Exception ex) {
+            log.warn("Không thể lấy thông tin phòng cho email hóa đơn: {}", ex.getMessage());
+        }
+
+        // Gửi email hóa đơn sau khi transaction commit xong
+        if (toEmail != null && !toEmail.isBlank()) {
+            final String finalEmail = toEmail;
+            final String finalRoom = roomNumber, finalType = roomType, finalHotel = hotelName;
+            final Invoice finalInvoice = invoice;
+            final Booking finalBooking = booking;
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    emailService.sendInvoiceEmail(finalEmail, finalBooking, finalInvoice, finalRoom, finalType, finalHotel);
+                }
+            });
+        }
+
         log.info("Xử lý thanh toán thành công cho hóa đơn số: {}. Số tiền: {}", invoiceId, actualAmount);
+    }
+
+    /**
+     * Xác minh thanh toán PayOS qua API rồi cập nhật DB.
+     * Gọi từ Angular sau khi PayOS redirect về returnUrl.
+     */
+    @Transactional
+    public Map<String, Object> verifyAndProcessPayment(Long orderCode) {
+        Invoice invoice = invoiceRepository.findById(orderCode)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hóa đơn: " + orderCode));
+
+        // Idempotent: đã PAID → trả về success ngay
+        if (PaymentStatus.PAID.equals(invoice.getPaymentStatus())) {
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", true);
+            result.put("bookingId", invoice.getBooking().getId());
+            result.put("message", "Thanh toán đã được xác nhận trước đó.");
+            return result;
+        }
+
+        try {
+            PaymentLinkData paymentInfo = payOS.getPaymentLinkInformation(orderCode);
+            if ("PAID".equalsIgnoreCase(paymentInfo.getStatus())) {
+                processPaymentSuccess(orderCode);
+                Map<String, Object> result = new HashMap<>();
+                result.put("success", true);
+                result.put("bookingId", invoice.getBooking().getId());
+                result.put("message", "Thanh toán xác nhận thành công!");
+                return result;
+            } else {
+                Map<String, Object> result = new HashMap<>();
+                result.put("success", false);
+                result.put("status", paymentInfo.getStatus());
+                result.put("message", "PayOS báo trạng thái: " + paymentInfo.getStatus());
+                return result;
+            }
+        } catch (Exception e) {
+            log.warn("Không thể xác minh PayOS cho orderCode {}: {}", orderCode, e.getMessage());
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", false);
+            result.put("message", "Không thể xác minh với PayOS: " + e.getMessage());
+            return result;
+        }
     }
 
     /**

@@ -1,127 +1,213 @@
 <app-header></app-header>
 
-<main class="min-h-screen bg-gray-50/50 pt-[110px] pb-20 font-sans">
-  <div class="container mx-auto px-4 max-w-7xl">
-    
-    <div class="bg-white/85 backdrop-blur-md rounded-[24px] shadow-xl shadow-gray-200/40 p-5 max-w-5xl mx-auto border border-gray-100/80 mb-8 relative z-50 transition-all duration-300 hover:shadow-2xl hover:shadow-gray-200/60">
+<main class="min-h-screen bg-slate-50 font-sans">
+
+  <!-- ═══════════════════════════════════════════════════════════
+       PAGE HERO HEADER
+  ══════════════════════════════════════════════════════════════ -->
+  <div class="bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-950 pt-[64px]">
+    <div class="container mx-auto px-4 max-w-7xl py-10">
+      <!-- Breadcrumb -->
+      <nav class="flex items-center gap-2 text-xs text-slate-400 mb-4 font-medium">
+        <a routerLink="/" class="hover:text-white transition-colors">Trang chủ</a>
+        <svg class="h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+        <span class="text-slate-300 font-bold">Danh sách phòng</span>
+      </nav>
+      <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+        <div>
+          <h1 class="text-2xl md:text-3xl font-black text-white tracking-tight">Tất Cả Phòng Nghỉ</h1>
+          <p class="text-slate-400 text-sm mt-1">
+            <span *ngIf="!isLoading">
+              Tìm thấy <span class="text-blue-400 font-bold">{{ filteredRooms.length }}</span> phòng phù hợp
+            </span>
+            <span *ngIf="isLoading">Đang tải danh sách phòng...</span>
+          </p>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-1.5 text-xs text-slate-400">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
+            <span class="hidden md:inline">Thời gian thực</span>
+          </div>
+          <select [(ngModel)]="sortOption"
+                  class="bg-slate-800 border border-slate-700 text-slate-200 text-xs font-semibold rounded-xl px-3 py-2 outline-none cursor-pointer focus:border-blue-500 transition-colors">
+            <option value="default">Sắp xếp: Mặc định</option>
+            <option value="price-asc">Giá: Thấp → Cao</option>
+            <option value="price-desc">Giá: Cao → Thấp</option>
+            <option value="rating-desc">Đánh giá cao nhất</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container mx-auto px-4 max-w-7xl py-8 space-y-8">
+
+    <!-- ═══════════════════════════════════════════════════════════
+         SEARCH & FILTER BAR
+    ══════════════════════════════════════════════════════════════ -->
+    <div class="bg-white rounded-2xl shadow-md shadow-slate-200/50 border border-slate-100 p-5 transition-all duration-300 hover:shadow-lg">
       <div class="flex flex-col gap-4 w-full">
-        
-        <div class="flex flex-col lg:flex-row gap-3 lg:gap-4 items-center w-full">
-          <div class="w-full lg:flex-[1.5] text-left group">
-            <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5 ml-1 group-focus-within:text-blue-600 whitespace-nowrap">Loại phòng</label>
+
+        <!-- Row 1: Main filters -->
+        <div class="flex flex-col lg:flex-row gap-3 items-end">
+          <div class="w-full lg:flex-[1.5] text-left">
+            <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5 ml-1">Loại phòng</label>
             <div class="relative">
-              <select [(ngModel)]="searchRequest.typeName" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none appearance-none transition-all text-slate-700 font-medium cursor-pointer">
+              <select [(ngModel)]="searchRequest.typeName"
+                      class="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-medium text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none appearance-none cursor-pointer transition-all">
                 <option value="">Tất cả loại phòng</option>
                 <option *ngFor="let type of roomTypes" [value]="type.typeName">{{ type.typeName }}</option>
               </select>
-              <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
-              </div>
+              <svg class="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
             </div>
           </div>
-          
-          <div class="hidden lg:block h-10 w-px bg-slate-200 self-end mb-2.5"></div>
 
-          <div class="w-full lg:flex-1 text-left group">
-            <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5 ml-1 group-focus-within:text-blue-600 whitespace-nowrap">Nhận phòng</label>
-            <input type="date" [(ngModel)]="searchRequest.checkIn" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all text-slate-700 font-medium cursor-pointer">
-          </div>
-          
-          <div class="hidden lg:block h-10 w-px bg-slate-200 self-end mb-2.5"></div>
+          <div class="hidden lg:block w-px h-10 bg-slate-200 shrink-0 self-end mb-1"></div>
 
-          <div class="w-full lg:flex-1 text-left group">
-            <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5 ml-1 group-focus-within:text-blue-600 whitespace-nowrap">Trả phòng</label>
-            <input type="date" [(ngModel)]="searchRequest.checkOut" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all text-slate-700 font-medium cursor-pointer">
+          <div class="w-full lg:flex-1 text-left">
+            <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5 ml-1">Nhận phòng</label>
+            <input type="date" [(ngModel)]="searchRequest.checkIn"
+                   class="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-medium text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none cursor-pointer transition-all" />
           </div>
 
-          <div class="hidden lg:block h-10 w-px bg-slate-200 self-end mb-2.5"></div>
+          <div class="hidden lg:block w-px h-10 bg-slate-200 shrink-0 self-end mb-1"></div>
 
-          <div class="w-full lg:w-[110px] text-left group shrink-0">
-            <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5 ml-1 group-focus-within:text-blue-600 whitespace-nowrap">Khách</label>
+          <div class="w-full lg:flex-1 text-left">
+            <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5 ml-1">Trả phòng</label>
+            <input type="date" [(ngModel)]="searchRequest.checkOut"
+                   class="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-medium text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none cursor-pointer transition-all" />
+          </div>
+
+          <div class="hidden lg:block w-px h-10 bg-slate-200 shrink-0 self-end mb-1"></div>
+
+          <div class="w-full lg:w-[120px] shrink-0 text-left">
+            <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5 ml-1">Số khách</label>
             <div class="relative">
-              <select [(ngModel)]="searchRequest.guestCount" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none appearance-none transition-all text-slate-700 font-medium cursor-pointer">
+              <select [(ngModel)]="searchRequest.guestCount"
+                      class="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-medium text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none appearance-none cursor-pointer transition-all">
                 <option [ngValue]="null">Tất cả</option>
                 <option [ngValue]="1">1 khách</option>
                 <option [ngValue]="2">2 khách</option>
                 <option [ngValue]="3">3 khách</option>
                 <option [ngValue]="4">4+ khách</option>
               </select>
-              <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
-              </div>
+              <svg class="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
             </div>
           </div>
 
-          <div class="flex items-center gap-2 lg:self-end mt-2 lg:mt-0 w-full lg:w-auto">
-            <button (click)="resetSearch()" class="p-3.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all border border-transparent hover:border-rose-200 shrink-0" title="Xóa toàn bộ bộ lọc">
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+          <!-- Actions -->
+          <div class="flex items-center gap-2 self-end mt-1 lg:mt-0 w-full lg:w-auto shrink-0">
+            <button (click)="resetSearch()"
+                    title="Xóa bộ lọc"
+                    class="p-3.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl border border-transparent hover:border-red-100 transition-all shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
             </button>
-            <button (click)="searchRooms()" class="w-full lg:w-[150px] shrink-0 whitespace-nowrap px-6 py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 transform hover:-translate-y-0.5 transition-all duration-200 active:translate-y-0 flex items-center justify-center gap-2">
+            <button (click)="searchRooms()"
+                    class="w-full lg:w-[140px] px-5 py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-sm rounded-xl shadow-md shadow-blue-500/20 hover:shadow-blue-500/30 hover:-translate-y-0.5 transition-all duration-200 active:translate-y-0 flex items-center justify-center gap-2 whitespace-nowrap shrink-0">
+              <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
               Tìm kiếm
             </button>
           </div>
         </div>
 
-        <div class="w-full pt-4 border-t border-slate-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div class="flex items-center gap-2">
-            <span class="text-xl">💰</span>
-            <span class="text-sm font-bold text-slate-700 whitespace-nowrap">Khoảng giá mong muốn:</span>
+        <!-- Row 2: Price range + Available filter -->
+        <div class="pt-4 border-t border-slate-100 flex flex-col md:flex-row items-start md:items-center gap-4">
+          <div class="flex items-center gap-2 shrink-0">
+            <div class="w-7 h-7 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center text-sm font-bold">₫</div>
+            <span class="text-sm font-bold text-slate-700 whitespace-nowrap">Khoảng giá:</span>
           </div>
-          
-          <div class="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto flex-1 md:justify-end">
-            
-            <div class="w-full md:w-[220px] relative">
-              <select [(ngModel)]="selectedPricePreset" (change)="onPresetChange()" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-bold text-slate-700 outline-none appearance-none cursor-pointer transition-all">
+          <div class="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto flex-1 md:justify-end">
+            <div class="relative w-full md:w-[220px]">
+              <select [(ngModel)]="selectedPricePreset" (change)="onPresetChange()"
+                      class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none appearance-none cursor-pointer transition-all focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                 <option value="0-10000000">Tất cả mức giá</option>
                 <option value="0-1000000">Dưới 1.000.000 ₫</option>
-                <option value="1000000-3000000">1.000.000 ₫ - 3.000.000 ₫</option>
-                <option value="3000000-5000000">3.000.000 ₫ - 5.000.000 ₫</option>
+                <option value="1000000-3000000">1.000.000 ₫ — 3.000.000 ₫</option>
+                <option value="3000000-5000000">3.000.000 ₫ — 5.000.000 ₫</option>
                 <option value="5000000-10000000">Trên 5.000.000 ₫</option>
-                <option value="custom" hidden>Tùy chỉnh khoảng giá...</option>
+                <option value="custom" hidden>Tùy chỉnh...</option>
               </select>
-              <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
-              </div>
+              <svg class="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
             </div>
-
-            <span class="hidden md:block text-slate-300">|</span>
-
+            <div class="hidden md:block text-slate-200">|</div>
             <div class="flex items-center gap-2 w-full md:w-auto">
-              <div class="relative w-full md:w-[150px] group">
-                <input type="number" [(ngModel)]="minPrice" (change)="onManualPriceChange()" class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-sm font-bold text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none appearance-none text-right transition-all" placeholder="0">
-                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Từ</span>
+              <div class="relative flex-1 md:w-[140px]">
+                <input type="number" [(ngModel)]="minPrice" (change)="onManualPriceChange()" placeholder="0"
+                       class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-sm font-bold text-right text-slate-800 outline-none transition-all focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-black uppercase tracking-wider text-slate-400">Từ</span>
               </div>
-
-              <div class="w-3 h-0.5 bg-slate-300 shrink-0"></div>
-
-              <div class="relative w-full md:w-[150px] group">
-                <input type="number" [(ngModel)]="maxPrice" (change)="onManualPriceChange()" class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-3 py-2.5 text-sm font-bold text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none appearance-none text-right transition-all" placeholder="Max">
-                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Đến</span>
+              <div class="w-4 h-px bg-slate-300 shrink-0"></div>
+              <div class="relative flex-1 md:w-[140px]">
+                <input type="number" [(ngModel)]="maxPrice" (change)="onManualPriceChange()" placeholder="Max"
+                       class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-sm font-bold text-right text-slate-800 outline-none transition-all focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-black uppercase tracking-wider text-slate-400">Đến</span>
               </div>
             </div>
-
           </div>
+
+          <!-- Toggle: Chỉ phòng trống -->
+          <div class="hidden md:block text-slate-200 shrink-0">|</div>
+          <button (click)="onlyAvailable = !onlyAvailable"
+                  [ngClass]="onlyAvailable
+                    ? 'bg-emerald-500 text-white border-emerald-500 shadow-md shadow-emerald-200'
+                    : 'bg-white text-slate-600 border-slate-200 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700'"
+                  class="flex items-center gap-2 px-4 py-2.5 rounded-xl border font-bold text-sm transition-all duration-200 shrink-0 whitespace-nowrap">
+            <span class="relative flex h-2.5 w-2.5">
+              <span *ngIf="onlyAvailable" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2.5 w-2.5"
+                    [ngClass]="onlyAvailable ? 'bg-white' : 'bg-emerald-400'"></span>
+            </span>
+            Chỉ phòng trống
+          </button>
         </div>
       </div>
     </div>
-    <div class="max-w-5xl mx-auto mb-12" *ngIf="!isLoading && floors.length > 0">
-      <div class="flex items-center justify-between border-b border-gray-200 pb-3 mb-4">
-        <h4 class="text-xs font-bold text-gray-400 uppercase tracking-widest">Bộ lọc theo tầng</h4>
-        <span class="text-xs text-gray-500 font-medium">Đang chọn: <b class="text-blue-600">{{ selectedFloor === 'ALL' ? 'Tất cả các tầng' : 'Tầng ' + selectedFloor }}</b></span>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         ACTIVE FILTER CHIPS
+    ══════════════════════════════════════════════════════════════ -->
+    <div *ngIf="activeFilterChips.length > 0" class="flex items-center gap-2 flex-wrap">
+      <span class="text-[10px] font-black uppercase tracking-widest text-slate-400 shrink-0">Đang lọc:</span>
+      <button *ngFor="let chip of activeFilterChips"
+              (click)="removeFilter(chip.key)"
+              class="inline-flex items-center gap-1.5 bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold px-3 py-1.5 rounded-full hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-all duration-200 group">
+        {{ chip.label }}
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 group-hover:rotate-90 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+      <button (click)="resetSearch()"
+              class="text-[10px] font-bold text-slate-400 hover:text-red-500 underline underline-offset-2 transition-colors">
+        Xóa tất cả
+      </button>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         FLOOR FILTER
+    ══════════════════════════════════════════════════════════════ -->
+    <div *ngIf="!isLoading && floors.length > 0">
+      <div class="flex items-center justify-between mb-3">
+        <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest">Lọc theo tầng</h4>
+        <span class="text-xs text-slate-500 font-medium">
+          Đang xem: <span class="text-blue-600 font-bold">{{ selectedFloor === 'ALL' ? 'Tất cả' : 'Tầng ' + selectedFloor }}</span>
+        </span>
       </div>
-      
-      <div class="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none snap-x">
-        <button (click)="selectFloor('ALL')" 
-                [ngClass]="selectedFloor === 'ALL' ? 'bg-blue-600 text-white shadow-md shadow-blue-200' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'"
-                class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-200 shrink-0 snap-start">
+      <div class="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none snap-x">
+        <button (click)="selectFloor('ALL')"
+                [ngClass]="selectedFloor === 'ALL'
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-200 border-blue-600'
+                  : 'bg-white text-slate-600 hover:bg-slate-50 border-slate-200'"
+                class="px-4 py-2 rounded-xl font-bold text-sm border transition-all duration-200 shrink-0 snap-start">
           Tất cả tầng
         </button>
-        
-        <button *ngFor="let floor of floors" 
-                (click)="selectFloor(floor)"
-                [ngClass]="selectedFloor === floor ? 'bg-blue-600 text-white shadow-md shadow-blue-200' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'"
-                class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-200 shrink-0 snap-start flex items-center gap-1.5">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <button *ngFor="let floor of floors" (click)="selectFloor(floor)"
+                [ngClass]="selectedFloor === floor
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-200 border-blue-600'
+                  : 'bg-white text-slate-600 hover:bg-slate-50 border-slate-200'"
+                class="px-4 py-2 rounded-xl font-bold text-sm border transition-all duration-200 shrink-0 snap-start flex items-center gap-1.5">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
           </svg>
           Tầng {{ floor }}
@@ -129,94 +215,36 @@
       </div>
     </div>
 
-    <div *ngIf="!isLoading && filteredRooms.length > 0" class="space-y-16">
-      <div *ngFor="let group of roomsGroupedByFloor" class="space-y-8">
-        
+    <!-- ═══════════════════════════════════════════════════════════
+         LOADING SKELETON
+    ══════════════════════════════════════════════════════════════ -->
+    <div *ngIf="isLoading" class="space-y-12">
+      <div class="space-y-6" *ngFor="let g of [1,2]">
+        <!-- Floor label skeleton -->
         <div class="flex items-center gap-4">
-          <h2 class="text-2xl font-black text-gray-800 tracking-tight shrink-0">TẦNG {{ group.floor }}</h2>
-          <div class="h-0.5 bg-gradient-to-r from-gray-200 to-transparent flex-1"></div>
-          <span class="text-xs font-bold text-gray-400 bg-gray-100 px-3 py-1 rounded-full">{{ group.roomList.length }} phòng</span>
+          <div class="h-7 w-28 bg-slate-200 rounded-xl animate-pulse"></div>
+          <div class="h-0.5 bg-gradient-to-r from-slate-200 to-transparent flex-1"></div>
+          <div class="h-6 w-16 bg-slate-100 rounded-full animate-pulse"></div>
         </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          <div *ngFor="let room of group.roomList" class="bg-white rounded-[24px] overflow-hidden border border-gray-100 shadow-sm transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 group flex flex-col h-full relative">
-            
-            <div class="relative pt-[66%] overflow-hidden bg-gray-100 shrink-0 cursor-pointer group" (click)="viewRoomDetail(room.roomId, $event)">
-              <div class="absolute inset-0 flex overflow-x-auto snap-x snap-mandatory scrollbar-hide">
-                <img *ngFor="let imgUrl of (room.albumImages && room.albumImages.length > 0 ? room.albumImages : [room.imageUrl || 'https://images.unsplash.com/photo-1582719478250-c89404bb8a0e?q=80&w=1000'])" 
-                     [src]="imgUrl" 
-                     [alt]="room.roomNumber"
-                     class="min-w-full h-full object-cover snap-center transition-opacity duration-500">
-              </div>
-              
-              <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10"></div>
-              
-              <button (click)="$event.stopPropagation(); toggleFavorite($event, room)" type="button" class="absolute top-3 right-3 w-11 h-11 bg-black/40 hover:bg-black/60 border border-white/20 backdrop-blur-md rounded-full flex items-center justify-center z-50 transform active:scale-90 transition-all duration-250 cursor-pointer shadow-lg">
-                <svg class="w-5 h-5 transition-all duration-300 pointer-events-none" [ngClass]="room.isFavorite ? 'text-amber-500 fill-amber-400 scale-110' : 'text-white fill-transparent'" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                </svg>
-              </button>
-
-              <span class="absolute top-4 left-4 bg-blue-600/90 backdrop-blur-sm text-white text-[11px] font-bold tracking-wider px-3 py-1.5 rounded-lg uppercase shadow-sm">
-                {{ room.typeName || 'Standard' }}
-              </span>
-
-              <div class="absolute bottom-4 left-4 flex items-center gap-1.5 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full z-10 shadow-sm border border-white/50">
-                <span class="w-2 h-2 rounded-full" [ngClass]="room.status === 'AVAILABLE' || !room.status ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'"></span>
-                <span class="text-[11px] font-bold" [ngClass]="room.status === 'AVAILABLE' || !room.status ? 'text-emerald-700' : 'text-rose-700'">
-                  {{ (room.status === 'AVAILABLE' || !room.status) ? 'Còn trống' : 'Đã đặt' }}
-                </span>
-              </div>
+        <!-- Cards skeleton -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div *ngFor="let c of [1,2,3]"
+               class="bg-white rounded-2xl overflow-hidden border border-slate-100 shadow-sm flex flex-col h-full">
+            <div class="pt-[66%] bg-slate-200 animate-pulse relative">
+              <div class="absolute inset-0 bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 animate-[shimmer_1.5s_infinite]"></div>
             </div>
-            
-            <div class="p-6 flex flex-col flex-1">
-              <div class="flex flex-col gap-2 mb-3">
-                <div class="flex items-center justify-between">
-                  <h3 class="text-2xl font-black text-gray-800 tracking-tight cursor-pointer hover:text-blue-600 transition-colors" (click)="viewRoomDetail(room.roomId, $event)">Phòng {{ room.roomNumber }}</h3>
-                  <div class="flex items-center gap-1 bg-amber-50 px-2 py-1 rounded-md">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-amber-500 fill-amber-500" viewBox="0 0 24 24"><path d="M12 .587l3.668 7.431 8.2 1.192-5.934 5.787 1.4 8.168L12 18.896l-7.334 3.857 1.4-8.168L.132 9.21l8.2-1.192z"/></svg>
-                    <span class="text-xs font-bold text-amber-700">4.9</span>
-                  </div>
-                </div>
-
-                <div *ngIf="room.appliedPromotion" class="animate-pulse">
-                  <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-rose-50 border border-rose-100 text-rose-600 text-[11px] font-black rounded-lg uppercase tracking-wide">
-                    🔥 Giảm {{ room.appliedPromotion.discountPercentage }}% (Mã: {{ room.appliedPromotion.code }})
-                  </span>
-                </div>
+            <div class="p-5 space-y-3 flex-1">
+              <div class="flex justify-between">
+                <div class="h-6 w-32 bg-slate-200 rounded-lg animate-pulse"></div>
+                <div class="h-6 w-16 bg-slate-100 rounded-lg animate-pulse"></div>
               </div>
-
-              <div class="grid grid-cols-2 gap-y-2.5 gap-x-4 my-4 text-xs font-semibold text-gray-500 border-b border-gray-100 pb-4">
-                <div class="flex items-center gap-2"><span class="text-blue-500 text-sm">🌐</span> Wifi miễn phí</div>
-                <div class="flex items-center gap-2"><span class="text-blue-500 text-sm">❄️</span> Điều hòa 2 chiều</div>
-                <div class="flex items-center gap-2"><span class="text-blue-500 text-sm">🛏️</span> Giường King cỡ lớn</div>
-                <div class="flex items-center gap-2"><span class="text-blue-500 text-sm">🌊</span> View hướng thoáng mát</div>
-              </div>
-              
-              <ul class="text-xs text-gray-400 space-y-1.5 list-disc pl-4 mb-6 font-medium">
-                <li>Diện tích rộng rãi, ban công riêng lý tưởng.</li>
-                <li>Đầy đủ tiện nghi hiện đại cho kỳ nghỉ trọn vẹn.</li>
-              </ul>
-              
-              <div class="flex items-center justify-between mt-auto pt-4 border-t border-gray-100">
-                <div>
-                  <span class="text-[10px] text-gray-400 block font-bold uppercase tracking-wider mb-0.5">Giá phòng/Đêm</span>
-                  <div *ngIf="room.appliedPromotion; else normalPrice" class="flex flex-col">
-                    <span class="text-xs text-gray-400 line-through font-semibold leading-none mb-1">{{ formatPrice(room.price) }}</span>
-                    <span class="text-2xl font-black text-rose-600 tracking-tight border-b-2 border-rose-500 pb-0.5">
-                      {{ formatPrice(room.price * (1 - room.appliedPromotion.discountPercentage / 100)) }}
-                    </span>
-                  </div>
-                  <ng-template #normalPrice>
-                    <span class="text-2xl font-black text-blue-600 tracking-tight border-b-2 border-blue-600 pb-0.5">
-                      {{ formatPrice(room.price) }}
-                    </span>
-                  </ng-template>
-                </div>
-                
-                <div class="flex items-center gap-2">
-                  <button (click)="viewRoomDetail(room.roomId, $event)" class="px-4 py-2.5 bg-gradient-to-b from-gray-50 to-gray-200 border border-gray-300 text-gray-700 rounded-xl font-bold text-xs shadow-sm hover:from-gray-100 hover:to-gray-200 active:scale-95 transition-all">Chi tiết</button>
-                  <button [disabled]="room.status && room.status !== 'AVAILABLE'" (click)="viewRoomDetail(room.roomId, $event)" class="px-5 py-2.5 bg-gradient-to-b from-blue-500 to-blue-800 text-white rounded-xl font-bold text-xs shadow-md hover:from-blue-600 hover:to-blue-900 active:scale-95 disabled:from-gray-200 disabled:to-gray-300 disabled:text-gray-400 disabled:shadow-none disabled:cursor-not-allowed transition-all">Đặt ngay</button>
+              <div class="h-4 w-full bg-slate-100 rounded animate-pulse"></div>
+              <div class="h-4 w-3/4 bg-slate-100 rounded animate-pulse"></div>
+              <div class="pt-3 border-t border-slate-100 flex justify-between items-center">
+                <div class="h-7 w-24 bg-slate-200 rounded-lg animate-pulse"></div>
+                <div class="flex gap-2">
+                  <div class="h-9 w-20 bg-slate-100 rounded-xl animate-pulse"></div>
+                  <div class="h-9 w-20 bg-blue-100 rounded-xl animate-pulse"></div>
                 </div>
               </div>
             </div>
@@ -225,16 +253,210 @@
       </div>
     </div>
 
-    <div *ngIf="!isLoading && filteredRooms.length === 0" class="text-center py-20 bg-white rounded-2xl border border-gray-100 shadow-sm max-w-xl mx-auto">
-      <div class="w-16 h-16 bg-gray-50 text-gray-400 rounded-full flex items-center justify-center mx-auto mb-4">
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+    <!-- ═══════════════════════════════════════════════════════════
+         ROOM GRID (grouped by floor)
+    ══════════════════════════════════════════════════════════════ -->
+    <div *ngIf="!isLoading && filteredRooms.length > 0" class="space-y-14">
+      <div *ngFor="let group of roomsGroupedByFloor" class="space-y-6">
+
+        <!-- Floor heading -->
+        <div class="flex items-center gap-4">
+          <div class="flex items-center gap-2.5 shrink-0">
+            <div class="w-8 h-8 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-md shadow-blue-500/20">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+            </div>
+            <h2 class="text-xl font-black text-slate-800 tracking-tight">TẦNG {{ group.floor }}</h2>
+          </div>
+          <div class="h-px bg-gradient-to-r from-slate-200 to-transparent flex-1"></div>
+          <span class="text-xs font-bold text-slate-400 bg-white px-3 py-1 rounded-full border border-slate-200 shadow-sm">
+            {{ group.roomList.length }} phòng
+          </span>
+        </div>
+
+        <!-- Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div *ngFor="let room of group.roomList"
+               [ngClass]="room.status === 'MAINTENANCE'
+                 ? 'opacity-50 grayscale-[40%] cursor-default'
+                 : 'hover:shadow-xl hover:shadow-slate-200/60 hover:-translate-y-1.5 cursor-pointer'"
+               class="bg-white rounded-2xl overflow-hidden border border-slate-100/80 shadow-sm transition-all duration-300 group flex flex-col h-full"
+               (click)="viewRoomDetail(room.roomId, $event)">
+
+            <!-- Image area -->
+            <div class="relative pt-[63%] overflow-hidden bg-slate-100 shrink-0">
+              <div class="absolute inset-0 flex overflow-x-auto snap-x snap-mandatory scrollbar-hide">
+                <img *ngFor="let imgUrl of getRoomImages(room)"
+                     [src]="imgUrl" [alt]="room.roomNumber"
+                     class="min-w-full h-full object-cover snap-center transition-transform duration-700 group-hover:scale-105">
+              </div>
+              <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/5 pointer-events-none"></div>
+
+              <!-- Favorite button -->
+              <button (click)="$event.stopPropagation(); toggleFavorite($event, room)"
+                      type="button"
+                      class="absolute top-3.5 right-3.5 w-10 h-10 bg-black/35 hover:bg-black/55 border border-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center z-20 hover:scale-110 active:scale-90 transition-all duration-250 shadow-lg">
+                <svg class="w-5 h-5 pointer-events-none transition-all duration-300"
+                     [ngClass]="room.isFavorite ? 'text-rose-500 fill-rose-500' : 'text-white fill-transparent'"
+                     viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+              </button>
+
+              <!-- Type badge -->
+              <span class="absolute top-3.5 left-3.5 bg-blue-600/90 backdrop-blur-sm text-white text-[10px] font-bold tracking-wider px-2.5 py-1 rounded-lg uppercase shadow-sm z-10">
+                {{ room.typeName || 'Standard' }}
+              </span>
+
+              <!-- Status pill — AVAILABLE -->
+              <div *ngIf="!room.status || room.status === 'AVAILABLE'"
+                   class="absolute bottom-3.5 left-3.5 flex items-center gap-1.5 bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-full z-10 shadow-sm border border-white/50">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span class="text-[11px] font-bold text-emerald-700">Còn trống</span>
+              </div>
+
+              <!-- Status pill — MAINTENANCE -->
+              <div *ngIf="room.status === 'MAINTENANCE'"
+                   class="absolute bottom-3.5 left-3.5 flex items-center gap-1.5 bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-full z-10 shadow-sm border border-white/50">
+                <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                <span class="text-[11px] font-bold text-rose-700">Đang bảo trì</span>
+              </div>
+
+              <!-- Status pill + Đặt trước badge — OCCUPIED / DIRTY / RESERVED -->
+              <div *ngIf="room.status === 'OCCUPIED' || room.status === 'DIRTY' || room.status === 'RESERVED'"
+                   class="absolute bottom-3.5 left-3.5 flex flex-col gap-1 z-10">
+                <div class="flex items-center gap-1.5 bg-white/95 backdrop-blur-sm px-2.5 py-1 rounded-full shadow-sm border border-white/50">
+                  <span class="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0"></span>
+                  <span class="text-[10px] font-bold text-amber-700">
+                    {{ room.status === 'OCCUPIED' ? 'Đang có khách' : room.status === 'DIRTY' ? 'Đang dọn phòng' : 'Đã có lịch' }}
+                  </span>
+                </div>
+                <div class="flex items-center gap-1.5 bg-indigo-600/90 backdrop-blur-sm px-2.5 py-1 rounded-full shadow-md">
+                  <span class="text-[9px] leading-none">📅</span>
+                  <span class="text-[10px] font-black text-white tracking-wide">Đặt trước được</span>
+                </div>
+              </div>
+
+              <!-- Hold badge — hiển thị khi phòng đang bị giữ bởi ai đó -->
+              <div *ngIf="isRoomHeld(room.roomId)"
+                   class="absolute top-12 left-3.5 flex items-center gap-1.5 bg-amber-500/95 backdrop-blur-sm px-2.5 py-1 rounded-lg z-20 shadow-md border border-amber-300/50">
+                <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse shrink-0"></span>
+                <span class="text-[10px] font-black text-white uppercase tracking-wide">Đang xử lý</span>
+              </div>
+
+              <!-- Rating pill — chỉ hiện khi có dữ liệu thật từ backend -->
+              <div *ngIf="room.averageRating && room.reviewCount > 0"
+                   class="absolute bottom-3.5 right-3.5 flex items-center gap-1 bg-amber-400/90 backdrop-blur-sm px-2.5 py-1.5 rounded-full z-10">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 text-slate-900 fill-slate-900" viewBox="0 0 24 24"><path d="M12 .587l3.668 7.431 8.2 1.192-5.934 5.787 1.4 8.168L12 18.896l-7.334 3.857 1.4-8.168L.132 9.21l8.2-1.192z"/></svg>
+                <span class="text-[10px] font-black text-slate-900">{{ room.averageRating | number:'1.1-1' }}</span>
+                <span class="text-[9px] text-slate-700 font-semibold">({{ room.reviewCount }})</span>
+              </div>
+            </div>
+
+            <!-- Card body -->
+            <div class="p-5 flex flex-col flex-1">
+              <div class="flex items-start justify-between gap-2 mb-3">
+                <div class="min-w-0">
+                  <h3 class="text-lg font-black text-slate-800 group-hover:text-blue-600 transition-colors truncate">
+                    Phòng {{ room.roomNumber }}
+                  </h3>
+                  <p class="text-xs text-slate-500 font-medium mt-0.5">{{ room.hotelName || 'LuxeHotel' }}</p>
+                </div>
+                <!-- Promo badge -->
+                <div *ngIf="room.appliedPromotion"
+                     class="shrink-0 bg-rose-50 border border-rose-100 text-rose-600 text-[10px] font-black px-2 py-1 rounded-lg uppercase tracking-wide whitespace-nowrap">
+                  -{{ room.appliedPromotion.discountPercentage }}%
+                </div>
+              </div>
+
+              <!-- Amenity chips — dữ liệu thật từ backend -->
+              <div class="grid grid-cols-2 gap-y-2 gap-x-3 text-xs font-semibold text-slate-500 border-b border-slate-100 pb-4 mb-4">
+                <div class="flex items-center gap-1.5">
+                  <span>⭐</span>
+                  {{ room.hotelStarRating ? room.hotelStarRating + ' sao' : 'Cao cấp' }}
+                </div>
+                <div class="flex items-center gap-1.5"><span>📶</span> Wifi miễn phí</div>
+                <div class="flex items-center gap-1.5">
+                  <span>🏢</span>
+                  {{ room.floor ? 'Tầng ' + room.floor : 'Xem chi tiết' }}
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <span>👤</span>
+                  {{ room.maxGuests ? 'Tối đa ' + room.maxGuests + ' khách' : 'Liên hệ KS' }}
+                </div>
+              </div>
+
+              <!-- Price + CTA -->
+              <div class="flex items-center justify-between mt-auto">
+                <div>
+                  <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-0.5">Giá/Đêm</span>
+                  <div *ngIf="room.appliedPromotion; else normalPrice" class="flex flex-col leading-tight">
+                    <span class="text-xs text-slate-400 line-through font-semibold">{{ formatPrice(room.price) }}</span>
+                    <span class="text-xl font-black text-rose-600">
+                      {{ formatPrice(room.price * (1 - room.appliedPromotion.discountPercentage / 100)) }}
+                    </span>
+                  </div>
+                  <ng-template #normalPrice>
+                    <span class="text-xl font-black text-blue-600">{{ formatPrice(room.price) }}</span>
+                  </ng-template>
+                </div>
+                <button (click)="viewRoomDetail(room.roomId, $event)"
+                        [disabled]="room.status === 'MAINTENANCE' || isRoomHeld(room.roomId)"
+                        [ngClass]="{
+                          'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200':
+                            room.status === 'MAINTENANCE',
+                          'bg-amber-100 text-amber-700 cursor-not-allowed border border-amber-200':
+                            isRoomHeld(room.roomId) && room.status !== 'MAINTENANCE',
+                          'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-md shadow-indigo-500/15 active:scale-95':
+                            (room.status === 'OCCUPIED' || room.status === 'DIRTY' || room.status === 'RESERVED') && !isRoomHeld(room.roomId),
+                          'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md shadow-blue-500/15 active:scale-95':
+                            (!room.status || room.status === 'AVAILABLE') && !isRoomHeld(room.roomId)
+                        }"
+                        class="px-4 py-2.5 rounded-xl font-bold text-xs transition-all duration-200 flex items-center gap-1.5">
+                  <ng-container *ngIf="room.status === 'MAINTENANCE'">⛔ Bảo trì</ng-container>
+                  <ng-container *ngIf="isRoomHeld(room.roomId) && room.status !== 'MAINTENANCE'">⏳ Đang xử lý</ng-container>
+                  <ng-container *ngIf="(room.status === 'OCCUPIED' || room.status === 'DIRTY' || room.status === 'RESERVED') && !isRoomHeld(room.roomId)">
+                    <span>📅</span><span>Đặt trước</span>
+                  </ng-container>
+                  <ng-container *ngIf="(!room.status || room.status === 'AVAILABLE') && !isRoomHeld(room.roomId)">Đặt ngay →</ng-container>
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
       </div>
-      <h3 class="text-lg font-bold text-gray-700 mb-1">Không tìm thấy phòng phù hợp</h3>
-      <p class="text-sm text-gray-400 max-w-sm mx-auto px-4">Khoảng giá từ {{ formatPrice(minPrice) }} đến {{ formatPrice(maxPrice) }} không có phòng nào. Vui lòng nới lỏng mức giá.</p>
-      <button (click)="resetSearch()" class="mt-6 px-6 py-2.5 bg-blue-50 text-blue-600 hover:bg-blue-100 font-bold text-sm rounded-xl transition-colors">
-        Tải lại toàn bộ phòng
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         EMPTY STATE
+    ══════════════════════════════════════════════════════════════ -->
+    <div *ngIf="!isLoading && filteredRooms.length === 0"
+         class="text-center py-20 bg-white rounded-2xl border border-dashed border-slate-200 shadow-sm max-w-xl mx-auto">
+      <div class="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-5 border border-slate-100">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </div>
+      <h3 class="text-lg font-bold text-slate-700 mb-2">Không tìm thấy phòng phù hợp</h3>
+      <p class="text-sm text-slate-400 max-w-sm mx-auto px-4 leading-relaxed">
+        Khoảng giá từ {{ formatPrice(minPrice) }} đến {{ formatPrice(maxPrice) }} không có phòng nào khả dụng. Hãy thử mở rộng bộ lọc.
+      </p>
+      <button (click)="resetSearch()"
+              class="mt-6 inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white hover:bg-blue-700 font-bold text-sm rounded-xl transition-all shadow-md shadow-blue-500/20">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        Xem tất cả phòng
       </button>
     </div>
 
   </div>
 </main>
+
+<style>
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+</style>

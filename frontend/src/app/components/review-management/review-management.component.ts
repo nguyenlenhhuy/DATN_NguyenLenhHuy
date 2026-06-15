@@ -12,12 +12,28 @@ import { RoomService } from '../../services/room.service';
 })
 export class ReviewManagementComponent implements OnInit {
   reviews: ReviewResponseDTO[] = [];
-  rooms: any[] = []; 
-  selectedRoomId: string = ''; // Lưu giữ ID dưới dạng chuỗi thu từ template select HTML
+  rooms: any[] = [];
+  selectedRoomId: string = '';
+  selectedRatingFilter: number = 0; // 0 = tất cả
 
   // Quản lý trạng thái khung phản hồi
   replyInputs: { [key: number]: string } = {};
-  activeReplyId: number | null = null; 
+  activeReplyId: number | null = null;
+
+  get filteredReviews(): ReviewResponseDTO[] {
+    if (this.selectedRatingFilter === 0) return this.reviews;
+    return this.reviews.filter(r => r.rating === this.selectedRatingFilter);
+  }
+
+  get averageRating(): string {
+    if (!this.reviews.length) return '—';
+    const avg = this.reviews.reduce((sum, r) => sum + r.rating, 0) / this.reviews.length;
+    return avg.toFixed(1);
+  }
+
+  get hiddenCount(): number {
+    return this.reviews.filter(r => r.hidden).length;
+  }
 
   constructor(
     private reviewService: ReviewService,
@@ -90,6 +106,18 @@ export class ReviewManagementComponent implements OnInit {
   toggleReplyForm(reviewId: number, currentReply?: string): void {
     this.activeReplyId = this.activeReplyId === reviewId ? null : reviewId;
     this.replyInputs[reviewId] = currentReply || ''; 
+  }
+
+  // Xóa đánh giá
+  onDeleteReview(review: ReviewResponseDTO): void {
+    if (!confirm(`Xóa vĩnh viễn đánh giá của "${review.userName}"? Hành động này không thể hoàn tác.`)) return;
+    this.reviewService.deleteReview(review.id!).subscribe({
+      next: () => {
+        this.reviews = this.reviews.filter(r => r.id !== review.id);
+        alert('🗑️ Đã xóa đánh giá thành công!');
+      },
+      error: () => alert('Hệ thống: Không thể xóa đánh giá lúc này.')
+    });
   }
 
   // Gửi nội dung phản hồi lên Backend

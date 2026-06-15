@@ -26,5 +26,7 @@ public class RoomResponseDTO {
     private Integer maxGuests;
     private String hotelAddress;
     private Integer hotelStarRating;
+    private Double averageRating;
+    private Long reviewCount;
 
 }

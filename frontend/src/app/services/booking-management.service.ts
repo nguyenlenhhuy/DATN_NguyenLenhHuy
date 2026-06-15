@@ -1,27 +1,46 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 
-// 🔥 INTERFACE MỚI: Khớp 100% với DTO phẳng xử lý lịch sử của Backend Java
+export interface AuditLogDTO {
+  action: string;
+  actionLabel: string;
+  description: string;
+  operatorName: string;
+  createdAt: string;
+}
+
+export interface RoomInfo {
+  roomId: number;
+  roomNumber: string;
+  roomType: string;
+}
+
 export interface BookingHistoryResponseDTO {
   bookingId: number;
   hotelName: string;
   hotelAddress: string;
   checkInDate: string;
   checkOutDate: string;
-  totalPrice: number;   // Số tiền thực trả sau khi trừ voucher
-  status: string;       // Hệ trạng thái: PENDING, CONFIRMED, CHECK_IN, CHECK_OUT, CANCELLED
-  canReview: boolean;   // Trạng thái bật/ẩn nút viết đánh giá
-  hotelImage: string;   // Giữ nguyên thuộc tính theo cấu trúc file cũ của bạn
-  roomNumber: string;   // Sắp xếp gọn gàng
-  roomType: string;     // Sắp xếp gọn gàng
-  roomId: number;       // Sắp xếp gọn gàng
+  totalPrice: number;
+  status: string;
+  canReview: boolean;
+  hotelImage?: string;
+  // Phòng đầu tiên (backward-compat, dùng cho re-book và review context)
+  roomNumber: string;
+  roomType: string;
+  roomId: number;
+  // Danh sách đầy đủ tất cả phòng (batch booking)
+  rooms?: RoomInfo[];
+  roomCount?: number;
 }
 
 export interface BookingResponseDTO {
   bookingId: number;
   roomNumber: string;
+  roomNumbers?: string[];
+  roomCount?: number;
   customerName: string;
   customerPhone: string;
   customerCccd: string;
@@ -36,11 +55,29 @@ export interface BookingResponseDTO {
   paymentMethod?: string;
 }
 
+export interface DashboardStatsDTO {
+  totalRevenueToday: number;
+  totalRevenuePeriod: number;   // Tổng doanh thu của kỳ đang xem
+  totalBookingsToday: number;
+  availableRooms: number;
+  totalRooms: number;
+  last7DaysRevenue?: Record<string, number>;
+}
+
+export interface AvailableRoomInfo {
+  roomNumber: string;
+  floor: number;
+  typeName: string;
+  price: number;
+}
+
 export interface WalkInBookingRequestDTO {
   roomNumber: string;
+  roomNumbers?: string[];
   customerName: string;
   customerPhone: string;
   customerCccd: string;
+  customerEmail?: string;
   checkInDate: string;
   checkOutDate: string;
   appliedCode?: string;
@@ -60,8 +97,25 @@ export class BookingManagementService {
     return this.http.get<BookingResponseDTO[]>(this.apiUrl);
   }
 
-  getAvailableRooms(): Observable<string[]> {
-    return this.http.get<string[]>(`${this.apiUrl}/available-rooms`);
+  getAvailableRooms(checkIn?: string, checkOut?: string): Observable<string[]> {
+    const params: Record<string, string> = {};
+    if (checkIn)  params['checkIn']  = checkIn;
+    if (checkOut) params['checkOut'] = checkOut;
+    return this.http.get<string[]>(`${this.apiUrl}/available-rooms`, { params });
+  }
+
+  getAvailableRoomsDetail(checkIn?: string, checkOut?: string): Observable<AvailableRoomInfo[]> {
+    const params: Record<string, string> = {};
+    if (checkIn)  params['checkIn']  = checkIn;
+    if (checkOut) params['checkOut'] = checkOut;
+    return this.http.get<AvailableRoomInfo[]>(`${this.apiUrl}/available-rooms-detail`, { params });
+  }
+
+  getPreviewPriceMulti(roomNumbers: string[], checkInDate: string, checkOutDate: string, appliedCode?: string): Observable<any> {
+    let params = new HttpParams().set('checkInDate', checkInDate).set('checkOutDate', checkOutDate);
+    if (appliedCode) params = params.set('appliedCode', appliedCode);
+    roomNumbers.forEach(r => { params = params.append('roomNumbers', r); });
+    return this.http.get<any>(`${this.apiUrl}/preview-price-multi`, { params });
   }
 
   getAvailablePromotions(): Observable<any[]> {
@@ -86,14 +140,40 @@ export class BookingManagementService {
     return this.http.post<any>(`${this.apiUrl}/${bookingId}/check-out`, {});
   }
 
-  getDashboardStats(filterType: string): Observable<any> {
-    return this.http.get<any>(`${environment.apiUrl}/bookings/management/dashboard-stats`, {
+  getDashboardStats(filterType: string): Observable<DashboardStatsDTO> {
+    return this.http.get<DashboardStatsDTO>(`${environment.apiUrl}/bookings/management/dashboard-stats`, {
       params: { filterType }
     });
   }
 
+  getOccupancyCalendar(year: number, month: number): Observable<Record<string, number>> {
+    return this.http.get<Record<string, number>>(
+      `${environment.apiUrl}/bookings/management/occupancy-calendar`,
+      { params: { year: year.toString(), month: month.toString() } }
+    );
+  }
+
+  getOccupancyDayDetail(date: string): Observable<any> {
+    return this.http.get<any>(
+      `${environment.apiUrl}/bookings/management/occupancy-calendar/day-detail`,
+      { params: { date } }
+    );
+  }
+
   cancelBooking(bookingId: number, staffId: number): Observable<any> {
     return this.http.post(`${this.apiUrl}/${bookingId}/cancel?staffId=${staffId}`, {});
+  }
+
+  getBookingAuditLogs(bookingId: number): Observable<AuditLogDTO[]> {
+    return this.http.get<AuditLogDTO[]>(`${this.apiUrl}/${bookingId}/audit-logs`);
+  }
+
+  processRefund(bookingId: number, operatorId: number, operatorName: string, reason: string): Observable<any> {
+    const params = new HttpParams()
+      .set('operatorId', operatorId.toString())
+      .set('operatorName', operatorName)
+      .set('reason', reason);
+    return this.http.post(`${this.apiUrl}/${bookingId}/refund`, {}, { params });
   }
 
   /**
@@ -107,15 +187,8 @@ export class BookingManagementService {
   // =========================================================================
   // ⚡ ĐÃ THÊM: HÀM GỬI ĐÁNH GIÁ CHUẨN ĐỒNG BỘ VỚI REVIEWREQUESTDTO CỦA BACKEND
   // =========================================================================
-  submitReview(bookingId: number, rating: number, comment: string): Observable<any> {
-    const payload = {
-      bookingId: bookingId,
-      rating: rating,
-      comment: comment,
-      mediaUrls: [] // Đóng gói mảng rỗng để khớp với List<String> của ReviewRequestDTO dưới Java
-    };
-    
-    // Bắn gói tin HTTP POST gọi trực tiếp đến endpoint xử lý lưu đánh giá thời gian thực
+  submitReview(bookingId: number, roomId: number, rating: number, comment: string): Observable<any> {
+    const payload = { bookingId, roomId, rating, comment, mediaUrls: [] };
     return this.http.post(`${this.reviewApiUrl}/submit`, payload);
   }
 }

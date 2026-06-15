@@ -20,7 +20,7 @@
       <thead class="bg-slate-50 border-b border-slate-200">
         <tr>
           <th class="p-4 font-semibold text-slate-600">Mã đơn</th>
-          <th class="p-4 font-semibold text-slate-600">Số phòng</th>
+          <th class="p-4 font-semibold text-slate-600">Phòng</th>
           <th class="p-4 font-semibold text-slate-600">Thông tin khách hàng</th>
           <th class="p-4 font-semibold text-slate-600">Thời gian ở</th>
           <th class="p-4 font-semibold text-slate-600">Tổng thanh toán</th>
@@ -31,9 +31,26 @@
       </thead>
       <tbody class="divide-y divide-slate-100">
         <tr *ngFor="let b of filteredBookings" class="hover:bg-slate-50/50 transition" [ngClass]="{'opacity-60 bg-slate-50/30': b.bookingStatus === 'CANCELLED'}">
-          <td class="p-4 font-bold text-slate-700">#{{ b.bookingId }}</td>
+          <td class="p-4 font-bold text-slate-700">
+            #{{ b.bookingId }}
+            <span *ngIf="b.roomCount && b.roomCount > 1"
+                  class="ml-1.5 inline-flex items-center gap-0.5 bg-indigo-100 text-indigo-700 text-[10px] font-black px-1.5 py-0.5 rounded-full">
+              🏨 {{ b.roomCount }} phòng
+            </span>
+          </td>
           <td class="p-4">
-            <span class="bg-blue-50 text-blue-700 font-bold px-2.5 py-1 rounded border border-blue-100">Phòng {{ b.roomNumber }}</span>
+            <!-- Single room -->
+            <span *ngIf="!b.roomNumbers || b.roomNumbers.length <= 1"
+                  class="bg-blue-50 text-blue-700 font-bold px-2.5 py-1 rounded border border-blue-100 text-xs">
+              Phòng {{ b.roomNumber }}
+            </span>
+            <!-- Multi-room: hiển thị tất cả dưới dạng pills -->
+            <div *ngIf="b.roomNumbers && b.roomNumbers.length > 1" class="flex flex-wrap gap-1">
+              <span *ngFor="let rn of b.roomNumbers"
+                    class="bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded border border-indigo-100 text-[11px]">
+                P.{{ rn }}
+              </span>
+            </div>
           </td>
           <td class="p-4">
             <div class="flex flex-col">
@@ -59,31 +76,55 @@
           </td>
           
           <td class="p-4 font-bold text-xs">
-            <span [ngSwitch]="b.paymentStatus">
-              <span *ngSwitchCase="'PAID'" class="text-emerald-600">🟢 ĐÃ THU TIỀN</span>
-              <span *ngSwitchCase="'UNPAID'" class="text-orange-500">🟡 CHƯA THU TIỀN</span>
-              <span *ngSwitchCase="'CANCELLED'" class="text-slate-400 line-through">⚫ HÓA ĐƠN HỦY</span>
-            </span>
+            <div class="flex flex-col gap-1">
+              <span [ngSwitch]="b.paymentStatus">
+                <span *ngSwitchCase="'PAID'" class="text-emerald-600">🟢 ĐÃ THANH TOÁN</span>
+                <span *ngSwitchCase="'UNPAID'" class="text-orange-500">🟡 CHƯA THANH TOÁN</span>
+                <span *ngSwitchCase="'REFUNDED'" class="text-blue-600">🔵 ĐÃ HOÀN TIỀN</span>
+                <span *ngSwitchCase="'CANCELLED'" class="text-slate-400 line-through">⚫ HÓA ĐƠN HỦY</span>
+              </span>
+              <span *ngIf="b.paymentMethod === 'BANK_TRANSFER'"
+                    class="text-[10px] font-semibold text-indigo-600 bg-indigo-50 border border-indigo-100 px-1.5 py-0.5 rounded w-max">
+                🏦 Chuyển khoản
+              </span>
+              <span *ngIf="b.paymentMethod === 'PAYOS'"
+                    class="text-[10px] font-semibold text-violet-600 bg-violet-50 border border-violet-100 px-1.5 py-0.5 rounded w-max">
+                💳 PayOS
+              </span>
+            </div>
           </td>
           
           <td class="p-4">
-            <div class="flex gap-2">
-              <button *ngIf="b.bookingStatus === 'PENDING' || b.bookingStatus === 'CONFIRMED'" 
-                class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-1 px-3 rounded text-xs transition shadow-sm" 
-                (click)="onProcessCheckIn(b.bookingId)">
-                🔑 Nhận phòng
-              </button>
-              
-              <button *ngIf="b.bookingStatus === 'CHECK_IN'" 
-                class="bg-rose-600 hover:bg-rose-700 text-white font-medium py-1 px-3 rounded text-xs transition shadow-sm" 
-                (click)="onProcessCheckOut(b.bookingId)">
-                💵 Trả phòng
+            <div class="flex flex-wrap gap-2">
+              <button
+                class="bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium py-1 px-2.5 rounded text-xs transition border border-slate-200"
+                (click)="onViewAuditLog(b.bookingId)"
+                title="Xem lịch sử thao tác">
+                🕐 Lịch sử
               </button>
 
-              <button *ngIf="b.paymentStatus === 'UNPAID' && (b.bookingStatus === 'PENDING' || b.bookingStatus === 'CONFIRMED')" 
-                class="bg-slate-200 hover:bg-red-100 text-slate-700 hover:text-red-700 font-medium py-1 px-2.5 rounded text-xs transition border border-slate-300 hover:border-red-200" 
+              <button *ngIf="b.bookingStatus === 'PENDING' || b.bookingStatus === 'CONFIRMED'"
+                class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-1 px-3 rounded text-xs transition shadow-sm"
+                (click)="onProcessCheckIn(b.bookingId)">
+                🔑 Nhận {{ (b.roomCount && b.roomCount > 1) ? b.roomCount + ' phòng' : 'phòng' }}
+              </button>
+
+              <button *ngIf="b.bookingStatus === 'CHECK_IN'"
+                class="bg-rose-600 hover:bg-rose-700 text-white font-medium py-1 px-3 rounded text-xs transition shadow-sm"
+                (click)="onProcessCheckOut(b.bookingId)">
+                💵 Trả {{ (b.roomCount && b.roomCount > 1) ? b.roomCount + ' phòng' : 'phòng' }}
+              </button>
+
+              <button *ngIf="b.paymentStatus === 'UNPAID' && (b.bookingStatus === 'PENDING' || b.bookingStatus === 'CONFIRMED')"
+                class="bg-slate-200 hover:bg-red-100 text-slate-700 hover:text-red-700 font-medium py-1 px-2.5 rounded text-xs transition border border-slate-300 hover:border-red-200"
                 (click)="onProcessCancel(b.bookingId)">
                 🗑️ Hủy đơn
+              </button>
+
+              <button *ngIf="b.paymentStatus === 'PAID' && (b.bookingStatus === 'CANCELLED' || b.bookingStatus === 'CHECK_OUT')"
+                class="bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium py-1 px-2.5 rounded text-xs transition border border-blue-200 hover:border-blue-300"
+                (click)="onOpenRefundModal(b)">
+                💸 Hoàn tiền
               </button>
             </div>
           </td>
@@ -94,45 +135,126 @@
 </div>
 
 <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex justify-center items-center z-50 transition-all" *ngIf="isWalkInModalOpen">
-  <div class="bg-white w-full max-w-lg rounded-xl shadow-2xl overflow-hidden border border-slate-200">
+  <div class="bg-white w-full max-w-2xl rounded-xl shadow-2xl overflow-hidden border border-slate-200">
+    <!-- Header -->
     <div class="bg-blue-600 text-white px-6 py-4 flex justify-between items-center">
       <h3 class="font-bold text-base flex items-center gap-2">🛎️ KHỞI TẠO ĐƠN THUÊ PHÒNG TẠI QUẦY</h3>
       <button class="text-blue-200 hover:text-white text-2xl font-light outline-none" (click)="isWalkInModalOpen = false">×</button>
     </div>
-    <div class="p-6 space-y-4">
-      <div class="grid grid-cols-2 gap-4">
-        <div>
-          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Gợi ý phòng đang trống <span class="text-red-500">*</span></label>
-          <select [(ngModel)]="walkInForm.roomNumber" (change)="calculatePreviewPrice()" class="w-full px-3.5 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500 text-sm bg-white font-semibold text-slate-800 transition">
-            <option value="" disabled selected>-- Chọn phòng sẵn có --</option>
-            <option *ngFor="let roomNo of availableRooms" [value]="roomNo">🟢 Phòng số {{ roomNo }}</option>
+
+    <!-- Body (scrollable) -->
+    <div class="p-6 space-y-4 max-h-[72vh] overflow-y-auto">
+
+      <!-- 1. Chọn phòng -->
+      <div>
+        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+          Chọn phòng lưu trú <span class="text-red-500">*</span>
+          <span *ngIf="selectedRoomNumbers.length > 0" class="ml-2 text-blue-600 normal-case font-semibold">
+            — Đã chọn {{ selectedRoomNumbers.length }} phòng
+          </span>
+        </label>
+
+        <!-- Bộ lọc tầng / loại phòng -->
+        <div class="flex items-center gap-2 mb-2">
+          <select [(ngModel)]="filterFloor" class="px-3 py-1.5 border border-slate-300 rounded-lg text-xs bg-white text-slate-700 outline-none focus:border-blue-500 transition">
+            <option value="">Tất cả tầng</option>
+            <option *ngFor="let f of uniqueFloors" [value]="f">Tầng {{ f }}</option>
           </select>
+          <select [(ngModel)]="filterType" class="flex-1 px-3 py-1.5 border border-slate-300 rounded-lg text-xs bg-white text-slate-700 outline-none focus:border-blue-500 transition">
+            <option value="">Tất cả loại phòng</option>
+            <option *ngFor="let t of uniqueTypes" [value]="t">{{ t }}</option>
+          </select>
+          <span class="text-xs text-slate-400 whitespace-nowrap">{{ filteredRooms.length }} phòng</span>
         </div>
+
+        <!-- Lưới phòng -->
+        <div class="grid grid-cols-4 gap-1.5 max-h-44 overflow-y-auto pr-1 border border-slate-200 rounded-lg p-2 bg-slate-50/60">
+          <button *ngFor="let r of filteredRooms"
+                  type="button"
+                  (click)="toggleRoom(r.roomNumber)"
+                  [ngClass]="isSelected(r.roomNumber)
+                    ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-300'
+                    : 'border-slate-200 bg-white hover:border-blue-300 hover:bg-blue-50/30'"
+                  class="p-2 rounded-lg border text-left text-xs transition-all cursor-pointer">
+            <div class="font-bold text-[11px] text-slate-800">P.{{ r.roomNumber }}</div>
+            <div class="text-[9px] text-slate-400 mt-0.5">T.{{ r.floor }} · {{ r.typeName }}</div>
+            <div class="text-[9px] font-semibold text-blue-600 mt-0.5">{{ r.price | currency:'VND':'symbol':'1.0-0' }}/đêm</div>
+            <div *ngIf="isSelected(r.roomNumber)" class="text-[9px] text-blue-600 font-black text-center mt-1">✓ Đã chọn</div>
+          </button>
+          <div *ngIf="filteredRooms.length === 0" class="col-span-4 text-center text-slate-400 text-xs py-6">
+            {{ availableRoomsDetail.length === 0 ? 'Đang tải danh sách phòng...' : 'Không có phòng trống phù hợp với bộ lọc' }}
+          </div>
+        </div>
+
+        <!-- Chips phòng đã chọn -->
+        <div *ngIf="selectedRoomNumbers.length > 0" class="flex flex-wrap gap-1 mt-2">
+          <span *ngFor="let rn of selectedRoomNumbers"
+                class="flex items-center gap-1 bg-blue-100 text-blue-700 text-[11px] font-bold px-2 py-0.5 rounded-full border border-blue-200">
+            P.{{ rn }}
+            <button type="button" (click)="toggleRoom(rn)" class="text-blue-400 hover:text-blue-700 leading-none ml-0.5">×</button>
+          </span>
+        </div>
+        <p *ngIf="formErrors['rooms']" class="text-red-500 text-xs mt-1">{{ formErrors['rooms'] }}</p>
+      </div>
+
+      <!-- 2. Thông tin khách -->
+      <div class="grid grid-cols-2 gap-4">
         <div>
           <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Tên khách hàng <span class="text-red-500">*</span></label>
-          <input type="text" [(ngModel)]="walkInForm.customerName" placeholder="Nhập họ tên khách" class="w-full px-3.5 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500 text-sm transition" />
-        </div>
-      </div>
-      <div class="grid grid-cols-2 gap-4">
-        <div>
-          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Số điện thoại liên hệ <span class="text-red-500">*</span></label>
-          <input type="text" [(ngModel)]="walkInForm.customerPhone" placeholder="Nhập SĐT khách" class="w-full px-3.5 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500 text-sm transition" />
+          <input type="text" [(ngModel)]="walkInForm.customerName" (ngModelChange)="clearError('name')"
+                 [ngClass]="{'border-red-400 bg-red-50/40': formErrors['name']}"
+                 placeholder="Nhập họ tên khách"
+                 class="w-full px-3.5 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500 text-sm transition" />
+          <p *ngIf="formErrors['name']" class="text-red-500 text-xs mt-1">{{ formErrors['name'] }}</p>
         </div>
         <div>
-          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Số CCCD định danh pháp lý <span class="text-red-500">*</span></label>
-          <input type="text" [(ngModel)]="walkInForm.customerCccd" placeholder="Nhập số căn cước" class="w-full px-3.5 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500 font-bold tracking-wider text-sm transition" />
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Số điện thoại <span class="text-red-500">*</span></label>
+          <input type="text" [(ngModel)]="walkInForm.customerPhone" (ngModelChange)="clearError('phone')"
+                 [ngClass]="{'border-red-400 bg-red-50/40': formErrors['phone']}"
+                 placeholder="Nhập SĐT khách"
+                 class="w-full px-3.5 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500 text-sm transition" />
+          <p *ngIf="formErrors['phone']" class="text-red-500 text-xs mt-1">{{ formErrors['phone'] }}</p>
         </div>
       </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Số CCCD định danh pháp lý <span class="text-red-500">*</span></label>
+        <input type="text" [(ngModel)]="walkInForm.customerCccd" (ngModelChange)="clearError('cccd')"
+               [ngClass]="{'border-red-400 bg-red-50/40': formErrors['cccd']}"
+               placeholder="Nhập số căn cước công dân"
+               class="w-full px-3.5 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500 font-bold tracking-wider text-sm transition" />
+        <p *ngIf="formErrors['cccd']" class="text-red-500 text-xs mt-1">{{ formErrors['cccd'] }}</p>
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+          Email nhận hóa đơn
+          <span class="ml-1 normal-case font-normal text-slate-400 text-[11px]">(tùy chọn — gửi hóa đơn điện tử khi trả phòng)</span>
+        </label>
+        <input type="email" [(ngModel)]="walkInForm.customerEmail"
+               placeholder="Nhập email khách để gửi hóa đơn (nếu có)"
+               class="w-full px-3.5 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500 text-sm transition" />
+      </div>
+
+      <!-- 3. Thời gian -->
       <div class="grid grid-cols-2 gap-4">
         <div>
           <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Ngày nhận phòng <span class="text-red-500">*</span></label>
-          <input type="date" [(ngModel)]="walkInForm.checkInDate" (change)="calculatePreviewPrice()" class="w-full px-3.5 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500 text-sm transition" />
+          <input type="date" [(ngModel)]="walkInForm.checkInDate"
+                 (change)="onDateChange()" (ngModelChange)="clearError('checkIn')"
+                 [ngClass]="{'border-red-400 bg-red-50/40': formErrors['checkIn']}"
+                 class="w-full px-3.5 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500 text-sm transition" />
+          <p *ngIf="formErrors['checkIn']" class="text-red-500 text-xs mt-1">{{ formErrors['checkIn'] }}</p>
         </div>
         <div>
           <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Ngày trả phòng dự kiến <span class="text-red-500">*</span></label>
-          <input type="date" [(ngModel)]="walkInForm.checkOutDate" (change)="calculatePreviewPrice()" class="w-full px-3.5 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500 text-sm transition" />
+          <input type="date" [(ngModel)]="walkInForm.checkOutDate"
+                 (change)="onDateChange()" (ngModelChange)="clearError('checkOut')"
+                 [ngClass]="{'border-red-400 bg-red-50/40': formErrors['checkOut']}"
+                 class="w-full px-3.5 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500 text-sm transition" />
+          <p *ngIf="formErrors['checkOut']" class="text-red-500 text-xs mt-1">{{ formErrors['checkOut'] }}</p>
         </div>
       </div>
+
+      <!-- 4. Voucher -->
       <div class="grid grid-cols-2 gap-4">
         <div>
           <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Gợi ý Voucher đang chạy</label>
@@ -146,9 +268,11 @@
           <input type="text" [(ngModel)]="walkInForm.appliedCode" class="w-full px-3.5 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500 font-bold uppercase text-blue-600 tracking-wider text-sm bg-slate-50 transition" readonly />
         </div>
       </div>
+
+      <!-- 5. Preview giá -->
       <div class="bg-slate-50 p-4 rounded-xl border border-slate-200/60 space-y-2" *ngIf="previewOriginalPrice > 0">
         <div class="flex justify-between text-xs text-slate-500 font-medium">
-          <span>Giá phòng gốc tạm tính:</span>
+          <span>Giá tạm tính ({{ selectedRoomNumbers.length }} phòng):</span>
           <span class="text-slate-600 font-semibold">{{ previewOriginalPrice | currency:'VND':'symbol':'1.0-0' }}</span>
         </div>
         <div class="flex justify-between text-xs text-rose-600 font-medium" *ngIf="previewDiscountAmount > 0">
@@ -161,10 +285,127 @@
           <span class="text-lg font-black text-emerald-600">{{ previewFinalAmount | currency:'VND':'symbol':'1.0-0' }}</span>
         </div>
       </div>
+
+      <!-- Lỗi submit -->
+      <div *ngIf="formErrors['submit']" class="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">
+        ⚠️ {{ formErrors['submit'] }}
+      </div>
     </div>
+
+    <!-- Footer -->
     <div class="bg-slate-50 px-6 py-4 flex justify-end gap-3 border-t border-slate-100">
       <button class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-2 px-4 rounded-lg text-xs transition" (click)="isWalkInModalOpen = false">Đóng</button>
-      <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg text-xs transition shadow-md shadow-blue-600/10" (click)="onCreateWalkInBooking()">Lưu hệ thống & Check-in</button>
+      <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-5 rounded-lg text-xs transition shadow-md shadow-blue-600/10" (click)="onCreateWalkInBooking()">
+        ✓ Lưu hệ thống & Check-in
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Lịch sử thao tác -->
+<div class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex justify-center items-center z-50" *ngIf="isAuditModalOpen">
+  <div class="bg-white w-full max-w-lg rounded-xl shadow-2xl overflow-hidden border border-slate-200">
+    <div class="bg-slate-800 text-white px-6 py-4 flex justify-between items-center">
+      <h3 class="font-bold text-base flex items-center gap-2">🕐 Lịch sử thao tác — Đơn #{{ auditBookingId }}</h3>
+      <button class="text-slate-400 hover:text-white text-2xl font-light outline-none" (click)="isAuditModalOpen = false">×</button>
+    </div>
+
+    <div class="p-5 max-h-[60vh] overflow-y-auto">
+      <!-- Loading -->
+      <div *ngIf="auditLoading" class="flex justify-center py-10 text-slate-400 text-sm">
+        Đang tải lịch sử...
+      </div>
+
+      <!-- Empty -->
+      <div *ngIf="!auditLoading && auditLogs.length === 0" class="text-center py-10 text-slate-400 text-sm">
+        Chưa có lịch sử thao tác nào.
+      </div>
+
+      <!-- Timeline -->
+      <div *ngIf="!auditLoading && auditLogs.length > 0" class="relative">
+        <!-- Đường kẻ dọc -->
+        <div class="absolute left-[19px] top-2 bottom-2 w-px bg-slate-200"></div>
+
+        <div *ngFor="let log of auditLogs; let last = last" class="relative flex gap-4 pb-5" [class.pb-0]="last">
+          <!-- Icon -->
+          <div class="shrink-0 w-10 h-10 rounded-full bg-slate-100 border-2 border-slate-200 flex items-center justify-center text-base z-10">
+            {{ getActionIcon(log.action) }}
+          </div>
+
+          <!-- Nội dung -->
+          <div class="flex-1 bg-slate-50 rounded-xl border border-slate-200 px-4 py-3 min-w-0">
+            <div class="flex items-start justify-between gap-2 flex-wrap">
+              <span class="font-bold text-slate-800 text-sm">{{ log.actionLabel }}</span>
+              <span class="text-[11px] text-slate-400 whitespace-nowrap shrink-0">
+                {{ log.createdAt | date:'dd/MM/yyyy HH:mm' }}
+              </span>
+            </div>
+            <p class="text-xs text-slate-500 mt-1.5 break-words">{{ log.description }}</p>
+            <p class="text-[11px] text-slate-400 mt-1.5">
+              👤 <span class="font-medium text-slate-600">{{ log.operatorName }}</span>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-slate-50 px-6 py-3 flex justify-end border-t border-slate-100">
+      <button class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-2 px-5 rounded-lg text-xs transition" (click)="isAuditModalOpen = false">Đóng</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Hoàn tiền -->
+<div class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex justify-center items-center z-50" *ngIf="isRefundModalOpen">
+  <div class="bg-white w-full max-w-md rounded-xl shadow-2xl overflow-hidden border border-slate-200">
+    <!-- Header -->
+    <div class="bg-blue-600 text-white px-6 py-4 flex justify-between items-center">
+      <h3 class="font-bold text-base flex items-center gap-2">💸 XÁC NHẬN HOÀN TIỀN</h3>
+      <button class="text-blue-200 hover:text-white text-2xl font-light outline-none" (click)="isRefundModalOpen = false">×</button>
+    </div>
+
+    <div class="p-6 space-y-4">
+      <!-- Thông tin đơn -->
+      <div class="bg-slate-50 rounded-xl border border-slate-200 px-4 py-3 flex justify-between items-center">
+        <div>
+          <p class="text-xs text-slate-500 font-medium">Đơn đặt phòng</p>
+          <p class="font-bold text-slate-800">#{{ refundBookingId }}</p>
+        </div>
+        <div class="text-right">
+          <p class="text-xs text-slate-500 font-medium">Số tiền hoàn</p>
+          <p class="font-black text-blue-600 text-base">{{ refundBookingAmount | currency:'VND':'symbol':'1.0-0' }}</p>
+        </div>
+      </div>
+
+      <!-- Lý do hoàn tiền -->
+      <div>
+        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+          Lý do hoàn tiền <span class="text-red-500">*</span>
+        </label>
+        <textarea
+          [(ngModel)]="refundReason"
+          (ngModelChange)="refundError = ''"
+          rows="3"
+          placeholder="Nhập lý do hoàn tiền cho khách hàng..."
+          [ngClass]="{'border-red-400 bg-red-50/40': refundError}"
+          class="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg outline-none focus:border-blue-500 text-sm transition resize-none">
+        </textarea>
+        <p *ngIf="refundError" class="text-red-500 text-xs mt-1">{{ refundError }}</p>
+      </div>
+
+      <!-- Thông tin audit -->
+      <div class="text-[11px] text-slate-400 bg-slate-50 rounded-lg px-3 py-2 border border-slate-100">
+        🕐 Thời gian: <strong class="text-slate-600">{{ refundTimestamp | date:'dd/MM/yyyy HH:mm' }}</strong>
+        &nbsp;·&nbsp; 👤 Người thao tác: <strong class="text-slate-600">{{ refundOperatorName }}</strong>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="bg-slate-50 px-6 py-4 flex justify-end gap-3 border-t border-slate-100">
+      <button class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-2 px-4 rounded-lg text-xs transition" (click)="isRefundModalOpen = false">Hủy bỏ</button>
+      <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-5 rounded-lg text-xs transition shadow-md" (click)="onConfirmRefund()">
+        ✓ Xác nhận hoàn tiền
+      </button>
     </div>
   </div>
 </div>

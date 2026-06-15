@@ -3,13 +3,16 @@ package org.example.backend.service;
 import lombok.RequiredArgsConstructor;
 import org.example.backend.dto.request.PromotionRequestDTO;
 import org.example.backend.dto.response.PromotionResponseDTO;
+import org.example.backend.entity.Favorite;
 import org.example.backend.entity.Promotion;
 import org.example.backend.entity.Room;
+import org.example.backend.repository.FavoriteRepository;
 import org.example.backend.repository.PromotionRepository;
 import org.example.backend.repository.RoomRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -22,9 +25,9 @@ import java.util.stream.Collectors;
 public class PromotionService {
 
     private final PromotionRepository promotionRepository;
-
-    // Sử dụng cơ chế ép tiêm @Autowired hoặc final qua Constructor của @RequiredArgsConstructor đều được
     private final RoomRepository roomRepository;
+    private final FavoriteRepository favoriteRepository;
+    private final EmailService emailService;
 
     /**
      * Nghiệp vụ 1: Lấy toàn bộ danh sách mã khuyến mãi hệ thống đổ lên bảng Angular
@@ -122,5 +125,34 @@ public class PromotionService {
         // 🔥 THAY THẾ LOGIC: Lưu cố định chương trình ưu đãi hiện hành trực tiếp lên thuộc tính Room
         room.setAppliedPromotion(promotion);
         roomRepository.save(room);
+
+        // Gửi email thông báo async cho tất cả user đã yêu thích phòng này
+        List<Favorite> favorites = favoriteRepository.findByRoomId(roomId);
+        if (!favorites.isEmpty()) {
+            String roomNumber = room.getRoomNumber();
+            String roomTypeName = room.getRoomType() != null ? room.getRoomType().getTypeName() : "Phòng khách sạn";
+            String promoCode = promotion.getCode();
+            Integer discountPct = promotion.getDiscountPercentage();
+            LocalDate endDate = promotion.getEndDate();
+
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    for (Favorite fav : favorites) {
+                        if (fav.getUser() != null && fav.getUser().getEmail() != null) {
+                            emailService.sendPromotionNotificationEmail(
+                                    fav.getUser().getEmail(),
+                                    fav.getUser().getFullName(),
+                                    roomNumber,
+                                    roomTypeName,
+                                    promoCode,
+                                    discountPct,
+                                    endDate
+                            );
+                        }
+                    }
+                }
+            });
+        }
     }
 }

@@ -68,6 +68,9 @@ public interface RoomRepository extends JpaRepository<Room, Long>, JpaSpecificat
     @Query("SELECT r FROM Room r WHERE r.status = :status AND r.isDeleted = false")
     List<Room> findAllByStatus(@Param("status") RoomStatus status);
 
+    @Query("SELECT COUNT(r) FROM Room r WHERE r.status = :status AND r.isDeleted = false")
+    long countByStatusAndNotDeleted(@Param("status") RoomStatus status);
+
     /**
      * Giải phóng hàng loạt phòng vật lý thuộc các đơn đặt phòng bị hủy về trạng thái AVAILABLE.
      * Sử dụng câu lệnh sub-query lồng nhau để tối ưu hóa hiệu năng, giảm số lượng kết nối tới DB.

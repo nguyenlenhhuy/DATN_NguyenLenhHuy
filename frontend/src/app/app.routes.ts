@@ -22,6 +22,7 @@ import { authGuard } from './guards/auth.guard';
 import { FavoritesComponent } from './pages/favorites/favorites.component';
 import { RoomDetailComponent } from './pages/room-detail/room-detail.component';
 import { BookingHistoryComponent } from './components/booking-history/booking-history.component';
+import { PaymentResultComponent } from './pages/payment-result/payment-result.component';
 
 export const routes: Routes = [
   // ===========================================================================
@@ -36,6 +37,8 @@ export const routes: Routes = [
   { path: 'profile',   component: ProfileComponent,        canActivate: [authGuard] },
   { path: 'favorites', component: FavoritesComponent,      canActivate: [authGuard] },
   { path: 'history',   component: BookingHistoryComponent, canActivate: [authGuard] },
+  { path: 'payment/success', component: PaymentResultComponent, canActivate: [authGuard] },
+  { path: 'payment/cancel',  component: PaymentResultComponent, canActivate: [authGuard] },
 
   // ===========================================================================
   // 2. PHÂN HỆ QUẢN TRỊ & VẬN HÀNH KHÁCH SẠN (ADMIN & STAFF PANEL)

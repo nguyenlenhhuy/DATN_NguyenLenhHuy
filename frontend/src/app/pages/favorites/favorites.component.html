@@ -1,130 +1,341 @@
 <app-header></app-header>
 
-<main class="min-h-screen bg-gray-50/50 pt-[110px] pb-20 font-sans">
+<main class="min-h-screen bg-gray-50/50 pt-[110px] pb-32 font-sans">
   <div class="container mx-auto px-4 max-w-7xl">
-    
-    <div class="mb-12 text-center md:text-left border-b border-gray-100 pb-5">
-      <h1 class="text-3xl font-black text-gray-900 tracking-tight">❤️ Phòng bạn đã lưu</h1>
-      <p class="text-sm text-gray-400 mt-1 font-medium">Danh sách các không gian nghỉ dưỡng bạn đang quan tâm và theo dõi lịch trình tại LuxeHotel.</p>
+
+    <!-- Header -->
+    <div class="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-gray-100 pb-5">
+      <div>
+        <h1 class="text-3xl font-black text-gray-900 tracking-tight">❤️ Phòng bạn đã lưu</h1>
+        <p class="text-sm text-gray-400 mt-1 font-medium">
+          {{ favoriteRooms.length }} phòng đang theo dõi
+          <span *ngIf="isSelectMode && selectedCount > 0" class="ml-2 text-blue-600 font-bold">· Đã chọn {{ selectedCount }}</span>
+        </p>
+      </div>
+
+      <div class="flex items-center gap-3" *ngIf="!isLoading && favoriteRooms.length > 0">
+        <!-- Nút chọn tất cả (chỉ hiện khi đang ở select mode) -->
+        <button *ngIf="isSelectMode"
+                (click)="selectAllAvailable()"
+                class="px-4 py-2 text-xs font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-xl hover:bg-indigo-100 transition-all">
+          Chọn tất cả
+        </button>
+
+        <!-- Toggle select mode -->
+        <button (click)="toggleSelectMode()"
+                [class]="isSelectMode
+                  ? 'px-5 py-2.5 bg-gray-800 text-white text-xs font-bold rounded-xl shadow-sm hover:bg-gray-900 transition-all'
+                  : 'px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-xs font-bold rounded-xl shadow-md shadow-blue-500/20 hover:from-blue-700 hover:to-indigo-700 transition-all'">
+          {{ isSelectMode ? '✕ Hủy chọn' : '☑ Chọn nhiều phòng' }}
+        </button>
+      </div>
     </div>
 
-    <div class="text-center py-20 text-gray-400 font-medium" *ngIf="isLoading">
-      <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-blue-600 border-t-transparent mb-4 shadow-sm"></div>
-      <p class="text-sm tracking-wide">Đang đồng bộ danh sách phòng yêu thích thực tế...</p>
+    <!-- Loading -->
+    <div class="text-center py-20 text-gray-400" *ngIf="isLoading">
+      <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-blue-600 border-t-transparent mb-4"></div>
+      <p class="text-sm">Đang tải danh sách phòng yêu thích...</p>
     </div>
 
-    <div class="text-center py-20 bg-white rounded-[32px] border border-dashed border-gray-200 p-8 max-w-xl mx-auto shadow-sm" *ngIf="!isLoading && favoriteRooms.length === 0">
+    <!-- Empty state -->
+    <div class="text-center py-20 bg-white rounded-[32px] border border-dashed border-gray-200 p-8 max-w-xl mx-auto shadow-sm"
+         *ngIf="!isLoading && favoriteRooms.length === 0">
       <div class="text-5xl mb-4 animate-bounce">🍂</div>
       <h3 class="text-lg font-bold text-gray-800">Danh sách trống</h3>
-      <p class="text-gray-400 mt-1.5 text-sm max-w-xs mx-auto mb-6">Bạn chưa bấm lưu bất kỳ phòng khách sạn nào trong hệ thống LuxeHotel Resort.</p>
-      <button routerLink="/rooms" class="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-sm rounded-xl hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-500/10 transition transform active:scale-95">
+      <p class="text-gray-400 mt-1.5 text-sm max-w-xs mx-auto mb-6">
+        Bạn chưa lưu phòng nào. Khám phá và bấm ❤️ để lưu lại nhé!
+      </p>
+      <button routerLink="/rooms"
+              class="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-sm rounded-xl hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-500/10 transition">
         Khám phá phòng ngay
       </button>
     </div>
 
+    <!-- Room Grid -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8" *ngIf="!isLoading && favoriteRooms.length > 0">
-      
-      <div *ngFor="let room of favoriteRooms" 
-           class="bg-white rounded-[24px] overflow-hidden border border-gray-100 shadow-sm transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 group flex flex-col h-full relative">
-        
-        <div class="relative pt-[66%] overflow-hidden bg-gray-100 shrink-0 cursor-pointer" (click)="viewRoomDetail(room.roomId, $event)">
-          <img [src]="getRoomImage(room)" 
-               (error)="onImageError($event)"
-               [alt]="room.roomNumber" 
+
+      <div *ngFor="let room of favoriteRooms"
+           (click)="isSelectMode && room.status === 'AVAILABLE' ? toggleRoomSelection(room.roomId, $event) : (!isSelectMode ? viewRoomDetail(room.roomId) : null)"
+           [class]="'bg-white rounded-[24px] overflow-hidden border transition-all duration-300 flex flex-col h-full relative group '
+             + (isSelectMode && room.status === 'AVAILABLE' ? 'cursor-pointer ' : '')
+             + (isSelectMode && isSelected(room.roomId) ? 'border-blue-500 shadow-xl shadow-blue-500/15 ring-2 ring-blue-500 scale-[1.01] ' : 'border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 ')
+             + (isSelectMode && room.status !== 'AVAILABLE' ? 'opacity-50 cursor-not-allowed' : '')">
+
+        <!-- Checkbox overlay (chỉ hiện khi select mode) -->
+        <div *ngIf="isSelectMode"
+             class="absolute top-4 left-4 z-30 pointer-events-none">
+          <div [class]="'w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all shadow-md '
+                 + (isSelected(room.roomId) ? 'bg-blue-600 border-blue-600' : 'bg-white/90 border-gray-300')">
+            <svg *ngIf="isSelected(room.roomId)" class="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Badge không khả dụng -->
+        <div *ngIf="isSelectMode && room.status !== 'AVAILABLE'"
+             class="absolute inset-0 z-20 flex items-center justify-center bg-gray-900/30 rounded-[24px] pointer-events-none">
+          <span class="bg-white/95 text-gray-700 text-xs font-black px-3 py-1.5 rounded-full shadow">Không khả dụng</span>
+        </div>
+
+        <!-- Ảnh phòng -->
+        <div class="relative pt-[62%] overflow-hidden bg-gray-100 shrink-0"
+             [class.pointer-events-none]="isSelectMode">
+          <img [src]="getRoomImage(room)" (error)="onImageError($event)" [alt]="room.roomNumber"
                class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105">
           <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10"></div>
 
-          <div class="absolute inset-0 overflow-hidden pointer-events-none">
-            <div class="absolute top-0 -left-full w-1/2 h-full bg-white/25 skew-x-12 opacity-40 group-hover:left-[150%] transition-all duration-1000 ease-out"></div>
-          </div>
-
-          <div class="absolute top-4 left-4 bg-blue-600/90 backdrop-blur-md px-3 py-1.5 rounded-lg text-[10px] font-black text-white uppercase tracking-widest shadow-sm z-10">
+          <!-- Loại phòng badge -->
+          <div class="absolute top-4 left-4 bg-blue-600/90 backdrop-blur-md px-3 py-1.5 rounded-lg text-[10px] font-black text-white uppercase tracking-widest shadow-sm z-10"
+               [class.left-12]="isSelectMode">
             {{ room.typeName || 'Standard' }}
           </div>
 
+          <!-- Trạng thái badge -->
           <div class="absolute bottom-4 left-4 bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-full text-[11px] font-bold shadow-sm z-10 flex items-center gap-1.5"
                [ngClass]="room.status === 'AVAILABLE' ? 'text-emerald-700' : 'text-rose-700'">
-            <span class="w-2 h-2 rounded-full" [ngClass]="room.status === 'AVAILABLE' ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'"></span>
-            {{ room.status === 'AVAILABLE' ? 'Còn trống' : 'Đã hết phòng' }}
+            <span class="w-2 h-2 rounded-full"
+                  [ngClass]="room.status === 'AVAILABLE' ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'"></span>
+            {{ room.status === 'AVAILABLE' ? 'Còn trống' : 'Đã đặt' }}
           </div>
 
-          <button (click)="onRemoveFavorite(room, $event)" 
-                  class="absolute top-4 right-4 w-10 h-10 bg-black/60 border border-white/10 backdrop-blur-md rounded-full shadow-md hover:bg-black/80 hover:scale-110 active:scale-90 transition-all duration-200 flex items-center justify-center text-base focus:outline-none z-20" 
-                  title="Xóa khỏi danh sách lưu">
-            <span class="scale-110 text-amber-400 filter drop-shadow-sm">❤️</span>
+          <!-- Nút bỏ yêu thích (ẩn khi select mode) -->
+          <button *ngIf="!isSelectMode"
+                  (click)="onRemoveFavorite(room, $event)"
+                  class="absolute top-4 right-4 w-10 h-10 bg-black/60 border border-white/10 backdrop-blur-md rounded-full shadow-md hover:bg-black/80 hover:scale-110 active:scale-90 transition-all flex items-center justify-center z-20">
+            <span class="text-amber-400 text-base">❤️</span>
           </button>
         </div>
 
+        <!-- Card body -->
         <div class="p-6 flex flex-col flex-grow">
-          
+
           <div class="flex justify-between items-start">
-            <h3 class="text-2xl font-black text-gray-800 group-hover:text-blue-600 transition-colors line-clamp-1 tracking-tight cursor-pointer" 
-                (click)="viewRoomDetail(room.roomId, $event)">
+            <h3 class="text-2xl font-black text-gray-800 group-hover:text-blue-600 transition-colors tracking-tight"
+                [class.text-blue-600]="isSelectMode && isSelected(room.roomId)">
               Phòng {{ room.roomNumber }}
             </h3>
             <div class="flex items-center gap-1 bg-amber-50 px-2 py-1 rounded-lg shrink-0 mt-1">
               <span class="text-amber-500 text-sm leading-none">★</span>
-              <span class="font-bold text-gray-800 text-sm leading-none">{{ room.rating ? (room.rating | number:'1.1-1') : '4.9' }}</span>
+              <span class="font-bold text-gray-800 text-sm leading-none">
+                {{ room.rating ? (room.rating | number:'1.1-1') : '4.9' }}
+              </span>
             </div>
           </div>
 
-          <div *ngIf="room.appliedPromotion" class="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-widest bg-rose-50 text-rose-600 border border-rose-100 shadow-sm w-fit">
-            🔥 GIẢM {{ room.appliedPromotion.discountPercentage }}% (MÃ: {{ room.appliedPromotion.code }})
+          <!-- Promotion badge -->
+          <div *ngIf="room.appliedPromotion"
+               class="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-widest bg-rose-50 text-rose-600 border border-rose-100 w-fit">
+            🔥 GIẢM {{ room.appliedPromotion.discountPercentage }}% — MÃ: {{ room.appliedPromotion.code }}
           </div>
-          
-          <div class="grid grid-cols-2 gap-y-3 gap-x-4 my-5 text-gray-500 text-xs font-medium">
-            <div class="flex items-center gap-2"><span class="text-blue-400 text-base leading-none">🌐</span> Wifi miễn phí</div>
-            <div class="flex items-center gap-2"><span class="text-blue-400 text-base leading-none">❄️</span> Điều hòa 2 chiều</div>
-            <div class="flex items-center gap-2"><span class="text-indigo-500 text-base leading-none">🛏️</span> Giường King cỡ lớn</div>
-            <div class="flex items-center gap-2"><span class="text-blue-400 text-base leading-none">🌊</span> View hướng thoáng mát</div>
+
+          <!-- Tiện ích -->
+          <div class="grid grid-cols-2 gap-y-2.5 gap-x-4 my-4 text-gray-400 text-xs font-medium">
+            <div class="flex items-center gap-1.5">🌐 Wifi miễn phí</div>
+            <div class="flex items-center gap-1.5">❄️ Điều hòa 2 chiều</div>
+            <div class="flex items-center gap-1.5">🛏️ Giường King</div>
+            <div class="flex items-center gap-1.5">👥 Tối đa {{ room.maxGuests || 2 }} khách</div>
           </div>
-          
-          <div class="mb-5 pb-5 border-b border-gray-100 flex flex-col gap-1.5">
-            <div class="flex items-start gap-2 text-xs text-gray-500">
-              <span class="text-gray-300 mt-0.5">•</span>
-              <span>Diện tích rộng rãi, ban công riêng lý tưởng.</span>
-            </div>
-            <div class="flex items-start gap-2 text-xs text-gray-500">
-              <span class="text-gray-300 mt-0.5">•</span>
-              <span>Đầy đủ tiện nghi hiện đại cho kỳ nghỉ trọn vẹn.</span>
-            </div>
-          </div>
-          
-          <div class="flex items-end justify-between mt-auto">
+
+          <!-- Giá + Actions -->
+          <div class="flex items-end justify-between mt-auto pt-4 border-t border-gray-100">
             <div>
-              <span class="text-[10px] text-gray-400 block font-bold uppercase tracking-wider mb-1">Giá phòng/Đêm</span>
-              
+              <span class="text-[10px] text-gray-400 block font-bold uppercase tracking-wider mb-1">Giá/Đêm</span>
+
               <div *ngIf="room.appliedPromotion" class="flex flex-col">
-                <span class="text-xs text-gray-400 line-through font-semibold mb-0.5">{{ formatPrice(room.price) }}</span>
-                <span class="text-2xl font-black text-rose-600 tracking-tight border-b-2 border-rose-600 pb-0.5 inline-block w-fit leading-none">
+                <span class="text-xs text-gray-400 line-through font-semibold">{{ formatPrice(room.price) }}</span>
+                <span class="text-xl font-black text-rose-600 tracking-tight leading-none">
                   {{ formatPrice(room.price * (1 - room.appliedPromotion.discountPercentage / 100)) }}
                 </span>
               </div>
-
               <div *ngIf="!room.appliedPromotion">
-                <span class="text-2xl font-black text-blue-600 tracking-tight border-b-2 border-blue-600 pb-0.5 inline-block w-fit leading-none">
+                <span class="text-xl font-black text-blue-600 tracking-tight leading-none">
                   {{ formatPrice(room.price) }}
                 </span>
               </div>
             </div>
-            
-            <div class="flex items-center gap-2">
-              <button (click)="viewRoomDetail(room.roomId, $event)" 
-                      class="px-4 py-2.5 bg-gradient-to-b from-gray-50 to-gray-200 border border-gray-300 text-gray-700 rounded-xl font-bold text-xs shadow-sm hover:from-gray-100 hover:to-gray-200 active:scale-95 transition-all">
+
+            <!-- Actions (ẩn khi select mode để tránh nhầm click) -->
+            <div class="flex items-center gap-2" *ngIf="!isSelectMode">
+              <button (click)="viewRoomDetail(room.roomId, $event)"
+                      class="px-3 py-2 bg-gray-100 border border-gray-200 text-gray-600 rounded-xl font-bold text-xs hover:bg-gray-200 active:scale-95 transition-all">
                 Chi tiết
               </button>
-              
-              <button [disabled]="room.status !== 'AVAILABLE'" 
-                      (click)="bookNow($event, room)" 
-                      class="px-5 py-2.5 bg-gradient-to-b from-blue-500 to-blue-700 text-white rounded-xl font-bold text-xs shadow-md hover:from-blue-600 hover:to-blue-800 active:scale-95 disabled:from-gray-200 disabled:to-slate-300 disabled:text-gray-400 disabled:shadow-none disabled:cursor-not-allowed transition-all">
+              <button [disabled]="room.status !== 'AVAILABLE'"
+                      (click)="bookNow($event, room)"
+                      class="px-4 py-2 bg-gradient-to-b from-blue-500 to-blue-700 text-white rounded-xl font-bold text-xs shadow-md hover:from-blue-600 hover:to-blue-800 active:scale-95 disabled:from-gray-200 disabled:to-slate-300 disabled:text-gray-400 disabled:shadow-none disabled:cursor-not-allowed transition-all">
                 Đặt ngay
               </button>
+            </div>
+
+            <!-- Indicator chọn (hiện khi select mode) -->
+            <div *ngIf="isSelectMode && room.status === 'AVAILABLE'"
+                 [class]="'px-4 py-2 rounded-xl text-xs font-bold transition-all '
+                   + (isSelected(room.roomId) ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500')">
+              {{ isSelected(room.roomId) ? '✓ Đã chọn' : 'Nhấn để chọn' }}
             </div>
           </div>
 
         </div>
       </div>
+
+    </div>
+  </div>
+</main>
+
+<!-- ── Floating Action Bar ──────────────────────────────────────────────────── -->
+<div *ngIf="isSelectMode && selectedCount > 0"
+     class="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-2xl shadow-black/20 px-4 py-4 transition-all duration-300">
+  <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+
+    <!-- Tóm tắt lựa chọn -->
+    <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-black text-sm">
+          {{ selectedCount }}
+        </div>
+        <span class="font-bold text-gray-800 text-sm">phòng đã chọn</span>
+      </div>
+
+      <!-- Danh sách phòng đã chọn (dạng pill) -->
+      <div class="hidden sm:flex flex-wrap gap-1.5">
+        <span *ngFor="let room of selectedRooms"
+              class="px-2.5 py-1 bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold rounded-full">
+          P.{{ room.roomNumber }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex items-center gap-3 w-full sm:w-auto">
+      <button (click)="clearSelection()"
+              class="flex-1 sm:flex-none px-5 py-2.5 border border-gray-300 text-gray-600 rounded-xl text-sm font-bold hover:bg-gray-50 transition-all">
+        Bỏ chọn tất cả
+      </button>
+
+      <button (click)="openBatchModal()"
+              class="flex-1 sm:flex-none px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-blue-500/30 hover:from-blue-700 hover:to-indigo-700 active:scale-95 transition-all">
+        🏨 Đặt {{ selectedCount }} phòng ngay
+      </button>
     </div>
 
   </div>
-</main>
+</div>
+
+
+<!-- ── Modal Đặt Nhiều Phòng ────────────────────────────────────────────────── -->
+<div *ngIf="isBatchModalOpen"
+     class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+     (click)="closeBatchModal()">
+
+  <div class="bg-white rounded-[28px] shadow-2xl w-full max-w-lg overflow-hidden"
+       (click)="$event.stopPropagation()">
+
+    <!-- Modal Header -->
+    <div class="px-7 pt-7 pb-5 border-b border-gray-100">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-xl font-black text-gray-900">Đặt {{ selectedCount }} phòng cùng lúc</h2>
+          <p class="text-xs text-gray-400 mt-1">Một giao dịch — Thanh toán một lần duy nhất</p>
+        </div>
+        <button (click)="closeBatchModal()"
+                class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-all text-lg">
+          ✕
+        </button>
+      </div>
+    </div>
+
+    <!-- Danh sách phòng đã chọn -->
+    <div class="px-7 pt-5">
+      <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Phòng đã chọn</p>
+      <div class="flex flex-wrap gap-2 mb-5">
+        <div *ngFor="let room of selectedRooms"
+             class="flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-100 rounded-full">
+          <span class="text-blue-700 font-bold text-xs">Phòng {{ room.roomNumber }}</span>
+          <span class="text-gray-400 text-xs">{{ room.typeName }}</span>
+          <span *ngIf="room.appliedPromotion" class="text-rose-600 text-xs font-black">-{{ room.appliedPromotion.discountPercentage }}%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Form ngày -->
+    <div class="px-7 pb-5 space-y-4">
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Nhận phòng</label>
+          <input type="date" [(ngModel)]="batchCheckIn" (change)="onBatchDateChange()"
+                 class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Trả phòng</label>
+          <input type="date" [(ngModel)]="batchCheckOut" (change)="onBatchDateChange()"
+                 class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+        </div>
+      </div>
+
+      <!-- Mã giảm giá -->
+      <div>
+        <label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Mã giảm giá (tùy chọn)</label>
+        <div class="flex gap-2">
+          <input type="text" [(ngModel)]="batchCouponCode" placeholder="Nhập mã voucher..."
+                 (ngModelChange)="batchCouponCode = $event.toUpperCase()"
+                 class="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-800 placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          <button (click)="applyBatchCoupon()"
+                  [disabled]="isValidatingCoupon || !batchCouponCode.trim()"
+                  class="px-4 py-2.5 bg-gray-800 text-white text-xs font-bold rounded-xl hover:bg-gray-900 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed transition-all">
+            {{ isValidatingCoupon ? '...' : 'Áp dụng' }}
+          </button>
+        </div>
+        <p *ngIf="batchDiscount > 0"
+           class="mt-1.5 text-xs text-emerald-600 font-bold">
+          ✓ Đã giảm {{ formatPrice(batchDiscount) }}
+        </p>
+      </div>
+
+      <!-- Tổng tiền -->
+      <div class="bg-gray-50 rounded-2xl p-4 space-y-2">
+        <div *ngFor="let room of selectedRooms" class="flex justify-between text-xs text-gray-500">
+          <span>Phòng {{ room.roomNumber }} ({{ room.typeName }})</span>
+          <span class="font-semibold">
+            {{ room.appliedPromotion
+                ? formatPrice(room.price * (1 - room.appliedPromotion.discountPercentage / 100))
+                : formatPrice(room.price) }}/đêm
+          </span>
+        </div>
+
+        <div class="border-t border-gray-200 pt-2 mt-2 space-y-1">
+          <div class="flex justify-between text-sm text-gray-600">
+            <span>Tổng cộng</span>
+            <span class="font-semibold">{{ formatPrice(batchTotalOriginal) }}</span>
+          </div>
+          <div *ngIf="batchDiscount > 0" class="flex justify-between text-sm text-emerald-600">
+            <span>Giảm giá</span>
+            <span class="font-bold">- {{ formatPrice(batchDiscount) }}</span>
+          </div>
+          <div class="flex justify-between pt-1 border-t border-gray-200">
+            <span class="font-black text-gray-900">Thanh toán</span>
+            <span class="font-black text-xl text-blue-600">{{ formatPrice(batchFinalAmount) }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Footer -->
+    <div class="px-7 pb-7 flex gap-3">
+      <button (click)="closeBatchModal()"
+              class="flex-1 py-3 border border-gray-200 text-gray-600 rounded-xl font-bold text-sm hover:bg-gray-50 transition-all">
+        Hủy
+      </button>
+      <button (click)="confirmBatchBooking()"
+              [disabled]="isBatchBooking || !batchCheckIn || !batchCheckOut"
+              class="flex-2 flex-grow py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-blue-500/25 hover:from-blue-700 hover:to-indigo-700 active:scale-95 disabled:from-gray-200 disabled:to-gray-300 disabled:text-gray-400 disabled:shadow-none disabled:cursor-not-allowed transition-all">
+        <span *ngIf="!isBatchBooking">💳 Tiến hành thanh toán</span>
+        <span *ngIf="isBatchBooking" class="flex items-center justify-center gap-2">
+          <span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+          Đang xử lý...
+        </span>
+      </button>
+    </div>
+
+  </div>
+</div>

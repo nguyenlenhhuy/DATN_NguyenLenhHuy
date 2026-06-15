@@ -17,4 +17,7 @@ public interface FavoriteRepository extends JpaRepository<Favorite, Long> {
 
     // Kiểm tra nhanh tồn tại (Dùng để trả về trạng thái tim đỏ/tim trống ngoài danh sách)
     boolean existsByUserIdAndRoomId(Long userId, Long roomId);
+
+    // Lấy tất cả user đã yêu thích 1 phòng cụ thể (dùng để gửi email thông báo khuyến mãi)
+    List<Favorite> findByRoomId(Long roomId);
 }

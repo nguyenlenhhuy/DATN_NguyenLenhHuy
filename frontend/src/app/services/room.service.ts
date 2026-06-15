@@ -43,4 +43,13 @@ export class RoomService {
   getRoomById(id: number): Observable<RoomResponseDTO> {
     return this.http.get<RoomResponseDTO>(`${this.apiUrl}/${id}`);
   }
+
+  getRoomAvailability(roomId: number, from?: string, to?: string): Observable<{ checkIn: string; checkOut: string }[]> {
+    const params: Record<string, string> = {};
+    if (from) params['from'] = from;
+    if (to)   params['to']   = to;
+    return this.http.get<{ checkIn: string; checkOut: string }[]>(
+      `${this.apiUrl}/${roomId}/availability`, { params }
+    );
+  }
 }

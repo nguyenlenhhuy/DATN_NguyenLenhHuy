@@ -3,6 +3,7 @@ package org.example.backend.dto.response;
 import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 @Getter
 @Setter
@@ -23,7 +24,10 @@ public class BookingResponseDTO {
     private String bookingStatus;
     private String paymentStatus;
 
-    // 🎯 BỔ SUNG CHÍNH XÁC 2 DÒNG NÀY VÀO FILE CỦA BẠN:
     private String appliedCode;
     private String paymentMethod;
+
+    // Hỗ trợ multi-room booking: danh sách số phòng và số lượng phòng
+    private List<String> roomNumbers;
+    private int roomCount;
 }

@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.security.Principal;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/reviews")
@@ -37,6 +38,18 @@ public class ReviewController {
     }
 
     // ================= DÀNH CHO CUSTOMER =================
+
+    @GetMapping("/can-review")
+    public ResponseEntity<Map<String, Object>> canReview(
+            @RequestParam Long bookingId,
+            @RequestParam Long roomId,
+            Principal principal) {
+        String username = principal.getName();
+        Long userId = userRepository.findByUsernameOrEmail(username, username)
+                .orElseThrow(() -> new ResourceNotFoundException("Tài khoản không tồn tại"))
+                .getId();
+        return ResponseEntity.ok(reviewService.checkCanReview(userId, bookingId, roomId));
+    }
 
     @PostMapping("/submit")
     public ResponseEntity<ReviewResponseDTO> createReview(

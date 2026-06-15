@@ -9,6 +9,7 @@ import java.util.List;
 public class ReviewResponseDTO {
     private Long id;
     private String userName;
+    private String roomNumber;
     private Integer rating;
     private String comment;
     private String replyContent;

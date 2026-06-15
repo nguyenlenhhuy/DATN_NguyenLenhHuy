@@ -1,319 +1,487 @@
 <app-header></app-header>
 
-<main class="pt-[72px] bg-slate-50/50 min-h-screen font-sans selection:bg-blue-500 selection:text-white overflow-hidden">
-  
-  <section class="relative min-h-[600px] py-12 flex items-center justify-center overflow-hidden">
-    <img src="assets/images/hero-banner.jpg" alt="Hero Banner" class="absolute inset-0 w-full h-full object-cover scale-105 animate-[subtle-zoom_20s_ease-out_infinite]" />
-    <div class="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-slate-900/70"></div>
-    
-    <div class="relative z-10 text-center w-full max-w-7xl px-4 mt-2 animate-fade-in">
-      <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-white/10 text-blue-300 backdrop-blur-md mb-3 border border-white/10">
-        ✨ Xu hướng du lịch năm 2026
-      </span>
-      <h1 class="text-4xl md:text-5xl font-black text-white mb-3 tracking-tight drop-shadow-md">
-        Khám Phá Kỳ Nghỉ <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-teal-300">Trong Mơ</span>
-      </h1>
-      <p class="text-base md:text-lg text-slate-200 max-w-2xl mx-auto mb-10 font-light drop-shadow">
-        Trải nghiệm dịch vụ đẳng cấp quốc tế và không gian nghỉ dưỡng sang trọng bậc nhất.
-      </p>
-      
-      <div class="max-w-[1100px] mx-auto p-2 bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 shadow-2xl relative z-50">
-        <form [formGroup]="searchForm" (ngSubmit)="onSearch()" class="bg-white p-5 rounded-xl shadow-inner flex flex-col gap-4 w-full">
-          
-          <div class="flex flex-col lg:flex-row gap-3 lg:gap-4 items-center w-full">
-            <div class="w-full lg:flex-[1.5] text-left group">
-              <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5 ml-1 group-focus-within:text-blue-600 whitespace-nowrap">Loại phòng</label>
-              <div class="relative">
-                <select formControlName="roomType" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none appearance-none transition-all text-slate-700 font-medium cursor-pointer">
-                  <option value="">Tất cả loại phòng</option>
-                  @for (type of roomTypes; track type.typeName) {
-                    <option [value]="type.typeName">{{ type.typeName }}</option>
-                  }
-                </select>
-                <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+<main class="pt-[64px] bg-white min-h-screen font-sans selection:bg-blue-500 selection:text-white">
+
+  <!-- ═══════════════════════════════════════════════════════════
+       HERO SECTION
+  ══════════════════════════════════════════════════════════════ -->
+  <section class="relative min-h-[720px] flex items-center justify-center overflow-hidden">
+    <!-- Background image -->
+    <img src="assets/images/hero-banner.jpg" alt="Hero Banner"
+         class="absolute inset-0 w-full h-full object-cover scale-105"
+         style="animation: subtleZoom 20s ease-out infinite alternate;" />
+
+    <!-- Gradient overlay -->
+    <div class="absolute inset-0 bg-gradient-to-b from-slate-900/70 via-slate-900/50 to-slate-900/80"></div>
+    <!-- Side vignette -->
+    <div class="absolute inset-0 bg-gradient-to-r from-blue-900/30 via-transparent to-indigo-900/20"></div>
+
+    <div class="relative z-10 w-full max-w-7xl mx-auto px-4 py-20">
+
+      <!-- Badge -->
+      <div class="flex justify-center mb-6">
+        <span class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold bg-white/10 text-blue-300 backdrop-blur-md border border-white/15 tracking-widest uppercase">
+          <span class="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse"></span>
+          Điểm đến du lịch hàng đầu 2026
+        </span>
+      </div>
+
+      <!-- Headline -->
+      <div class="text-center mb-4">
+        <h1 class="text-4xl md:text-6xl font-black text-white leading-tight tracking-tight drop-shadow-2xl">
+          Trải Nghiệm Kỳ Nghỉ
+          <br/>
+          <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-cyan-300 to-teal-300">
+            Đẳng Cấp Quốc Tế
+          </span>
+        </h1>
+        <p class="mt-4 text-base md:text-lg text-slate-300 max-w-2xl mx-auto font-light leading-relaxed">
+          Không gian nghỉ dưỡng sang trọng — dịch vụ 5 sao — giá tốt nhất được bảo đảm.
+        </p>
+      </div>
+
+      <!-- Search card (glassmorphism) -->
+      <div class="max-w-5xl mx-auto mt-10">
+        <div class="bg-white/10 backdrop-blur-xl rounded-3xl border border-white/20 p-2 shadow-2xl">
+          <form [formGroup]="searchForm" (ngSubmit)="onSearch()" class="bg-white rounded-2xl p-5 shadow-inner">
+
+            <!-- Row 1: Room type | Check-in | Check-out | Guests | Search -->
+            <div class="flex flex-col lg:flex-row gap-3 items-end">
+
+              <div class="w-full lg:flex-[1.6] text-left">
+                <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5 ml-1">Loại phòng</label>
+                <div class="relative">
+                  <select formControlName="roomType"
+                          class="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-medium text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none appearance-none cursor-pointer transition-all">
+                    <option value="">Tất cả loại phòng</option>
+                    @for (type of roomTypes; track type.typeName) {
+                      <option [value]="type.typeName">{{ type.typeName }}</option>
+                    }
+                  </select>
+                  <svg class="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </div>
+              </div>
+
+              <div class="hidden lg:block w-px h-10 bg-slate-200 shrink-0 self-end mb-1"></div>
+
+              <div class="w-full lg:flex-1 text-left">
+                <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5 ml-1">Nhận phòng</label>
+                <input formControlName="checkIn" type="date"
+                       class="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-medium text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all cursor-pointer" />
+              </div>
+
+              <div class="hidden lg:block w-px h-10 bg-slate-200 shrink-0 self-end mb-1"></div>
+
+              <div class="w-full lg:flex-1 text-left">
+                <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5 ml-1">Trả phòng</label>
+                <input formControlName="checkOut" type="date"
+                       class="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-medium text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all cursor-pointer" />
+              </div>
+
+              <div class="hidden lg:block w-px h-10 bg-slate-200 shrink-0 self-end mb-1"></div>
+
+              <div class="w-full lg:w-[100px] shrink-0 text-left">
+                <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5 ml-1">Khách</label>
+                <div class="relative">
+                  <select formControlName="guests"
+                          class="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-medium text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none appearance-none cursor-pointer transition-all">
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4+</option>
+                  </select>
+                  <svg class="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </div>
+              </div>
+
+              <button type="submit"
+                      class="w-full lg:w-[140px] shrink-0 px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-sm rounded-xl shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:-translate-y-0.5 transition-all duration-200 active:translate-y-0 flex items-center justify-center gap-2 whitespace-nowrap">
+                <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                Tìm kiếm
+              </button>
+            </div>
+
+            <!-- Row 2: Price range -->
+            <div class="mt-4 pt-4 border-t border-slate-100 flex flex-col md:flex-row items-start md:items-center gap-4">
+              <div class="flex items-center gap-2 shrink-0">
+                <div class="w-7 h-7 bg-blue-100 rounded-lg flex items-center justify-center text-sm">💰</div>
+                <span class="text-sm font-bold text-slate-700 whitespace-nowrap">Khoảng giá:</span>
+              </div>
+              <div class="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto flex-1 md:justify-end">
+                <div class="relative w-full md:w-[200px]">
+                  <select [(ngModel)]="selectedPricePreset" [ngModelOptions]="{standalone: true}" (change)="onPresetChange()"
+                          class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none appearance-none cursor-pointer transition-all focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="0-10000000">Tất cả mức giá</option>
+                    <option value="0-1000000">Dưới 1.000.000 ₫</option>
+                    <option value="1000000-3000000">1.000.000 ₫ — 3.000.000 ₫</option>
+                    <option value="3000000-5000000">3.000.000 ₫ — 5.000.000 ₫</option>
+                    <option value="5000000-10000000">Trên 5.000.000 ₫</option>
+                    <option value="custom" hidden>Tùy chỉnh...</option>
+                  </select>
+                  <svg class="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </div>
+                <div class="hidden md:block text-slate-300 font-light">|</div>
+                <div class="flex items-center gap-2 w-full md:w-auto">
+                  <div class="relative flex-1 md:w-[130px]">
+                    <input type="number" [(ngModel)]="minPrice" [ngModelOptions]="{standalone: true}" (change)="onManualPriceChange()"
+                           placeholder="0"
+                           class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-sm font-bold text-right text-slate-800 outline-none transition-all focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-black uppercase tracking-wider text-slate-400">Từ</span>
+                  </div>
+                  <div class="w-4 h-px bg-slate-300 shrink-0"></div>
+                  <div class="relative flex-1 md:w-[130px]">
+                    <input type="number" [(ngModel)]="maxPrice" [ngModelOptions]="{standalone: true}" (change)="onManualPriceChange()"
+                           placeholder="Max"
+                           class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-sm font-bold text-right text-slate-800 outline-none transition-all focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-black uppercase tracking-wider text-slate-400">Đến</span>
+                  </div>
                 </div>
               </div>
             </div>
-            
-            <div class="hidden lg:block h-10 w-px bg-slate-200 self-end mb-2.5"></div>
-  
-            <div class="w-full lg:flex-1 text-left group">
-              <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5 ml-1 group-focus-within:text-blue-600 whitespace-nowrap">Nhận phòng</label>
-              <input formControlName="checkIn" type="date" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all text-slate-700 font-medium cursor-pointer">
+
+            <!-- Date error -->
+            <div *ngIf="searchForm.hasError('dateInvalid') && searchForm.touched"
+                 class="mt-3 flex items-center gap-2 text-sm text-red-600 bg-red-50 px-4 py-2.5 rounded-xl border border-red-100 font-medium">
+              <svg class="h-4 w-4 shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M12 3a9 9 0 100 18A9 9 0 0012 3z"/></svg>
+              Ngày trả phòng phải sau ngày nhận phòng.
             </div>
-            
-            <div class="hidden lg:block h-10 w-px bg-slate-200 self-end mb-2.5"></div>
-  
-            <div class="w-full lg:flex-1 text-left group">
-              <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5 ml-1 group-focus-within:text-blue-600 whitespace-nowrap">Trả phòng</label>
-              <input formControlName="checkOut" type="date" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all text-slate-700 font-medium cursor-pointer">
-            </div>
-  
-            <div class="hidden lg:block h-10 w-px bg-slate-200 self-end mb-2.5"></div>
-  
-            <div class="w-full lg:w-[110px] text-left group shrink-0">
-              <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5 ml-1 group-focus-within:text-blue-600 whitespace-nowrap">Khách</label>
-              <div class="relative">
-                <select formControlName="guests" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none appearance-none transition-all text-slate-700 font-medium cursor-pointer">
-                  <option value="1">1</option>
-                  <option value="2">2</option>
-                  <option value="3">3</option>
-                  <option value="4">4+</option>
-                </select>
-                <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
-                </div>
-              </div>
-            </div>
-  
-            <button type="submit" class="w-full lg:w-[150px] shrink-0 whitespace-nowrap lg:self-end px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 transform hover:-translate-y-0.5 transition-all duration-200 active:translate-y-0 flex items-center justify-center gap-2">
-              Tìm kiếm
-            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Trust stats row -->
+      <div class="flex flex-wrap justify-center gap-4 md:gap-8 mt-10">
+        <div class="flex items-center gap-2.5 text-white/80">
+          <div class="w-9 h-9 bg-white/10 rounded-xl flex items-center justify-center text-lg backdrop-blur border border-white/10">🏆</div>
+          <div>
+            <p class="font-black text-white text-lg leading-tight">500+</p>
+            <p class="text-xs text-slate-400">Khách hài lòng</p>
           </div>
-
-          <div class="w-full pt-4 border-t border-slate-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            
-            <div class="flex items-center gap-2">
-              <span class="text-xl">💰</span>
-              <span class="text-sm font-bold text-slate-700 whitespace-nowrap">Khoảng giá mong muốn:</span>
-            </div>
-            
-            <div class="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto flex-1 md:justify-end">
-              
-              <div class="w-full md:w-[220px] relative">
-                <select [(ngModel)]="selectedPricePreset" [ngModelOptions]="{standalone: true}" (change)="onPresetChange()" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-bold text-slate-700 outline-none appearance-none cursor-pointer transition-all">
-                  <option value="0-10000000">Tất cả mức giá</option>
-                  <option value="0-1000000">Dưới 1.000.000 ₫</option>
-                  <option value="1000000-3000000">1.000.000 ₫ - 3.000.000 ₫</option>
-                  <option value="3000000-5000000">3.000.000 ₫ - 5.000.000 ₫</option>
-                  <option value="5000000-10000000">Trên 5.000.000 ₫</option>
-                  <option value="custom" hidden>Tùy chỉnh khoảng giá...</option>
-                </select>
-                <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
-                </div>
-              </div>
-
-              <span class="hidden md:block text-slate-300">|</span>
-
-              <div class="flex items-center gap-2 w-full md:w-auto">
-                <div class="relative w-full md:w-[150px] group">
-                  <input type="number" [(ngModel)]="minPrice" [ngModelOptions]="{standalone: true}" (change)="onManualPriceChange()" class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-sm font-bold text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none appearance-none text-right transition-all" placeholder="0">
-                  <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Từ</span>
-                </div>
-
-                <div class="w-3 h-0.5 bg-slate-300 shrink-0"></div>
-
-                <div class="relative w-full md:w-[150px] group">
-                  <input type="number" [(ngModel)]="maxPrice" [ngModelOptions]="{standalone: true}" (change)="onManualPriceChange()" class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-3 py-2.5 text-sm font-bold text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none appearance-none text-right transition-all" placeholder="Max">
-                  <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Đến</span>
-                </div>
-              </div>
-
-            </div>
+        </div>
+        <div class="w-px h-10 bg-white/10 hidden md:block self-center"></div>
+        <div class="flex items-center gap-2.5 text-white/80">
+          <div class="w-9 h-9 bg-white/10 rounded-xl flex items-center justify-center text-lg backdrop-blur border border-white/10">🏨</div>
+          <div>
+            <p class="font-black text-white text-lg leading-tight">120+</p>
+            <p class="text-xs text-slate-400">Phòng cao cấp</p>
           </div>
-        </form>
+        </div>
+        <div class="w-px h-10 bg-white/10 hidden md:block self-center"></div>
+        <div class="flex items-center gap-2.5 text-white/80">
+          <div class="w-9 h-9 bg-amber-400/20 rounded-xl flex items-center justify-center text-lg backdrop-blur border border-amber-400/20">⭐</div>
+          <div>
+            <p class="font-black text-amber-400 text-lg leading-tight">4.9 / 5</p>
+            <p class="text-xs text-slate-400">Đánh giá trung bình</p>
+          </div>
+        </div>
+        <div class="w-px h-10 bg-white/10 hidden md:block self-center"></div>
+        <div class="flex items-center gap-2.5 text-white/80">
+          <div class="w-9 h-9 bg-emerald-400/20 rounded-xl flex items-center justify-center text-lg backdrop-blur border border-emerald-400/20">✅</div>
+          <div>
+            <p class="font-black text-emerald-400 text-lg leading-tight">Bảo đảm</p>
+            <p class="text-xs text-slate-400">Giá tốt nhất</p>
+          </div>
+        </div>
       </div>
 
-      <div class="grid grid-cols-3 gap-6 max-w-3xl mx-auto mt-10 pt-6 border-t border-white/10 relative z-10">
-        <div class="bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10 transition-all duration-300 hover:bg-white/10">
-          <h3 class="text-2xl md:text-3xl font-black text-white tracking-tight">500+</h3>
-          <p class="text-slate-300 text-[11px] md:text-xs font-medium mt-1">Khách hàng hài lòng</p>
-        </div>
-        <div class="bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10 transition-all duration-300 hover:bg-white/10">
-          <h3 class="text-2xl md:text-3xl font-black text-white tracking-tight">120+</h3>
-          <p class="text-slate-300 text-[11px] md:text-xs font-medium mt-1">Phòng nghỉ cao cấp</p>
-        </div>
-        <div class="bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10 transition-all duration-300 hover:bg-white/10">
-          <h3 class="text-2xl md:text-3xl font-black text-amber-400 tracking-tight">4.9★</h3>
-          <p class="text-slate-300 text-[11px] md:text-xs font-medium mt-1">Đánh giá trung bình</p>
-        </div>
-      </div>
-
-      <div *ngIf="searchForm.hasError('dateInvalid') && searchForm.touched" class="mt-4 inline-flex items-center gap-2 text-sm text-red-400 bg-red-950/40 backdrop-blur-md px-4 py-2 rounded-xl border border-red-500/30 font-medium animate-bounce">
-        Ngày trả phòng phải sau ngày nhận phòng. Vui lòng kiểm tra lại!
-      </div>
     </div>
   </section>
 
-  <section class="py-16 bg-white">
+
+  <!-- ═══════════════════════════════════════════════════════════
+       AMENITIES SECTION
+  ══════════════════════════════════════════════════════════════ -->
+  <section class="py-20 bg-white">
     <div class="container mx-auto px-4 max-w-7xl">
-      <div class="text-center max-w-2xl mx-auto mb-12">
-        <span class="text-blue-600 font-bold text-xs uppercase tracking-widest">Dịch vụ thượng lưu</span>
-        <h2 class="text-3xl font-black text-slate-900 mt-1">Tiện Ích Đặc Quyền Đi Kèm</h2>
+      <div class="text-center mb-14">
+        <span class="inline-block px-3 py-1 bg-blue-50 text-blue-600 font-bold text-xs uppercase tracking-widest rounded-full border border-blue-100 mb-3">
+          Tiện ích đặc quyền
+        </span>
+        <h2 class="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">Trải Nghiệm Đi Kèm Không Phụ Thu</h2>
+        <p class="mt-3 text-slate-500 text-sm max-w-xl mx-auto">Mỗi đặt phòng là một gói dịch vụ hoàn hảo — không phát sinh phí ẩn.</p>
       </div>
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
-        <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100 text-center hover:bg-blue-50/50 hover:border-blue-200 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 group">
-          <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center text-xl font-bold mx-auto mb-4 group-hover:bg-blue-600 group-hover:text-white group-hover:rotate-6 transition-all duration-300">📶</div>
-          <h4 class="font-bold text-slate-800 text-base">Wifi Tốc Độ Cao</h4>
-          <p class="text-slate-400 text-xs mt-1">Miễn phí toàn bộ khuôn viên</p>
+
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-5">
+        <div class="group p-6 bg-slate-50 rounded-2xl border border-slate-100 text-center hover:bg-blue-600 hover:border-blue-600 hover:shadow-2xl hover:shadow-blue-500/20 hover:-translate-y-2 transition-all duration-400 cursor-default">
+          <div class="w-14 h-14 bg-blue-100 group-hover:bg-white/20 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-4 transition-all duration-300 group-hover:scale-110 group-hover:rotate-6">📶</div>
+          <h4 class="font-bold text-slate-800 group-hover:text-white text-sm transition-colors">Wifi Tốc Độ Cao</h4>
+          <p class="text-slate-400 group-hover:text-blue-100 text-xs mt-1.5 transition-colors">Miễn phí toàn bộ khuôn viên</p>
         </div>
-        <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100 text-center hover:bg-blue-50/50 hover:border-blue-200 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 group">
-          <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center text-xl font-bold mx-auto mb-4 group-hover:bg-blue-600 group-hover:text-white group-hover:rotate-6 transition-all duration-300">🏊</div>
-          <h4 class="font-bold text-slate-800 text-base">Hồ Bơi Vô Cực</h4>
-          <p class="text-slate-400 text-xs mt-1">Tầm nhìn tuyệt tác toàn cảnh</p>
+
+        <div class="group p-6 bg-slate-50 rounded-2xl border border-slate-100 text-center hover:bg-blue-600 hover:border-blue-600 hover:shadow-2xl hover:shadow-blue-500/20 hover:-translate-y-2 transition-all duration-400 cursor-default">
+          <div class="w-14 h-14 bg-blue-100 group-hover:bg-white/20 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-4 transition-all duration-300 group-hover:scale-110 group-hover:rotate-6">🏊</div>
+          <h4 class="font-bold text-slate-800 group-hover:text-white text-sm transition-colors">Hồ Bơi Vô Cực</h4>
+          <p class="text-slate-400 group-hover:text-blue-100 text-xs mt-1.5 transition-colors">Tầm nhìn toàn cảnh thành phố</p>
         </div>
-        <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100 text-center hover:bg-blue-50/50 hover:border-blue-200 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 group">
-          <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center text-xl font-bold mx-auto mb-4 group-hover:bg-blue-600 group-hover:text-white group-hover:rotate-6 transition-all duration-300">🍽</div>
-          <h4 class="font-bold text-slate-800 text-base">Nhà Hàng 5 Sao</h4>
-          <p class="text-slate-400 text-xs mt-1">Tinh hoa ẩm thực Á - Âu</p>
+
+        <div class="group p-6 bg-slate-50 rounded-2xl border border-slate-100 text-center hover:bg-blue-600 hover:border-blue-600 hover:shadow-2xl hover:shadow-blue-500/20 hover:-translate-y-2 transition-all duration-400 cursor-default">
+          <div class="w-14 h-14 bg-blue-100 group-hover:bg-white/20 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-4 transition-all duration-300 group-hover:scale-110 group-hover:rotate-6">🍽️</div>
+          <h4 class="font-bold text-slate-800 group-hover:text-white text-sm transition-colors">Nhà Hàng 5 Sao</h4>
+          <p class="text-slate-400 group-hover:text-blue-100 text-xs mt-1.5 transition-colors">Tinh hoa ẩm thực Á — Âu</p>
         </div>
-        <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100 text-center hover:bg-blue-50/50 hover:border-blue-200 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 group">
-          <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center text-xl font-bold mx-auto mb-4 group-hover:bg-blue-600 group-hover:text-white group-hover:rotate-6 transition-all duration-300">🚗</div>
-          <h4 class="font-bold text-slate-800 text-base">Bãi Đỗ Xe An Toàn</h4>
-          <p class="text-slate-400 text-xs mt-1">Hệ thống bảo vệ 24/7</p>
+
+        <div class="group p-6 bg-slate-50 rounded-2xl border border-slate-100 text-center hover:bg-blue-600 hover:border-blue-600 hover:shadow-2xl hover:shadow-blue-500/20 hover:-translate-y-2 transition-all duration-400 cursor-default">
+          <div class="w-14 h-14 bg-blue-100 group-hover:bg-white/20 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-4 transition-all duration-300 group-hover:scale-110 group-hover:rotate-6">🚗</div>
+          <h4 class="font-bold text-slate-800 group-hover:text-white text-sm transition-colors">Bãi Đỗ Xe An Toàn</h4>
+          <p class="text-slate-400 group-hover:text-blue-100 text-xs mt-1.5 transition-colors">Hệ thống bảo vệ 24/7</p>
+        </div>
+      </div>
+
+      <!-- Extra row of perks (icon list) -->
+      <div class="mt-10 flex flex-wrap justify-center gap-3">
+        <span *ngFor="let perk of ['🧖 Spa & Wellness', '🏋️ Gym hiện đại', '☕ Buffet sáng', '🎉 Phòng hội nghị', '🛁 Bồn tắm Jacuzzi', '🌿 Vườn thư giãn']"
+              class="px-4 py-2 bg-slate-50 border border-slate-200 text-slate-600 text-xs font-semibold rounded-full hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 transition-all cursor-default">
+          {{ perk }}
+        </span>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       WHY CHOOSE US
+  ══════════════════════════════════════════════════════════════ -->
+  <section class="py-20 bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 relative overflow-hidden">
+    <!-- Decorative blurs -->
+    <div class="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-[100px] pointer-events-none"></div>
+    <div class="absolute bottom-0 right-1/4 w-80 h-80 bg-indigo-500/10 rounded-full blur-[80px] pointer-events-none"></div>
+
+    <div class="container mx-auto px-4 max-w-7xl relative z-10">
+      <div class="text-center mb-14">
+        <span class="inline-block px-3 py-1 bg-blue-500/10 text-blue-400 font-bold text-xs uppercase tracking-widest rounded-full border border-blue-500/20 mb-3">
+          Cam kết của chúng tôi
+        </span>
+        <h2 class="text-3xl md:text-4xl font-black text-white tracking-tight">Vì Sao Nên Chọn LuxeHotel?</h2>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="group p-8 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-blue-500/30 transition-all duration-300">
+          <div class="w-14 h-14 bg-gradient-to-tr from-blue-500 to-cyan-400 rounded-2xl flex items-center justify-center text-2xl mb-5 shadow-lg shadow-blue-500/20 group-hover:scale-110 transition-transform duration-300">🛡️</div>
+          <h3 class="text-white font-bold text-lg mb-2">Bảo Đảm Giá Tốt Nhất</h3>
+          <p class="text-slate-400 text-sm leading-relaxed">Cam kết hoàn tiền 100% phần chênh lệch nếu bạn tìm được giá thấp hơn tại bất kỳ kênh nào khác trong vòng 24 giờ.</p>
+        </div>
+        <div class="group p-8 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-indigo-500/30 transition-all duration-300">
+          <div class="w-14 h-14 bg-gradient-to-tr from-indigo-500 to-purple-400 rounded-2xl flex items-center justify-center text-2xl mb-5 shadow-lg shadow-indigo-500/20 group-hover:scale-110 transition-transform duration-300">⚡</div>
+          <h3 class="text-white font-bold text-lg mb-2">Đặt Phòng Tức Thì</h3>
+          <p class="text-slate-400 text-sm leading-relaxed">Xác nhận đặt phòng trong vòng 30 giây. Nhận email xác nhận kèm mã QR check-in ngay sau khi thanh toán thành công.</p>
+        </div>
+        <div class="group p-8 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-teal-500/30 transition-all duration-300">
+          <div class="w-14 h-14 bg-gradient-to-tr from-teal-500 to-emerald-400 rounded-2xl flex items-center justify-center text-2xl mb-5 shadow-lg shadow-teal-500/20 group-hover:scale-110 transition-transform duration-300">🎧</div>
+          <h3 class="text-white font-bold text-lg mb-2">Hỗ Trợ 24/7</h3>
+          <p class="text-slate-400 text-sm leading-relaxed">Đội ngũ tư vấn viên chuyên nghiệp sẵn sàng hỗ trợ mọi vấn đề, từ tư vấn chọn phòng đến giải quyết sự cố trong chuyến đi.</p>
         </div>
       </div>
     </div>
   </section>
 
-  <section class="py-16 bg-slate-900 text-white relative overflow-hidden">
+
+  <!-- ═══════════════════════════════════════════════════════════
+       PROMOTIONS SECTION
+  ══════════════════════════════════════════════════════════════ -->
+  <section class="py-20 bg-slate-950 relative overflow-hidden">
+    <div class="absolute -top-40 -left-40 w-[500px] h-[500px] bg-blue-600/5 rounded-full blur-[120px] pointer-events-none"></div>
+    <div class="absolute -bottom-40 -right-40 w-[500px] h-[500px] bg-indigo-600/5 rounded-full blur-[120px] pointer-events-none"></div>
+
     <div class="container mx-auto px-4 max-w-7xl relative z-10">
-      <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+
+      <!-- Header row -->
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
         <div>
-          <div class="flex items-center gap-2 mb-1">
+          <div class="flex items-center gap-2 mb-2">
             <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-            <span class="text-xs text-red-400 font-bold uppercase tracking-wider">Ưu đãi giới hạn số lượng</span>
+            <span class="text-[10px] text-red-400 font-black uppercase tracking-widest">Ưu đãi có giới hạn</span>
           </div>
-          <h2 class="text-2xl font-bold tracking-tight">Khuyến Mãi Cực Hot Đang Diễn Ra</h2>
+          <h2 class="text-2xl md:text-3xl font-black text-white tracking-tight">Khuyến Mãi Đang Diễn Ra</h2>
+          <p class="text-slate-400 text-sm mt-1">Sao chép mã và áp dụng khi đặt phòng để nhận ưu đãi ngay.</p>
         </div>
-        <div class="flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-2 rounded-xl backdrop-blur">
-          <span class="text-xs text-slate-400 font-medium">Kết thúc sau:</span>
-          <span class="font-mono text-amber-400 font-bold tracking-wider text-sm">02:15:35</span>
-        </div>
-      </div>
-      
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 relative">
-        @for (promo of promotions; track promo.code) {
-          <div class="relative group overflow-hidden bg-slate-950 rounded-2xl p-6 shadow-md border border-slate-800/80 transition-all duration-300 hover:border-blue-500/30">
-            
-            <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-red-500/10 blur-3xl pointer-events-none group-hover:bg-blue-500/10 transition-all duration-500"></div>
-            
-            <div class="relative z-10 flex justify-between items-center">
-              <div>
-                <span class="text-[10px] font-black uppercase tracking-widest text-red-400 bg-red-500/20 px-2.5 py-1 rounded-lg border border-red-500/20 mb-3 inline-block animate-pulse">
-                  🔥 Chỉ còn 8 suất
-                </span>
-                <h3 class="text-xl font-bold mb-1 group-hover:text-blue-300 transition-colors">{{ promo.title }}</h3>
-                <p class="text-slate-400 text-xs">Áp dụng khi hoàn tất thanh toán đặt cọc trực tuyến</p>
-              </div>
-              <div class="text-right shrink-0">
-                <p class="text-[10px] text-slate-500 mb-1 font-bold uppercase">Mã của bạn</p>
-                <span class="inline-block bg-white text-slate-900 px-3 py-1.5 rounded-lg font-mono font-black text-sm shadow-sm group-hover:scale-105 transition-all">
-                  {{ promo.code }}
-                </span>
-              </div>
+
+        <!-- Countdown boxes -->
+        <div class="flex flex-col items-start md:items-end gap-1.5">
+          <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Ưu đãi kết thúc sau</p>
+          <div class="flex items-center gap-2">
+            <div class="flex flex-col items-center bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 min-w-[58px]">
+              <span class="font-mono text-2xl font-black text-amber-400 tabular-nums">{{ countdownHours }}</span>
+              <span class="text-[9px] font-bold uppercase tracking-wider text-slate-500 mt-0.5">Giờ</span>
+            </div>
+            <span class="text-amber-500 font-black text-xl">:</span>
+            <div class="flex flex-col items-center bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 min-w-[58px]">
+              <span class="font-mono text-2xl font-black text-amber-400 tabular-nums">{{ countdownMinutes }}</span>
+              <span class="text-[9px] font-bold uppercase tracking-wider text-slate-500 mt-0.5">Phút</span>
+            </div>
+            <span class="text-amber-500 font-black text-xl">:</span>
+            <div class="flex flex-col items-center bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 min-w-[58px]">
+              <span class="font-mono text-2xl font-black text-amber-400 tabular-nums">{{ countdownSeconds }}</span>
+              <span class="text-[9px] font-bold uppercase tracking-wider text-slate-500 mt-0.5">Giây</span>
             </div>
           </div>
-        }
+        </div>
       </div>
+
+      <!-- Promo cards -->
+      @if (promotions.length > 0) {
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          @for (promo of promotions; track promo.code) {
+            <div class="group relative overflow-hidden bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-6 border border-slate-700/60 hover:border-blue-500/40 transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/10">
+              <!-- Glow blob -->
+              <div class="absolute -right-12 -bottom-12 w-48 h-48 bg-blue-500/8 rounded-full blur-3xl pointer-events-none group-hover:bg-blue-500/15 transition-all duration-500"></div>
+
+              <div class="relative z-10 flex items-start justify-between gap-4">
+                <div class="flex-1 min-w-0">
+                  <span class="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-orange-400 bg-orange-400/10 px-2.5 py-1 rounded-lg border border-orange-400/20 mb-3">
+                    🔥 Giảm {{ promo.discountPercentage }}%
+                  </span>
+                  <h3 class="text-white font-bold text-base leading-snug group-hover:text-blue-300 transition-colors">
+                    {{ getPromoTitle(promo) }}
+                  </h3>
+                  <p class="text-slate-500 text-xs mt-1">
+                    {{ promo.endDate ? 'Hết hạn: ' + (promo.endDate | date:'dd/MM/yyyy') : 'Áp dụng khi thanh toán trực tuyến' }}
+                  </p>
+                </div>
+
+                <div class="shrink-0 text-right">
+                  <p class="text-[9px] text-slate-500 font-bold uppercase tracking-widest mb-1.5">Mã khuyến mãi</p>
+                  <button (click)="copyCode(promo.code)"
+                          class="flex items-center gap-2 bg-white text-slate-900 px-3.5 py-2 rounded-xl font-mono font-black text-sm shadow-sm hover:bg-blue-50 active:scale-95 transition-all duration-200 border border-slate-200">
+                    <span>{{ promo.code }}</span>
+                    <span class="text-xs">
+                      {{ copiedCode === promo.code ? '✓' : '📋' }}
+                    </span>
+                  </button>
+                  <p *ngIf="copiedCode === promo.code" class="text-[10px] text-emerald-400 font-bold mt-1 text-right">Đã sao chép!</p>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="text-center py-12 bg-white/5 rounded-2xl border border-white/10">
+          <p class="text-3xl mb-3">🎁</p>
+          <p class="text-slate-400 font-medium">Hiện chưa có chương trình khuyến mãi nào. Hãy quay lại sau!</p>
+        </div>
+      }
     </div>
   </section>
 
-  <section class="relative py-24 overflow-hidden bg-slate-50/30">
-    <div class="absolute top-0 left-0 w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none"></div>
-    <div class="absolute bottom-0 right-0 w-[600px] h-[600px] bg-indigo-500/5 rounded-full blur-[140px] pointer-events-none"></div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       FEATURED ROOMS
+  ══════════════════════════════════════════════════════════════ -->
+  <section class="py-20 bg-slate-50 relative overflow-hidden">
+    <div class="absolute top-0 left-0 w-[400px] h-[400px] bg-blue-500/4 rounded-full blur-[100px] pointer-events-none"></div>
+    <div class="absolute bottom-0 right-0 w-[400px] h-[400px] bg-indigo-500/4 rounded-full blur-[100px] pointer-events-none"></div>
 
     <div class="container mx-auto px-4 max-w-7xl relative z-10">
-      
       <div class="flex flex-col md:flex-row md:justify-between md:items-end mb-12 gap-6">
-        <div class="space-y-3 text-left">
-          <span class="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-blue-600 font-bold text-xs uppercase tracking-widest shadow-sm">
+        <div>
+          <span class="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-blue-600 font-bold text-xs uppercase tracking-widest mb-3">
             ⭐ Lựa chọn tốt nhất
           </span>
-          <h2 class="text-3xl md:text-4xl font-black text-slate-900 tracking-tight drop-shadow-sm">
-            Không Gian Nghỉ Dưỡng Được Yêu Thích Nhất
-          </h2>
-          <p class="text-slate-500 font-light text-sm max-w-xl">
-            Vuốt ngang để khám phá những không gian được kiến tạo hoàn mỹ, nhận đánh giá 5 sao tuyệt đối từ khách hàng thượng lưu.
-          </p>
+          <h2 class="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">Không Gian Được Yêu Thích Nhất</h2>
+          <p class="text-slate-500 text-sm mt-2 max-w-lg">Những phòng được khách hàng đánh giá cao nhất — chất lượng được kiểm chứng qua hàng trăm lượt ở thực tế.</p>
         </div>
-        
         <div class="flex items-center gap-2 self-start md:self-end">
-          <button id="featured-prev" class="w-11 h-11 rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-blue-600 shadow-sm flex items-center justify-center transition-all duration-300 active:scale-90 focus:outline-none">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
+          <button id="featured-prev"
+                  class="w-11 h-11 rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-blue-600 hover:text-white hover:border-blue-600 shadow-sm flex items-center justify-center transition-all duration-300 focus:outline-none">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
           </button>
-          <button id="featured-next" class="w-11 h-11 rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-blue-600 shadow-sm flex items-center justify-center transition-all duration-300 active:scale-90 focus:outline-none">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+          <button id="featured-next"
+                  class="w-11 h-11 rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-blue-600 hover:text-white hover:border-blue-600 shadow-sm flex items-center justify-center transition-all duration-300 focus:outline-none">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
           </button>
         </div>
       </div>
-      
+
       @if (featuredRooms && featuredRooms.length > 0) {
         <div class="relative px-1">
-          
-          <swiper-container 
+          <swiper-container
             slides-per-view="1"
             space-between="24"
             grab-cursor="true"
             navigation-prev-el="#featured-prev"
             navigation-next-el="#featured-next"
-            breakpoints='{"640": {"slidesPerView": 1.5}, "768": {"slidesPerView": 2}, "1024": {"slidesPerView": 3}}'
-            class="w-full"
-          >
+            breakpoints='{"640":{"slidesPerView":1.4},"768":{"slidesPerView":2},"1024":{"slidesPerView":3}}'
+            class="w-full">
+
             @for (room of featuredRooms; track room.roomId) {
               <swiper-slide class="pb-6 h-auto">
-                
-                <div (click)="viewRoomDetail(room.roomId, $event)" 
-                     class="bg-white rounded-3xl overflow-hidden border border-slate-200/60 shadow-lg shadow-slate-200/50 hover:shadow-2xl hover:shadow-blue-500/10 hover:-translate-y-2 transition-all duration-500 group cursor-pointer flex flex-col h-full relative">
-                  
-                  <div class="relative pt-[68%] overflow-hidden bg-slate-100 shrink-0">
-                    
-                    <img [src]="getRoomImage(room)" [alt]="room.roomNumber" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110" />
-                    
-                    <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
-                    
+                <div (click)="viewRoomDetail(room.roomId, $event)"
+                     class="bg-white rounded-3xl overflow-hidden border border-slate-200/60 shadow-md hover:shadow-2xl hover:shadow-blue-500/10 hover:-translate-y-2 transition-all duration-500 group cursor-pointer flex flex-col h-full">
+
+                  <!-- Image -->
+                  <div class="relative pt-[65%] overflow-hidden bg-slate-100 shrink-0">
+                    <img [src]="getRoomImage(room)" [alt]="room.roomNumber"
+                         class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110" />
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"></div>
+
+                    <!-- Shimmer on hover -->
                     <div class="absolute inset-0 overflow-hidden pointer-events-none">
-                      <div class="absolute top-0 -left-full w-1/2 h-full bg-white/25 skew-x-12 opacity-40 group-hover:left-[150%] transition-all duration-1000 ease-out"></div>
+                      <div class="absolute top-0 -left-full w-1/2 h-full bg-white/20 skew-x-12 opacity-0 group-hover:opacity-100 group-hover:left-[150%] transition-all duration-1000 ease-out"></div>
                     </div>
-                    
-                    <button (click)="toggleFavorite($event, room)" class="absolute top-4 right-4 w-9 h-9 bg-black/30 hover:bg-black/50 border border-white/20 backdrop-blur-md rounded-xl flex items-center justify-center z-20 transform hover:scale-125 active:scale-95 transition-all duration-300">
-                      <svg class="w-5 h-5 transition-all duration-300" [ngClass]="room.isFavorite ? 'text-rose-500 fill-rose-500 scale-110 animate-[bounce_0.3s_ease-in-out]' : 'text-white fill-transparent'" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+
+                    <!-- Favorite -->
+                    <button (click)="toggleFavorite($event, room)"
+                            class="absolute top-4 right-4 w-9 h-9 bg-black/30 hover:bg-black/50 border border-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center z-20 hover:scale-125 active:scale-95 transition-all duration-300">
+                      <svg class="w-5 h-5 transition-all duration-300"
+                           [ngClass]="room.isFavorite ? 'text-rose-500 fill-rose-500' : 'text-white fill-transparent'"
+                           viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                       </svg>
                     </button>
 
-                    <span class="absolute bottom-4 left-4 text-[10px] font-black uppercase tracking-wider px-2.5 py-1.5 rounded-lg z-10 shadow-sm border backdrop-blur-md"
-                          [ngClass]="room.status === 'AVAILABLE' || !room.status ? 'bg-emerald-500/90 border-emerald-400/30 text-white' : 'bg-rose-500/90 border-rose-400/30 text-white'">
-                      {{ (room.status === 'AVAILABLE' || !room.status) ? 'Còn trống' : 'Đã đặt' }}
+                    <!-- Status badge -->
+                    <span class="absolute bottom-4 left-4 text-[10px] font-black uppercase tracking-wider px-2.5 py-1.5 rounded-lg z-10 backdrop-blur-sm border"
+                          [ngClass]="(room.status === 'AVAILABLE' || !room.status)
+                            ? 'bg-emerald-500/90 border-emerald-400/30 text-white'
+                            : 'bg-rose-500/90 border-rose-400/30 text-white'">
+                      {{ (room.status === 'AVAILABLE' || !room.status) ? '✓ Còn trống' : '✗ Đã đặt' }}
+                    </span>
+
+                    <!-- Rating pill -->
+                    <span class="absolute bottom-4 right-4 flex items-center gap-1 bg-amber-400/90 backdrop-blur-sm text-slate-900 text-[10px] font-black px-2 py-1 rounded-lg z-10">
+                      ⭐ {{ room.rating | number:'1.1-1' }}
                     </span>
                   </div>
-                  
-                  <div class="p-6 flex flex-col flex-1">
-                    <div class="flex items-start justify-between gap-2 mb-1">
-                      <h3 class="text-xl font-black text-slate-800 group-hover:text-blue-600 transition-colors duration-300">Phòng {{ room.roomNumber }}</h3>
-                      <span class="px-2.5 py-1 bg-slate-100 text-slate-600 text-[10px] font-extrabold rounded-md uppercase shrink-0 border border-slate-200/60">
+
+                  <!-- Info -->
+                  <div class="p-5 flex flex-col flex-1">
+                    <div class="flex items-start justify-between gap-2 mb-3">
+                      <div class="min-w-0">
+                        <h3 class="text-lg font-black text-slate-800 group-hover:text-blue-600 transition-colors truncate">Phòng {{ room.roomNumber }}</h3>
+                        <p class="text-xs text-slate-500 font-medium mt-0.5">{{ room.hotelName || 'LuxeHotel' }}</p>
+                      </div>
+                      <span class="px-2.5 py-1 bg-blue-50 text-blue-600 text-[10px] font-extrabold rounded-lg uppercase shrink-0 border border-blue-100">
                         {{ room.typeName || 'Standard' }}
                       </span>
                     </div>
 
-                    <div class="flex items-center gap-1 text-xs font-bold text-amber-500 my-1">
-                      <span>⭐ {{ room.rating | number:'1.1-1' }}</span>
-                      <span class="text-slate-400 font-normal text-[11px] ml-1">(125 Đánh giá công khai)</span>
+                    <!-- Specs -->
+                    <div class="grid grid-cols-2 gap-2 text-slate-500 text-xs font-semibold py-3 border-y border-slate-100">
+                      <div class="flex items-center gap-1.5">
+                        <span class="text-sm">👤</span>
+                        {{ room.maxGuests ? 'Tối đa ' + room.maxGuests + ' khách' : 'Liên hệ KS' }}
+                      </div>
+                      <div class="flex items-center gap-1.5">
+                        <span class="text-sm">🏢</span>
+                        {{ room.floor ? 'Tầng ' + room.floor : 'Không gian riêng' }}
+                      </div>
+                      <div class="flex items-center gap-1.5"><span class="text-sm">📶</span> Wifi miễn phí</div>
+                      <div class="flex items-center gap-1.5"><span class="text-sm">❄️</span> Điều hoà 2 chiều</div>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-y-2 gap-x-1 text-slate-500 text-xs font-semibold my-4 py-3 border-y border-slate-100/80">
-                      <div class="flex items-center gap-1.5">👤 Max: 2 người lớn</div>
-                      <div class="flex items-center gap-1.5">📐 Diện tích: 35m²</div>
-                      <div class="flex items-center gap-1.5">📶 Wifi tốc độ cao</div>
-                      <div class="flex items-center gap-1.5">❄ Điều hòa 2 chiều</div>
-                    </div>
-                    
-                    <div class="flex items-center justify-between mt-auto pt-4 border-t border-slate-100">
+                    <!-- Price + CTA -->
+                    <div class="flex items-center justify-between mt-auto pt-4">
                       <div>
-                        <span class="text-[10px] text-slate-400 block font-bold uppercase tracking-wider mb-0.5">Giá phòng/Đêm</span>
-                        <span class="text-3xl font-black text-blue-600 tracking-tight">
-                          {{ room.price | number }} đ
-                        </span>
+                        <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-0.5">Giá/Đêm</span>
+                        <span class="text-2xl font-black text-blue-600">{{ room.price | number }}đ</span>
                       </div>
                       <div class="flex items-center gap-2">
-                        <button (click)="viewRoomDetail(room.roomId, $event)" class="px-4 py-3 border border-slate-200 text-slate-600 rounded-xl font-bold text-xs hover:bg-slate-50 hover:border-slate-300 transition-all duration-200">
+                        <button (click)="viewRoomDetail(room.roomId, $event)"
+                                class="px-3.5 py-2.5 border border-slate-200 text-slate-600 rounded-xl font-bold text-xs hover:bg-slate-50 hover:border-slate-300 transition-all">
                           Chi tiết
                         </button>
-                        
-                        <button [disabled]="room.status && room.status !== 'AVAILABLE'" 
-                                class="px-5 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl text-xs shadow-md shadow-blue-500/10 hover:shadow-lg hover:shadow-blue-500/30 disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 disabled:shadow-none disabled:cursor-not-allowed transition-all duration-300">
+                        <button (click)="viewRoomDetail(room.roomId, $event)"
+                                [disabled]="room.status && room.status !== 'AVAILABLE'"
+                                class="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl text-xs shadow-md shadow-blue-500/15 hover:shadow-blue-500/30 disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 disabled:shadow-none disabled:cursor-not-allowed transition-all duration-300">
                           Đặt ngay
                         </button>
                       </div>
@@ -324,74 +492,90 @@
               </swiper-slide>
             }
           </swiper-container>
-          
-          <div class="text-center mt-12">
-            <button [routerLink]="['/rooms']" class="inline-flex items-center gap-2 px-8 py-4 bg-white hover:bg-slate-900 text-slate-800 hover:text-white font-bold text-sm rounded-xl border-2 border-slate-200 hover:border-slate-900 shadow-md hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 group">
-              Khám phá tất cả phòng 
-              <span class="group-hover:translate-x-1.5 transition-transform duration-200">→</span>
+
+          <div class="text-center mt-10">
+            <button [routerLink]="['/rooms']"
+                    class="inline-flex items-center gap-2.5 px-8 py-4 bg-white hover:bg-slate-900 text-slate-800 hover:text-white font-bold text-sm rounded-2xl border-2 border-slate-200 hover:border-slate-900 shadow-md hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 group">
+              Khám phá tất cả phòng
+              <svg class="h-4 w-4 group-hover:translate-x-1 transition-transform duration-200" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
             </button>
           </div>
-
         </div>
       } @else {
-        <ng-template #noRooms>
-          <div class="text-center py-16 bg-white rounded-3xl border border-dashed border-slate-200 p-8 max-w-lg mx-auto shadow-sm w-full grid justify-center">
-            <div class="text-5xl mb-4">🏨</div>
-            <h4 class="text-gray-800 font-bold text-lg">Đang cập nhật danh sách đề xuất</h4>
-            <p class="text-slate-400 text-sm mt-1">Các không gian nghỉ dưỡng đang được đồng bộ, bạn vui lòng quay lại sau ít phút nhé!</p>
-          </div>
-        </ng-template>
+        <div class="text-center py-20 bg-white rounded-3xl border border-dashed border-slate-200 shadow-sm">
+          <div class="text-5xl mb-4">🏨</div>
+          <h4 class="text-slate-800 font-bold text-lg">Đang cập nhật danh sách đề xuất</h4>
+          <p class="text-slate-400 text-sm mt-1">Các không gian nghỉ dưỡng đang được đồng bộ, vui lòng quay lại sau ít phút.</p>
+        </div>
       }
-
     </div>
   </section>
 
-  <section class="py-20 bg-slate-50 border-t border-slate-100">
+
+  <!-- ═══════════════════════════════════════════════════════════
+       TESTIMONIALS
+  ══════════════════════════════════════════════════════════════ -->
+  <section class="py-20 bg-white" id="about">
     <div class="container mx-auto px-4 max-w-7xl">
-      <div class="text-center max-w-2xl mx-auto mb-16">
-        <span class="text-blue-600 font-bold text-xs uppercase tracking-widest">Đánh giá thực tế</span>
-        <h2 class="text-3xl font-black text-slate-900 mt-1">Phản Hồi Từ Khách Hàng</h2>
+      <div class="text-center mb-14">
+        <span class="inline-block px-3 py-1 bg-amber-50 text-amber-600 font-bold text-xs uppercase tracking-widest rounded-full border border-amber-100 mb-3">
+          Khách hàng nói gì
+        </span>
+        <h2 class="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">Phản Hồi Từ Người Thực Tế</h2>
+        <p class="mt-3 text-slate-500 text-sm max-w-lg mx-auto">Hàng trăm khách hàng đã chia sẻ trải nghiệm của họ — đây là một vài câu chuyện nổi bật.</p>
       </div>
-      
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between">
-          <div>
-            <div class="text-amber-400 text-sm font-bold mb-3">★★★★★</div>
-            <p class="text-slate-600 text-sm italic font-medium leading-relaxed">"Phòng nghỉ vô cùng sạch sẽ, view nhìn thẳng ra biển rất thơ mộng. Nhân viên phục vụ nhiệt tình, chu đáo hỗ trợ nhóm mình check-in sớm."</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Card 1 -->
+        <div class="relative bg-white p-7 rounded-3xl shadow-md border border-slate-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col">
+          <div class="absolute top-6 right-6 text-6xl text-blue-100 font-serif leading-none select-none">"</div>
+          <div class="flex items-center gap-1 mb-4">
+            <span *ngFor="let s of [1,2,3,4,5]" class="text-amber-400 text-base">★</span>
           </div>
+          <p class="text-slate-600 text-sm leading-relaxed italic flex-1">
+            Phòng nghỉ vô cùng sạch sẽ, view nhìn thẳng ra biển rất thơ mộng. Nhân viên nhiệt tình, hỗ trợ nhóm mình check-in sớm không phát sinh thêm phí.
+          </p>
           <div class="flex items-center gap-3 mt-6 pt-4 border-t border-slate-50">
-            <div class="w-10 h-10 bg-blue-600 text-white font-black rounded-full flex items-center justify-center text-sm">T</div>
+            <div class="w-10 h-10 bg-gradient-to-tr from-blue-500 to-indigo-600 text-white font-black rounded-full flex items-center justify-center text-sm shrink-0 shadow">T</div>
             <div>
               <h5 class="font-bold text-slate-800 text-sm">Anh Tuấn</h5>
-              <p class="text-slate-400 text-[10px]">Đến từ Hà Nội • Cặp đôi</p>
+              <p class="text-slate-400 text-[11px]">Hà Nội &bull; Cặp đôi</p>
             </div>
           </div>
         </div>
 
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between">
-          <div>
-            <div class="text-amber-400 text-sm font-bold mb-3">★★★★★</div>
-            <p class="text-slate-600 text-sm italic font-medium leading-relaxed">"Gia đình tôi đã có một kỳ nghỉ tuyệt vời tại đây. Các tiện ích như hồ bơi vô cực và khu ẩm thực buffet sáng vô cùng xuất sắc, đáng tiền."</p>
+        <!-- Card 2 (highlighted) -->
+        <div class="relative bg-gradient-to-br from-blue-600 to-indigo-700 p-7 rounded-3xl shadow-xl shadow-blue-500/20 hover:shadow-2xl hover:shadow-blue-500/30 hover:-translate-y-1 transition-all duration-300 flex flex-col">
+          <div class="absolute top-6 right-6 text-6xl text-white/15 font-serif leading-none select-none">"</div>
+          <div class="flex items-center gap-1 mb-4">
+            <span *ngFor="let s of [1,2,3,4,5]" class="text-amber-300 text-base">★</span>
           </div>
-          <div class="flex items-center gap-3 mt-6 pt-4 border-t border-slate-50">
-            <div class="w-10 h-10 bg-teal-600 text-white font-black rounded-full flex items-center justify-center text-sm">L</div>
+          <p class="text-blue-100 text-sm leading-relaxed italic flex-1">
+            Gia đình tôi đã có kỳ nghỉ tuyệt vời! Hồ bơi vô cực và buffet sáng cực kỳ xuất sắc. Đặc biệt các con rất thích khu vui chơi trẻ em — chúng tôi sẽ quay lại.
+          </p>
+          <div class="flex items-center gap-3 mt-6 pt-4 border-t border-white/15">
+            <div class="w-10 h-10 bg-white/20 border border-white/30 text-white font-black rounded-full flex items-center justify-center text-sm shrink-0">L</div>
             <div>
-              <h5 class="font-bold text-slate-800 text-sm">Chị Linh</h5>
-              <p class="text-slate-400 text-[10px]">Đến từ TP.HCM • Chuyến đi đơn thân</p>
+              <h5 class="font-bold text-white text-sm">Chị Linh</h5>
+              <p class="text-blue-200 text-[11px]">TP. Hồ Chí Minh &bull; Gia đình</p>
             </div>
           </div>
         </div>
 
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between">
-          <div>
-            <div class="text-amber-400 text-sm font-bold mb-3">★★★★★</div>
-            <p class="text-slate-600 text-sm italic font-medium leading-relaxed">"Không gian yên tĩnh, thiết kế sang trọng đẳng cấp. Hệ thống cách âm cực tốt phù hợp cho những chuyến nghỉ dưỡng dài ngày của đại gia đình."</p>
+        <!-- Card 3 -->
+        <div class="relative bg-white p-7 rounded-3xl shadow-md border border-slate-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col">
+          <div class="absolute top-6 right-6 text-6xl text-blue-100 font-serif leading-none select-none">"</div>
+          <div class="flex items-center gap-1 mb-4">
+            <span *ngFor="let s of [1,2,3,4,5]" class="text-amber-400 text-base">★</span>
           </div>
+          <p class="text-slate-600 text-sm leading-relaxed italic flex-1">
+            Không gian yên tĩnh, thiết kế sang trọng đẳng cấp. Hệ thống cách âm cực tốt phù hợp cho chuyến nghỉ dưỡng dài ngày của đại gia đình tôi.
+          </p>
           <div class="flex items-center gap-3 mt-6 pt-4 border-t border-slate-50">
-            <div class="w-10 h-10 bg-indigo-600 text-white font-black rounded-full flex items-center justify-center text-sm">HM</div>
+            <div class="w-10 h-10 bg-gradient-to-tr from-indigo-500 to-purple-600 text-white font-black rounded-full flex items-center justify-center text-sm shrink-0 shadow">HM</div>
             <div>
               <h5 class="font-bold text-slate-800 text-sm">Gia đình Hoàng Minh</h5>
-              <p class="text-slate-400 text-[10px]">Đến từ Đà Nẵng • Đại gia đình</p>
+              <p class="text-slate-400 text-[11px]">Đà Nẵng &bull; Đại gia đình</p>
             </div>
           </div>
         </div>
@@ -399,76 +583,167 @@
     </div>
   </section>
 
-  <section class="bg-white py-16 border-t border-slate-100">
-    <div class="container mx-auto px-4 max-w-7xl mb-10 text-center">
-      <span class="text-blue-600 font-bold text-xs uppercase tracking-widest">Hành trình thuận tiện</span>
-      <h2 class="text-3xl font-black text-slate-900 mt-1 mb-2">Vị Trí Thuận Tiện Cho Mọi Hành Trình</h2>
-      <p class="text-slate-400 text-sm max-w-md mx-auto">Chỉ cách trung tâm thành phố 10 phút di chuyển và rất gần các địa điểm tham quan nổi tiếng.</p>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       CTA BANNER (NEW)
+  ══════════════════════════════════════════════════════════════ -->
+  <section class="py-16 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 relative overflow-hidden">
+    <div class="absolute inset-0 pointer-events-none">
+      <div class="absolute top-0 left-1/3 w-64 h-64 bg-white/5 rounded-full blur-3xl"></div>
+      <div class="absolute bottom-0 right-1/4 w-80 h-80 bg-indigo-900/20 rounded-full blur-3xl"></div>
     </div>
-    
-    <div class="w-full h-[380px] bg-slate-200 relative">
-      <iframe 
-        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3724.6362241639943!2d105.8247071!3d21.0072142!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3135ac7715b491a9%3A0x6b86689d02dbf068!2zSGFub2ksIFZpZXRuYW0!5e0!3m2!1sen!2s!4v1654673849102!5m2!1sen!2s" 
-        class="w-full h-full border-0 grayscale opacity-85 hover:grayscale-0 transition-all duration-700" 
-        allowfullscreen="" 
-        loading="lazy" 
-        referrerpolicy="no-referrer-when-downgrade">
+    <div class="container mx-auto px-4 max-w-5xl relative z-10 text-center">
+      <span class="inline-block px-3 py-1 bg-white/10 text-blue-200 font-bold text-xs uppercase tracking-widest rounded-full border border-white/20 mb-4">
+        Đặt phòng ngay hôm nay
+      </span>
+      <h2 class="text-3xl md:text-4xl font-black text-white mb-4 tracking-tight">Bắt Đầu Chuyến Hành Trình Của Bạn</h2>
+      <p class="text-blue-200 text-sm max-w-xl mx-auto mb-8 leading-relaxed">
+        Hàng trăm phòng nghỉ chờ đón bạn — đặt ngay hôm nay để nhận ưu đãi sớm và giá tốt nhất được bảo đảm.
+      </p>
+      <div class="flex flex-col sm:flex-row gap-3 justify-center">
+        <button [routerLink]="['/rooms']"
+                class="px-8 py-4 bg-white text-blue-700 font-bold text-sm rounded-2xl hover:bg-blue-50 shadow-xl shadow-blue-900/20 hover:shadow-2xl hover:-translate-y-0.5 transition-all duration-300 active:translate-y-0">
+          Xem tất cả phòng trống →
+        </button>
+        <a href="#contact"
+           class="px-8 py-4 bg-white/10 text-white font-bold text-sm rounded-2xl border border-white/20 hover:bg-white/20 transition-all duration-300">
+          Liên hệ tư vấn miễn phí
+        </a>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       MAP + CONTACT
+  ══════════════════════════════════════════════════════════════ -->
+  <section class="py-20 bg-white" id="contact">
+    <div class="container mx-auto px-4 max-w-7xl mb-10">
+      <div class="text-center mb-12">
+        <span class="inline-block px-3 py-1 bg-blue-50 text-blue-600 font-bold text-xs uppercase tracking-widest rounded-full border border-blue-100 mb-3">
+          Vị trí thuận tiện
+        </span>
+        <h2 class="text-3xl font-black text-slate-900">Trung Tâm — Kết Nối Mọi Nơi</h2>
+        <p class="text-slate-400 text-sm mt-2 max-w-md mx-auto">Chỉ 10 phút từ trung tâm thành phố, gần các điểm tham quan và trung tâm thương mại lớn.</p>
+      </div>
+
+      <!-- Contact chips -->
+      <div class="flex flex-wrap justify-center gap-4 mb-10">
+        <div class="flex items-center gap-2.5 px-5 py-3 bg-slate-50 rounded-2xl border border-slate-200 hover:border-blue-200 hover:bg-blue-50 transition-all">
+          <span class="text-xl">📍</span>
+          <div>
+            <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Địa chỉ</p>
+            <p class="text-sm font-semibold text-slate-700">123 Đường ABC, Hà Nội</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2.5 px-5 py-3 bg-slate-50 rounded-2xl border border-slate-200 hover:border-blue-200 hover:bg-blue-50 transition-all">
+          <span class="text-xl">📞</span>
+          <div>
+            <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Hotline</p>
+            <p class="text-sm font-semibold text-slate-700">1800 1234 (miễn phí)</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2.5 px-5 py-3 bg-slate-50 rounded-2xl border border-slate-200 hover:border-blue-200 hover:bg-blue-50 transition-all">
+          <span class="text-xl">✉️</span>
+          <div>
+            <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Email</p>
+            <p class="text-sm font-semibold text-slate-700">hello&#64;luxehotel.vn</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2.5 px-5 py-3 bg-slate-50 rounded-2xl border border-slate-200 hover:border-blue-200 hover:bg-blue-50 transition-all">
+          <span class="text-xl">🕐</span>
+          <div>
+            <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Check-in / Check-out</p>
+            <p class="text-sm font-semibold text-slate-700">14:00 — 12:00</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="w-full h-[380px] relative overflow-hidden bg-slate-200">
+      <iframe
+        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3724.6362241639943!2d105.8247071!3d21.0072142!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3135ac7715b491a9%3A0x6b86689d02dbf068!2zSGFub2ksIFZpZXRuYW0!5e0!3m2!1sen!2s!4v1654673849102!5m2!1sen!2s"
+        class="w-full h-full border-0 grayscale-[30%] hover:grayscale-0 transition-all duration-700"
+        allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade">
       </iframe>
     </div>
   </section>
+
 </main>
 
-<footer class="bg-slate-950 text-slate-400 pt-16 pb-8 border-t border-slate-900">
+
+<!-- ═══════════════════════════════════════════════════════════
+     FOOTER
+══════════════════════════════════════════════════════════════ -->
+<footer class="bg-slate-950 text-slate-400 pt-16 pb-8">
   <div class="container mx-auto px-4 max-w-7xl">
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 mb-12">
-      
+
+      <!-- Brand -->
       <div class="lg:col-span-2">
-        <h3 class="text-white font-black text-xl tracking-tight mb-4 flex items-center gap-2">
-          <span class="p-1.5 bg-blue-600 text-white rounded-lg text-sm">🏨</span> LuxeHotel
-        </h3>
+        <div class="flex items-center gap-2.5 mb-4">
+          <div class="w-9 h-9 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center text-base">🏨</div>
+          <span class="text-xl font-black">
+            <span class="text-white">Luxe</span><span class="text-blue-400">Hotel</span>
+          </span>
+        </div>
         <p class="text-slate-400 text-sm max-w-sm leading-relaxed mb-6">
-          Nền tảng đặt phòng trực tuyến tiện lợi, an toàn và nhanh chóng. Mang đến không gian nghỉ dưỡng xứng tầm đẳng cấp quốc tế cho bạn.
+          Nền tảng đặt phòng trực tuyến tiện lợi, an toàn và nhanh chóng. Mang đến không gian nghỉ dưỡng xứng tầm quốc tế cho bạn và gia đình.
         </p>
-        <div class="flex items-center gap-3">
-          <a href="#" class="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-slate-300 hover:bg-blue-600 hover:text-white transition-all text-xs">FB</a>
-          <a href="#" class="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-slate-300 hover:bg-purple-600 hover:text-white transition-all text-xs">IG</a>
-          <a href="#" class="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-slate-300 hover:bg-black hover:text-white transition-all text-xs">TK</a>
+        <div class="flex items-center gap-2">
+          <a href="#" class="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all text-xs font-bold">FB</a>
+          <a href="#" class="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:bg-gradient-to-tr hover:from-pink-500 hover:to-purple-600 hover:text-white hover:border-transparent transition-all text-xs font-bold">IG</a>
+          <a href="#" class="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:bg-black hover:text-white hover:border-slate-800 transition-all text-xs font-bold">TK</a>
         </div>
       </div>
 
       <div>
-        <h4 class="text-white font-bold text-xs uppercase tracking-widest mb-4">Về Chúng Tôi</h4>
-        <ul class="space-y-2.5 text-sm">
-          <li><a href="#" class="hover:text-white transition-colors">Giới thiệu tổng quan</a></li>
-          <li><a href="#" class="hover:text-white transition-colors">Hệ thống phòng nghỉ</a></li>
-          <li><a href="#" class="hover:text-white transition-colors">Tin tức & Sự kiện</a></li>
-          <li><a href="#" class="hover:text-white transition-colors">Tuyển dụng 2026</a></li>
+        <h4 class="text-white font-bold text-xs uppercase tracking-widest mb-5">Về Chúng Tôi</h4>
+        <ul class="space-y-3 text-sm">
+          <li><a href="#" class="hover:text-white hover:translate-x-1 transition-all inline-block">Giới thiệu tổng quan</a></li>
+          <li><a href="#" class="hover:text-white hover:translate-x-1 transition-all inline-block">Hệ thống phòng nghỉ</a></li>
+          <li><a href="#" class="hover:text-white hover:translate-x-1 transition-all inline-block">Tin tức & Sự kiện</a></li>
+          <li><a href="#" class="hover:text-white hover:translate-x-1 transition-all inline-block">Tuyển dụng 2026</a></li>
         </ul>
       </div>
 
       <div>
-        <h4 class="text-white font-bold text-xs uppercase tracking-widest mb-4">Hỗ Trợ & Chính Sách</h4>
-        <ul class="space-y-2.5 text-sm">
-          <li><a href="#" class="hover:text-white transition-colors">Chính sách bảo mật</a></li>
-          <li><a href="#" class="hover:text-white transition-colors">Điều khoản sử dụng</a></li>
-          <li><a href="#" class="hover:text-white transition-colors">Quy định hoàn tiền</a></li>
-          <li><a href="#" class="hover:text-white transition-colors">Trung tâm trợ giúp</a></li>
+        <h4 class="text-white font-bold text-xs uppercase tracking-widest mb-5">Hỗ Trợ</h4>
+        <ul class="space-y-3 text-sm">
+          <li><a href="#" class="hover:text-white hover:translate-x-1 transition-all inline-block">Chính sách bảo mật</a></li>
+          <li><a href="#" class="hover:text-white hover:translate-x-1 transition-all inline-block">Điều khoản sử dụng</a></li>
+          <li><a href="#" class="hover:text-white hover:translate-x-1 transition-all inline-block">Quy định hoàn tiền</a></li>
+          <li><a href="#" class="hover:text-white hover:translate-x-1 transition-all inline-block">Trung tâm trợ giúp</a></li>
         </ul>
       </div>
 
       <div>
-        <h4 class="text-white font-bold text-xs uppercase tracking-widest mb-4">Nhận Tin Ưu Đãi</h4>
-        <p class="text-xs text-slate-400 mb-3 leading-relaxed">Đăng ký để nhận thông tin giảm giá độc quyền sớm nhất.</p>
+        <h4 class="text-white font-bold text-xs uppercase tracking-widest mb-5">Nhận Ưu Đãi</h4>
+        <p class="text-xs text-slate-400 mb-4 leading-relaxed">Đăng ký email để nhận thông tin giảm giá độc quyền sớm nhất.</p>
         <div class="flex gap-2">
-          <input type="email" placeholder="Email của bạn..." class="w-full p-2.5 bg-white/5 border border-white/10 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors">
-          <button class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-all">Gửi</button>
+          <input type="email" placeholder="Email của bạn..."
+                 class="flex-1 min-w-0 px-3 py-2.5 bg-white/5 border border-white/10 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:bg-white/10 transition-all" />
+          <button class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shrink-0 shadow-lg shadow-blue-600/20">
+            Gửi
+          </button>
         </div>
       </div>
 
     </div>
 
-    <div class="pt-8 border-t border-slate-900 text-center text-xs text-slate-500">
-      <p>© 2026 LuxeHotel. Tất cả các quyền được bảo lưu. Thiết kế và phát triển dựa trên tiêu chuẩn ứng dụng đồ án cao cấp.</p>
+    <div class="pt-8 border-t border-slate-900 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+      <p>© 2026 LuxeHotel. Tất cả các quyền được bảo lưu.</p>
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+        <span>Hệ thống đang hoạt động bình thường</span>
+      </div>
     </div>
   </div>
 </footer>
+
+<style>
+@keyframes subtleZoom {
+  from { transform: scale(1.05); }
+  to   { transform: scale(1.12); }
+}
+</style>

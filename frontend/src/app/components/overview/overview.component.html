@@ -1,30 +1,32 @@
 <div class="p-6 bg-slate-50 min-h-screen">
-  
+
   <div class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
     <div>
       <h2 class="text-2xl font-bold text-slate-800">Hệ thống quản trị vận hành</h2>
       <p class="text-slate-500 text-sm mt-1">Phân tích hiệu suất doanh thu và công suất phòng thời gian thực</p>
     </div>
     <div class="text-xs text-slate-400 font-medium bg-white px-3 py-1.5 rounded-lg border border-slate-200 self-start sm:self-auto">
-      Múi giờ hệ thống: <span class="text-blue-600 font-bold">GMT+7 (Asia/Ho_Chi_Minh)</span>
+      Múi giờ: <span class="text-blue-600 font-bold">GMT+7 (Asia/Ho_Chi_Minh)</span>
     </div>
   </div>
 
+  <!-- KPI Cards -->
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
-    
+
     <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex justify-between items-center">
       <div>
-        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Doanh thu thời kỳ</span>
+        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Doanh thu {{ filterLabel }}</span>
         <h3 class="text-xl font-black text-slate-800 mt-1">
-          {{ (statsData.totalRevenueToday || 0) | number:'1.0-0' }} ₫
+          {{ (statsData.totalRevenuePeriod || 0) | number:'1.0-0' }} ₫
         </h3>
+        <span class="text-[11px] text-slate-400">Hôm nay: {{ (statsData.totalRevenueToday || 0) | number:'1.0-0' }} ₫</span>
       </div>
       <div class="p-3 rounded-xl bg-emerald-50 text-emerald-600 text-xl">💵</div>
     </div>
 
     <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex justify-between items-center">
       <div>
-        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Tổng số đơn phòng</span>
+        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Đơn tạo hôm nay</span>
         <h3 class="text-xl font-black text-slate-800 mt-1">{{ statsData.totalBookingsToday || 0 }} lượt đặt</h3>
       </div>
       <div class="p-3 rounded-xl bg-blue-50 text-blue-600 text-xl">📝</div>
@@ -36,13 +38,14 @@
         <h3 class="text-xl font-black text-slate-800 mt-1">
           {{ (occupancyRate || 0) | number:'1.0-1' }}%
         </h3>
+        <span class="text-[11px] text-slate-400">{{ (statsData.totalRooms - statsData.availableRooms) || 0 }} / {{ statsData.totalRooms || 0 }} phòng</span>
       </div>
       <div class="p-3 rounded-xl bg-purple-50 text-purple-600 text-xl">📊</div>
     </div>
 
     <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex justify-between items-center">
       <div>
-        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Doanh thu TB / Phòng (ADR)</span>
+        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">ADR (TB/Phòng đang ở)</span>
         <h3 class="text-xl font-black text-slate-800 mt-1">
           {{ (averageDailyRate || 0) | number:'1.0-0' }} ₫
         </h3>
@@ -51,25 +54,32 @@
     </div>
   </div>
 
+  <!-- Biểu đồ doanh thu + Công suất doughnut -->
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-    
-    <div class="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+
+    <div class="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
       <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-4">
         <div>
-          <h4 class="text-base font-bold text-slate-800 flex items-center gap-1.5">
-            📊 Biểu đồ doanh thu tương tác
-          </h4>
-          <p class="text-xs text-slate-400 mt-0.5">Mẹo: <span class="text-blue-600 font-semibold">Click vào thanh cột</span> để lọc nhanh danh sách đơn đặt phòng bên dưới</p>
+          <h4 class="text-base font-bold text-slate-800">📊 Biểu đồ doanh thu tương tác</h4>
+          <p class="text-xs text-slate-400 mt-0.5">
+            Mẹo: <span class="text-blue-600 font-semibold">Click vào thanh cột</span> để lọc nhanh danh sách bên dưới
+          </p>
         </div>
-        
         <div class="inline-flex rounded-xl border border-slate-200 bg-slate-50 p-1 self-start sm:self-auto">
-          <button (click)="onFilterChange('DATE')" [ngClass]="currentFilter === 'DATE' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600'" class="px-3 py-1.5 text-xs font-bold rounded-lg transition outline-none">Hôm nay</button>
-          <button (click)="onFilterChange('WEEK')" [ngClass]="currentFilter === 'WEEK' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600'" class="px-3 py-1.5 text-xs font-bold rounded-lg transition outline-none">Tuần này</button>
-          <button (click)="onFilterChange('MONTH')" [ngClass]="currentFilter === 'MONTH' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600'" class="px-3 py-1.5 text-xs font-bold rounded-lg transition outline-none">Tháng này</button>
-          <button (click)="onFilterChange('YEAR')" [ngClass]="currentFilter === 'YEAR' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600'" class="px-3 py-1.5 text-xs font-bold rounded-lg transition outline-none">Năm nay</button>
+          <button (click)="onFilterChange('DATE')"
+            [ngClass]="currentFilter === 'DATE' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600'"
+            class="px-3 py-1.5 text-xs font-bold rounded-lg transition outline-none">3 Ngày</button>
+          <button (click)="onFilterChange('WEEK')"
+            [ngClass]="currentFilter === 'WEEK' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600'"
+            class="px-3 py-1.5 text-xs font-bold rounded-lg transition outline-none">7 Ngày</button>
+          <button (click)="onFilterChange('MONTH')"
+            [ngClass]="currentFilter === 'MONTH' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600'"
+            class="px-3 py-1.5 text-xs font-bold rounded-lg transition outline-none">Tháng</button>
+          <button (click)="onFilterChange('YEAR')"
+            [ngClass]="currentFilter === 'YEAR' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600'"
+            class="px-3 py-1.5 text-xs font-bold rounded-lg transition outline-none">Năm</button>
         </div>
       </div>
-
       <div class="relative h-64 w-full">
         <canvas #revenueChart></canvas>
       </div>
@@ -77,16 +87,12 @@
 
     <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
       <div>
-        <h4 class="text-base font-bold text-slate-800 flex items-center gap-1.5">
-          🍩 Trạng thái công suất phòng
-        </h4>
-        <p class="text-xs text-slate-400 mt-0.5">Tỷ trọng phòng đang sử dụng so với phòng trống hiện tại</p>
+        <h4 class="text-base font-bold text-slate-800">🍩 Công suất phòng hiện tại</h4>
+        <p class="text-xs text-slate-400 mt-0.5">Tỷ trọng phòng đang sử dụng so với tổng số phòng</p>
       </div>
-
       <div class="relative h-48 w-full flex justify-center items-center my-4">
         <canvas #occupancyChart></canvas>
       </div>
-
       <div class="flex justify-around items-center text-xs pt-2 border-t border-slate-100">
         <div class="flex items-center gap-1.5">
           <div class="w-3 h-3 rounded-full bg-emerald-500"></div>
@@ -98,22 +104,178 @@
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- Calendar Heatmap: Công suất phòng theo ngày -->
+  <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mb-6">
+    <div class="flex justify-between items-center mb-5">
+      <div>
+        <h4 class="text-base font-bold text-slate-800">📅 Lịch công suất phòng theo ngày</h4>
+        <p class="text-xs text-slate-400 mt-0.5">Màu sắc thể hiện % phòng đã đặt trong ngày đó</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button (click)="prevCalendarMonth()"
+          class="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-600 transition text-sm">←</button>
+        <span class="text-sm font-bold text-slate-700 min-w-[120px] text-center">{{ calendarMonthLabel }}</span>
+        <button (click)="nextCalendarMonth()"
+          class="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-600 transition text-sm">→</button>
+      </div>
+    </div>
+
+    <!-- Chú thích màu -->
+    <div class="flex flex-wrap gap-3 mb-4 text-[11px] font-semibold">
+      <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-slate-100 border border-slate-200 inline-block"></span>Trống (0%)</span>
+      <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-emerald-100 border border-emerald-200 inline-block"></span>&lt; 30%</span>
+      <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-yellow-100 border border-yellow-200 inline-block"></span>30–59%</span>
+      <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-orange-100 border border-orange-200 inline-block"></span>60–89%</span>
+      <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-rose-100 border border-rose-200 inline-block"></span>≥ 90%</span>
+    </div>
+
+    <!-- Loading skeleton -->
+    <div *ngIf="isLoadingCalendar" class="grid grid-cols-7 gap-1.5">
+      <div *ngFor="let i of [1,2,3,4,5,6,7]" class="text-center text-[10px] font-bold text-slate-400 pb-1">
+        {{ ['T2','T3','T4','T5','T6','T7','CN'][i-1] }}
+      </div>
+      <div *ngFor="let i of [].constructor(35)" class="h-12 bg-slate-100 rounded-lg animate-pulse"></div>
+    </div>
+
+    <!-- Calendar grid -->
+    <div *ngIf="!isLoadingCalendar" class="grid grid-cols-7 gap-1.5">
+      <!-- Header ngày -->
+      <div *ngFor="let d of ['T2','T3','T4','T5','T6','T7','CN']"
+        class="text-center text-[10px] font-bold text-slate-400 pb-1">{{ d }}</div>
+      <!-- Ô trống đầu tháng -->
+      <div *ngFor="let _ of calendarLeadingBlanks"></div>
+      <!-- Ô ngày -->
+      <div *ngFor="let cell of calendarDays"
+        class="relative rounded-lg p-1.5 text-center transition cursor-pointer group select-none"
+        [ngClass]="[occupancyColorClass(cell.pct), selectedCalendarDate === cell.date ? 'ring-2 ring-blue-500 ring-offset-1 scale-105 shadow-md z-10' : 'hover:scale-105 hover:shadow-sm']"
+        (click)="selectCalendarDay(cell)">
+        <span class="block text-[11px] font-bold">{{ cell.day }}</span>
+        <span class="block text-[10px] font-semibold">{{ cell.pct }}%</span>
+        <!-- Tooltip -->
+        <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 bg-slate-800 text-white text-[10px] font-semibold px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition z-10">
+          {{ cell.date }}: {{ cell.pct }}% công suất — Click để xem chi tiết
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel chi tiết ngày được chọn -->
+    <div *ngIf="selectedCalendarDate" class="mt-5 border-t border-slate-100 pt-5">
+
+      <!-- Loading -->
+      <div *ngIf="isLoadingDayDetail" class="flex items-center gap-3 text-slate-500 text-sm py-4">
+        <div class="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        Đang tải chi tiết ngày {{ selectedCalendarDate }}...
+      </div>
+
+      <!-- Detail content: dùng [hidden] thay vì *ngIf để canvas không bị destroy/recreate -->
+      <div [hidden]="isLoadingDayDetail || !dayDetail">
+        <div class="flex justify-between items-start mb-4">
+          <div>
+            <h5 class="text-sm font-bold text-slate-800">
+              Chi tiết công suất ngày
+              <span class="text-blue-600">{{ selectedCalendarDate | date:'dd/MM/yyyy' }}</span>
+            </h5>
+            <p class="text-xs text-slate-400 mt-0.5">
+              {{ dayDetail?.occupiedRooms }}/{{ dayDetail?.totalRooms }} phòng đang có khách —
+              <span class="font-semibold text-slate-600">{{ dayDetail?.occupancyRate }}% công suất</span>
+            </p>
+          </div>
+          <button (click)="closeDayDetail()"
+            class="text-slate-400 hover:text-slate-700 text-lg leading-none transition p-1 rounded-md hover:bg-slate-100">✕</button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+
+          <!-- Doughnut chart -->
+          <div class="flex flex-col items-center justify-center bg-slate-50 rounded-xl p-4">
+            <div class="relative w-full" style="height:180px">
+              <canvas #dayDetailChart></canvas>
+            </div>
+            <!-- KPI mini badges -->
+            <div class="flex gap-3 mt-3 flex-wrap justify-center">
+              <span class="text-[11px] font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700">
+                🔑 Đang ở: {{ dayDetail?.checkInCount }}
+              </span>
+              <span class="text-[11px] font-bold px-2.5 py-1 rounded-full bg-blue-100 text-blue-700">
+                ✅ Xác nhận: {{ dayDetail?.confirmedCount }}
+              </span>
+              <span class="text-[11px] font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-500">
+                🚪 Đã trả: {{ dayDetail?.checkOutCount }}
+              </span>
+              <span class="text-[11px] font-bold px-2.5 py-1 rounded-full bg-slate-200 text-slate-600">
+                🏠 Trống: {{ dayDetail?.availableRooms }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Bảng danh sách phòng -->
+          <div class="md:col-span-2 overflow-auto max-h-64 rounded-xl border border-slate-100">
+            <table *ngIf="dayDetail?.rooms && dayDetail?.rooms.length > 0"
+              class="w-full text-xs text-left">
+              <thead class="bg-slate-50 text-slate-500 font-bold sticky top-0">
+                <tr>
+                  <th class="p-2.5">Phòng</th>
+                  <th class="p-2.5">Loại</th>
+                  <th class="p-2.5">Khách</th>
+                  <th class="p-2.5">Check-in → Check-out</th>
+                  <th class="p-2.5 text-center">Trạng thái</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-50 text-slate-700 font-medium">
+                <tr *ngFor="let r of dayDetail?.rooms" class="hover:bg-slate-50/60">
+                  <td class="p-2.5 font-bold text-blue-600">{{ r.roomNumber }}</td>
+                  <td class="p-2.5 text-slate-500">{{ r.roomType }}</td>
+                  <td class="p-2.5">{{ r.customerName }}</td>
+                  <td class="p-2.5 text-slate-500">
+                    {{ r.checkInDate | date:'dd/MM' }} → {{ r.checkOutDate | date:'dd/MM' }}
+                  </td>
+                  <td class="p-2.5 text-center">
+                    <span class="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold border"
+                      [ngClass]="{
+                        'bg-emerald-50 text-emerald-700 border-emerald-200': r.bookingStatus === 'CHECK_IN',
+                        'bg-blue-50 text-blue-700 border-blue-200': r.bookingStatus === 'CONFIRMED',
+                        'bg-slate-100 text-slate-500 border-slate-200': r.bookingStatus === 'CHECK_OUT'
+                      }">
+                      <ng-container [ngSwitch]="r.bookingStatus">
+                        <span *ngSwitchCase="'CHECK_IN'">🔑 Đang ở</span>
+                        <span *ngSwitchCase="'CONFIRMED'">✅ Xác nhận</span>
+                        <span *ngSwitchCase="'CHECK_OUT'">🚪 Đã trả phòng</span>
+                        <span *ngSwitchDefault>{{ r.bookingStatus }}</span>
+                      </ng-container>
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <div *ngIf="!dayDetail?.rooms || dayDetail?.rooms.length === 0"
+              class="text-center py-8 text-slate-400 text-xs">
+              <span class="text-2xl block mb-1">🏨</span>
+              Không có phòng nào có đặt chỗ trong ngày này
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
 
   </div>
 
+  <!-- Bảng đơn đặt phòng -->
   <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
     <div class="flex justify-between items-center mb-4">
       <div>
         <h4 class="text-base font-bold text-slate-800 flex items-center gap-2">
-          <span>📋</span> Danh sách đặt phòng hiển thị theo bộ lọc
+          <span>📋</span> Danh sách đặt phòng theo bộ lọc
         </h4>
         <p class="text-xs text-slate-400 mt-0.5" *ngIf="selectedDateLabel">
-          Đang hiển thị các đơn phát sinh thuộc nhóm: <span class="text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded border border-blue-100">{{ selectedDateLabel }}</span>
+          Nhóm: <span class="text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded border border-blue-100">{{ selectedDateLabel }}</span>
         </p>
       </div>
-      <button *ngIf="selectedDateLabel" (click)="clearDateFilter()" 
+      <button *ngIf="selectedDateLabel" (click)="clearDateFilter()"
         class="text-xs font-semibold text-slate-500 hover:text-blue-600 border border-slate-200 hover:border-blue-200 px-3 py-1.5 rounded-lg transition bg-slate-50 hover:bg-blue-50/30">
-        🔄 Hiển thị tất cả đơn
+        🔄 Hiển thị tất cả
       </button>
     </div>
 
@@ -122,63 +284,71 @@
         <thead class="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
           <tr>
             <th class="p-3.5">Mã đơn</th>
-            <th class="p-3.5">Số phòng</th>
+            <th class="p-3.5">Phòng</th>
             <th class="p-3.5">Khách thuê</th>
-            <th class="p-3.5">Số điện thoại</th>
+            <th class="p-3.5">Điện thoại</th>
             <th class="p-3.5">Thời gian lưu trú</th>
             <th class="p-3.5 text-right">Tổng thanh toán</th>
-            <th class="p-3.5 text-center">Trạng thái đơn</th>
+            <th class="p-3.5 text-center">Trạng thái</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-100 font-medium text-slate-700">
           <tr *ngFor="let b of filteredBookings" class="hover:bg-slate-50/50 transition duration-150">
-            
+
             <td class="p-3.5 font-bold text-blue-600">
-              #{{ b?.id || b?.bookingCode || b?.bookingId || 'N/A' }}
-            </td>
-            
-            <td class="p-3.5">
-              <span class="bg-blue-50 text-blue-700 font-bold px-2.5 py-0.5 rounded border border-blue-100 text-xs">
-                Phòng {{ b?.roomNumber || b?.roomId || 'N/A' }}
+              #{{ b.bookingId || 'N/A' }}
+              <span *ngIf="b.roomCount && b.roomCount > 1"
+                class="ml-1 text-[10px] font-black bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-full">
+                🏨 {{ b.roomCount }}
               </span>
             </td>
-            
+
+            <!-- Fix Bug 5: Hỗ trợ multi-room như booking-management -->
+            <td class="p-3.5">
+              <span *ngIf="!b.roomNumbers || b.roomNumbers.length <= 1"
+                class="bg-blue-50 text-blue-700 font-bold px-2.5 py-0.5 rounded border border-blue-100 text-xs">
+                Phòng {{ b.roomNumber || 'N/A' }}
+              </span>
+              <div *ngIf="b.roomNumbers && b.roomNumbers.length > 1" class="flex flex-wrap gap-1">
+                <span *ngFor="let rn of b.roomNumbers"
+                  class="bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded border border-indigo-100 text-[11px]">
+                  P.{{ rn }}
+                </span>
+              </div>
+            </td>
+
             <td class="p-3.5 font-semibold text-slate-800">
-              {{ b?.customerName || 'Khách lẻ tại quầy' }}
+              {{ b.customerName || 'Khách lẻ tại quầy' }}
             </td>
-            
+
+            <td class="p-3.5 text-slate-500 text-xs">📞 {{ b.customerPhone || 'Không có' }}</td>
+
             <td class="p-3.5 text-slate-500 text-xs">
-              📞 {{ b?.customerPhone || b?.phone || 'Không có' }}
+              {{ b.checkInDate | date:'dd/MM/yyyy' }} ➜ {{ b.checkOutDate | date:'dd/MM/yyyy' }}
             </td>
-            
-            <td class="p-3.5 text-slate-500 text-xs">
-              {{ b?.checkInDate | date:'dd/MM/yyyy' }} ➜ {{ b?.checkOutDate | date:'dd/MM/yyyy' }}
-            </td>
-            
+
+            <!-- Fix Bug 6: Dùng đúng field finalAmount từ BookingResponseDTO -->
             <td class="p-3.5 text-right font-bold text-slate-800 text-base">
-              {{ (b?.totalPrice !== undefined && b?.totalPrice !== null ? b?.totalPrice : (b?.finalAmount || 0)) | number:'1.0-0' }} ₫
+              {{ (b.finalAmount || 0) | number:'1.0-0' }} ₫
             </td>
-            
+
+            <!-- Fix Bug 6: Dùng đúng field bookingStatus -->
             <td class="p-3.5 text-center">
-              <span class="inline-block text-[11px] font-bold px-2.5 py-1 rounded-full border" 
+              <span class="inline-block text-[11px] font-bold px-2.5 py-1 rounded-full border"
                 [ngClass]="{
-                  'bg-emerald-50 text-emerald-700 border-emerald-200': b?.status === 'CONFIRMED' || b?.status === 'COMPLETED' || b?.status === 'SUCCESS',
-                  'bg-blue-50 text-blue-600 border-blue-200/60': b?.status === 'CHECK_IN',
-                  'bg-slate-100 text-slate-500 border-slate-200 bg-slate-50': b?.status === 'CHECK_OUT' || b?.bookingStatus === 'CHECK_OUT',
-                  'bg-amber-50 text-amber-700 border-amber-200/60': b?.status === 'PENDING',
-                  'bg-rose-50 text-rose-700 border-rose-200': b?.status === 'CANCELLED' || b?.status === 'CANCELED'
+                  'bg-amber-50 text-amber-700 border-amber-200': b.bookingStatus === 'PENDING',
+                  'bg-emerald-50 text-emerald-700 border-emerald-200': b.bookingStatus === 'CONFIRMED',
+                  'bg-blue-50 text-blue-700 border-blue-200': b.bookingStatus === 'CHECK_IN',
+                  'bg-slate-100 text-slate-500 border-slate-200': b.bookingStatus === 'CHECK_OUT',
+                  'bg-rose-50 text-rose-700 border-rose-200': b.bookingStatus === 'CANCELLED'
                 }">
-                
-                <ng-container [ngSwitch]="b?.status || b?.bookingStatus">
-                  <span *ngSwitchCase="'PENDING'">⏳ Chờ duyệt</span>
-                  <span *ngSwitchCase="'CONFIRMED'">🚪 Đã xác nhận</span>
+                <ng-container [ngSwitch]="b.bookingStatus">
+                  <span *ngSwitchCase="'PENDING'">⏳ Chờ thanh toán</span>
+                  <span *ngSwitchCase="'CONFIRMED'">✅ Đã xác nhận</span>
                   <span *ngSwitchCase="'CHECK_IN'">🔑 Đang ở</span>
                   <span *ngSwitchCase="'CHECK_OUT'">🚪 Đã trả phòng</span>
-                  <span *ngSwitchCase="'COMPLETED'">✅ Hoàn thành</span>
-                  <span *ngSwitchCase="'SUCCESS'">✅ Hoàn thành</span>
                   <span *ngSwitchCase="'CANCELLED'">❌ Đã hủy</span>
-                  <span *ngSwitchCase="'CANCELED'">❌ Đã hủy</span>
-                  <span *ngSwitchDefault>⏳ Đang chờ ({{ b?.status || b?.bookingStatus || 'PENDING' }})</span>
+                  <span *ngSwitchDefault>{{ b.bookingStatus }}</span>
                 </ng-container>
               </span>
             </td>
@@ -188,9 +358,10 @@
       </table>
     </div>
 
-    <div *ngIf="!filteredBookings || filteredBookings.length === 0" class="text-center py-12 bg-slate-50/40 rounded-xl border border-dashed border-slate-200">
+    <div *ngIf="!filteredBookings || filteredBookings.length === 0"
+      class="text-center py-12 bg-slate-50/40 rounded-xl border border-dashed border-slate-200">
       <span class="text-3xl block mb-2">📭</span>
-      <p class="text-slate-400 text-sm font-medium">Không tìm thấy dữ liệu đơn đặt phòng nào trùng khớp với mốc lọc đã chọn.</p>
+      <p class="text-slate-400 text-sm font-medium">Không có đơn đặt phòng nào khớp với bộ lọc đã chọn.</p>
     </div>
   </div>
 

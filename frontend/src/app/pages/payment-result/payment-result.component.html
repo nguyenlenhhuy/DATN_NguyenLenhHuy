@@ -1,0 +1,76 @@
+<div class="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+  <div class="bg-white rounded-2xl shadow-lg border border-slate-200 max-w-md w-full p-8 text-center">
+
+    <!-- Loading -->
+    <ng-container *ngIf="state === 'loading'">
+      <div class="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+      <h2 class="text-xl font-bold text-slate-700 mb-2">Đang xác nhận thanh toán...</h2>
+      <p class="text-slate-500 text-sm">Vui lòng chờ trong giây lát</p>
+    </ng-container>
+
+    <!-- Success -->
+    <ng-container *ngIf="state === 'success'">
+      <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+        </svg>
+      </div>
+      <h2 class="text-2xl font-bold text-green-600 mb-2">Thanh toán thành công!</h2>
+      <p class="text-slate-600 text-sm mb-1">{{ message }}</p>
+      <p *ngIf="bookingId" class="text-slate-400 text-xs mb-6">Mã đơn: <strong class="text-slate-600">#{{ bookingId }}</strong></p>
+      <div class="flex gap-3 justify-center mt-4">
+        <button (click)="goToHistory()"
+          class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition active:scale-95">
+          Xem đơn đặt phòng
+        </button>
+        <button (click)="goToHome()"
+          class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-5 py-2.5 rounded-lg text-sm transition active:scale-95">
+          Về trang chủ
+        </button>
+      </div>
+    </ng-container>
+
+    <!-- Cancelled -->
+    <ng-container *ngIf="state === 'cancelled'">
+      <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <svg class="w-8 h-8 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+        </svg>
+      </div>
+      <h2 class="text-xl font-bold text-amber-600 mb-2">Đã hủy thanh toán</h2>
+      <p class="text-slate-500 text-sm mb-6">{{ message }}</p>
+      <div class="flex gap-3 justify-center">
+        <button (click)="goToHistory()"
+          class="bg-amber-500 hover:bg-amber-600 text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition active:scale-95">
+          Xem lịch sử đặt phòng
+        </button>
+        <button (click)="goToHome()"
+          class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-5 py-2.5 rounded-lg text-sm transition active:scale-95">
+          Về trang chủ
+        </button>
+      </div>
+    </ng-container>
+
+    <!-- Error -->
+    <ng-container *ngIf="state === 'error'">
+      <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </div>
+      <h2 class="text-xl font-bold text-red-600 mb-2">Lỗi xác nhận thanh toán</h2>
+      <p class="text-slate-500 text-sm mb-6">{{ message }}</p>
+      <div class="flex gap-3 justify-center">
+        <button (click)="goToHistory()"
+          class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition active:scale-95">
+          Kiểm tra lịch sử đặt phòng
+        </button>
+        <button (click)="goToHome()"
+          class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-5 py-2.5 rounded-lg text-sm transition active:scale-95">
+          Về trang chủ
+        </button>
+      </div>
+    </ng-container>
+
+  </div>
+</div>

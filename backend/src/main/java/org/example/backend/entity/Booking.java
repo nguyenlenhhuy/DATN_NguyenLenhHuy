@@ -40,6 +40,9 @@ public class Booking {
     @Column(name = "customer_phone", length = 15)
     private String customerPhone;
 
+    @Column(name = "customer_email", length = 100)
+    private String customerEmail;
+
     @Column(name = "check_in_date", nullable = false)
     private LocalDate checkInDate;
 

@@ -11,29 +11,47 @@ import { AuthService } from '../../services/auth.service';
 })
 export class HeaderComponent implements OnInit {
   isDropdownOpen = false;
+  isMobileMenuOpen = false;
+  isScrolled = false;
 
   constructor(public authService: AuthService, private router: Router) {}
 
   ngOnInit(): void {}
+
+  @HostListener('window:scroll')
+  onWindowScroll(): void {
+    this.isScrolled = window.scrollY > 30;
+  }
 
   closeDropdown(): void {
     this.isDropdownOpen = false;
   }
 
   toggleDropdown(event?: Event): void {
-    if (event) {
-      event.stopPropagation(); 
-    }
+    if (event) event.stopPropagation();
     this.isDropdownOpen = !this.isDropdownOpen;
+    if (this.isDropdownOpen) this.isMobileMenuOpen = false;
+  }
+
+  toggleMobileMenu(): void {
+    this.isMobileMenuOpen = !this.isMobileMenuOpen;
+    if (this.isMobileMenuOpen) this.isDropdownOpen = false;
+  }
+
+  closeMobileMenu(): void {
+    this.isMobileMenuOpen = false;
   }
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent) {
     const target = event.target as HTMLElement;
-    const dropdownElement = document.getElementById('userDropdownBlock');
-    
-    if (dropdownElement && !dropdownElement.contains(target)) {
+    const dropdownEl = document.getElementById('userDropdownBlock');
+    if (dropdownEl && !dropdownEl.contains(target)) {
       this.isDropdownOpen = false;
+    }
+    const headerEl = document.querySelector('header');
+    if (headerEl && !headerEl.contains(target)) {
+      this.isMobileMenuOpen = false;
     }
   }
 
@@ -48,15 +66,18 @@ export class HeaderComponent implements OnInit {
   logout(): void {
     if (!confirm('Bạn có chắc chắn muốn đăng xuất?')) return;
     this.isDropdownOpen = false;
+    this.isMobileMenuOpen = false;
     this.authService.logout();
   }
 
   onRoomsClick(): void {
     this.router.navigate(['/rooms']);
+    this.isMobileMenuOpen = false;
   }
 
   onHistoryClick(): void {
     this.isDropdownOpen = false;
+    this.isMobileMenuOpen = false;
     this.router.navigate(['/history']);
   }
 }

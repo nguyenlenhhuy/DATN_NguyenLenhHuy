@@ -1,6 +1,7 @@
 package org.example.backend.service;
 
 import jakarta.persistence.criteria.*;
+import org.example.backend.dto.response.BookedDateRangeDTO;
 import org.example.backend.dto.response.RoomResponseDTO;
 import org.example.backend.dto.request.RoomSearchRequest;
 import org.example.backend.dto.response.RoomTypeDetailResponse;
@@ -8,6 +9,8 @@ import org.example.backend.entity.BookingDetail;
 import org.example.backend.entity.Room;
 import org.example.backend.entity.RoomType;
 import org.example.backend.entity.RoomImage;
+import org.example.backend.repository.BookingRepository;
+import org.example.backend.repository.ReviewRepository;
 import org.example.backend.repository.RoomRepository;
 import org.example.backend.repository.RoomTypeRepository;
 import org.springframework.data.jpa.domain.Specification;
@@ -15,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -26,10 +30,15 @@ public class RoomService {
 
     private final RoomRepository roomRepository;
     private final RoomTypeRepository roomTypeRepository;
+    private final ReviewRepository reviewRepository;
+    private final BookingRepository bookingRepository;
 
-    public RoomService(RoomRepository roomRepository, RoomTypeRepository roomTypeRepository) {
+    public RoomService(RoomRepository roomRepository, RoomTypeRepository roomTypeRepository,
+                       ReviewRepository reviewRepository, BookingRepository bookingRepository) {
         this.roomRepository = roomRepository;
         this.roomTypeRepository = roomTypeRepository;
+        this.reviewRepository = reviewRepository;
+        this.bookingRepository = bookingRepository;
     }
 
     public RoomResponseDTO getRoomById(Long id) {
@@ -50,9 +59,17 @@ public class RoomService {
             // Tránh trùng lặp Join bằng cách khai báo rõ ràng (Explicit Join)
             Join<Room, RoomType> roomTypeJoin = root.join("roomType", JoinType.INNER);
 
-            // 1. Chỉ lấy phòng chưa bị xóa và đang ở trạng thái CÓ THỂ ĐẶT
+            // 1. Chỉ lấy phòng chưa bị xóa
             predicates.add(cb.equal(root.get("isDeleted"), false));
-            predicates.add(cb.equal(root.get("status"), org.example.backend.entity.enums.RoomStatus.AVAILABLE));
+            // BUG FIX: Khi có khoảng ngày → chỉ loại phòng MAINTENANCE (đang sửa chữa, không thể đặt);
+            // trạng thái vận hành hiện tại (OCCUPIED/DIRTY/RESERVED) không cản khách đặt tương lai.
+            // Subquery bên dưới đã kiểm tra trùng lịch booking thực tế.
+            // Khi KHÔNG có ngày → chỉ hiển thị phòng đang AVAILABLE (duyệt thông thường).
+            if (request.getCheckIn() != null && request.getCheckOut() != null) {
+                predicates.add(cb.notEqual(root.get("status"), org.example.backend.entity.enums.RoomStatus.MAINTENANCE));
+            } else {
+                predicates.add(cb.equal(root.get("status"), org.example.backend.entity.enums.RoomStatus.AVAILABLE));
+            }
 
             // 2. Xử lý khoảng thời gian (Fix lỗi dính Booking đã hủy)
             if (request.getCheckIn() != null && request.getCheckOut() != null) {
@@ -149,6 +166,18 @@ public class RoomService {
                     .collect(Collectors.toList());
         }
 
+        Double avgRating = null;
+        Long revCount = 0L;
+        if (room.getHotel() != null) {
+            try {
+                Object[] stats = reviewRepository.getRatingStats(room.getHotel().getId());
+                if (stats != null && stats.length >= 2) {
+                    if (stats[0] != null) revCount = ((Number) stats[0]).longValue();
+                    if (stats[1] != null) avgRating = ((Number) stats[1]).doubleValue();
+                }
+            } catch (Exception ignored) {}
+        }
+
         return RoomResponseDTO.builder()
                 .roomId(room.getId())
                 .roomNumber(room.getRoomNumber())
@@ -168,6 +197,8 @@ public class RoomService {
                 .maxGuests(room.getRoomType() != null ? room.getRoomType().getMaxOccupancy() : null)
                 .hotelAddress(room.getHotel() != null ? room.getHotel().getAddress() : null)
                 .hotelStarRating(room.getHotel() != null ? room.getHotel().getStarRating() : null)
+                .averageRating(avgRating)
+                .reviewCount(revCount)
                 .build();
     }
 
@@ -198,6 +229,17 @@ public class RoomService {
                 .endDate(promotion.getEndDate())
                 .isActive(promotion.getIsActive())
                 .build();
+    }
+
+    /**
+     * Trả về danh sách khoảng ngày đã đặt (pending/confirmed/check-in) của một phòng.
+     * Frontend dùng để vẽ lịch phòng và cảnh báo trùng ngày trước khi đặt.
+     */
+    public List<BookedDateRangeDTO> getBookedRanges(Long roomId, LocalDate from, LocalDate to) {
+        return bookingRepository.findBookedRangesForRoom(roomId, from, to)
+                .stream()
+                .map(row -> new BookedDateRangeDTO((LocalDate) row[0], (LocalDate) row[1]))
+                .collect(Collectors.toList());
     }
 
 }

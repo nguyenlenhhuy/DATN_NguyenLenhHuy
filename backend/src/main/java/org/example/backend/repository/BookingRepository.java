@@ -67,4 +67,24 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             "AND b.createdAt < :threshold")
     int cancelExpiredBookings(@Param("threshold") LocalDateTime threshold);
 
+    @Query("SELECT COUNT(b) FROM Booking b WHERE b.createdAt >= :start AND b.createdAt < :end")
+    long countBookingsCreatedBetween(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+    /**
+     * Trả về danh sách khoảng ngày đã đặt của một phòng trong khoảng [from, to).
+     * Dùng để hiển thị lịch phòng trên trang chi tiết.
+     */
+    @Query("SELECT b.checkInDate, b.checkOutDate FROM Booking b " +
+           "JOIN b.bookingDetails bd " +
+           "WHERE bd.room.id = :roomId " +
+           "AND b.status IN (org.example.backend.entity.enums.BookingStatus.PENDING, " +
+           "                 org.example.backend.entity.enums.BookingStatus.CONFIRMED, " +
+           "                 org.example.backend.entity.enums.BookingStatus.CHECK_IN) " +
+           "AND b.checkOutDate > :from " +
+           "AND b.checkInDate < :to " +
+           "ORDER BY b.checkInDate ASC")
+    List<Object[]> findBookedRangesForRoom(@Param("roomId") Long roomId,
+                                           @Param("from") LocalDate from,
+                                           @Param("to") LocalDate to);
+
 }
